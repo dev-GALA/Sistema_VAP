@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\fcsainz\\\\WorkspaceGALA\\\\Sistema_VAP\\\\Sistema_VAP\")",
+      "Bash(rm \"VAP_script_secretarias/VAP_Scripts Formulario Horas Extras Secretarias.js\")",
+      "Bash(diff \"VAP_script_secretarias/VAP_Script Volcado Horas Extras Secretarias.js\" \"VAP_script_secretarias/VAP_Script_Actualizacion_Automatica_Secretarias.js\")",
+      "Bash(rm \"VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.js\")",
+      "Bash(mv \"VAP_scripts_profesores/VAP_Script_Actualización_Automatica_Profesores.js\" \"VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.js\")"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 # Sistema Valoración Actividad Productiva (VAP)
 **ADR – Architecture Decision Record**
-**Versión:** 1.3
-**Fecha última actualización:** 24 Marzo 2026
+**Versión:** 1.5
+**Fecha última actualización:** 25 Mayo 2026
 
 
 ## 1.Antecedentes
@@ -38,6 +38,8 @@ Para poder avanzar de forma ordenada, el proyecto se estructura en fases, mejora
 | DT-04 | Vincular el formulario de Horas Extras directamente a `VAP_Secretarias` | Evita tener que actualizar el formulario manualmente cada vez que hay altas o bajas de personal | Lista manual en el formulario |
 | DT-05 | Gestionar envíos por mes + año en el timestamp | Hace el sistema duradero ante el paso de los años sin necesidad de reestructurar las hojas | Solo mes sin año |
 | DT-06 | Separar la BBDD de personal (`VAP_BBDD_Personal`) del resto de hojas operativas | Centraliza las altas/bajas en un único punto, reduciendo errores de sincronización | Mantener listas dispersas por cada hoja operativa |
+| DT-07 | Desplegar la sincronización de cada colectivo (secretarias / profesores) en un proyecto Apps Script independiente | Los scripts gemelos comparten nombres globales (`onFormSubmit`, `FORM_ID`…); en un mismo proyecto colisionarían | Un único proyecto Apps Script con todo el código |
+| DT-08 | Reutilizar el patrón de sincronización de secretarias como gemelo para profesores | Mismo comportamiento ya probado; minimiza el coste de desarrollo y mantenimiento | Diseñar un mecanismo distinto para cada colectivo |
 
 
 ---
@@ -56,7 +58,9 @@ VAP
 │       ├── Formulario Horas Extra Secretarias (EXTRA SECRETARIAS 2026)
 │       └── Script Volcado → VINCULACIÓN GASTOS PERSONAL
 └── Profesores
-    └── [Pendiente – Ver Fases]
+    └── Formularios de Profesores
+        ├── Formulario de Profesores (pregunta "SELECCIONE EL PROFESOR")
+        └── Script Sincronización → VAP_Profesores (lista dinámica + ID_Profesor)
 ```
 
 ### 4.2 Recursos
@@ -70,6 +74,7 @@ VAP
 | Webapp Reporte | `VAP_index_Reportar_Complementos_Secretarias` | Permite reporte masivo de complementos por responsable |
 | Webapp Consulta | `VAP_index_Consulta_Complementos_Secretarias` | Permite a responsables consultar sus envíos realizados |
 | Formulario HH.EE. Secretarias | `EXTRA SECRETARIAS 2026` | Formulario de horas extras vinculado a BBDD |
+| Formulario de Profesores | (pregunta `SELECCIONE EL PROFESOR`) | Formulario que reporta datos de profesores; su desplegable se sincroniza con `VAP_Profesores` |
 
 
 ### 4.3 Scripts
@@ -78,10 +83,10 @@ VAP
 
 | Script | Ubicación GAS | Descripción |
 |--------|--------------|-------------|
-| `Scripts Formulario Horas Extras Secretarias` | Spreadsheet `VAP_BBDD_Personas` | Sincroniza la pregunta lista "SECRETARIA" del formulario `EXTRA SECRETARIAS 2026` con las secretarias activas de `VAP_Secretarias`. Al recibir un envío (`onFormSubmit`), busca el `ID_Secre` por nombre y lo escribe automáticamente en la hoja de respuestas. Incluye control de frecuencia (cache 30 s) y trigger de respaldo horario. |
-| `Script Volcado Horas Extras Secretarias` | Hoja de respuestas de `EXTRA SECRETARIAS 2026` | Vuelca automáticamente (trigger `onFormSubmit`) los datos de horas extras al spreadsheet `VINCULACIÓN GASTOS PERSONAL`. Toma el **último** registro por empleado en caso de duplicados. Usa `LockService` para evitar escrituras concurrentes. |
+| `VAP_Script_Actualizacion_Automatica_Secretarias` | Spreadsheet `VAP_BBDD_Personas` | Sincroniza la pregunta lista "SECRETARIA" del formulario `EXTRA SECRETARIAS 2026` con las secretarias activas de `VAP_Secretarias`. Al recibir un envío (`onFormSubmit`), busca el `ID_Secre` por nombre y lo escribe automáticamente en la hoja de respuestas. Incluye control de frecuencia (cache 30 s) y trigger de respaldo horario. |
+| `VAP_Script Volcado Horas Extras Secretarias` | Hoja de respuestas de `EXTRA SECRETARIAS 2026` | Vuelca automáticamente (trigger `onFormSubmit`) los datos de horas extras al spreadsheet `VINCULACIÓN GASTOS PERSONAL`. Toma el **último** registro por empleado en caso de duplicados. Usa `LockService` para evitar escrituras concurrentes. |
 
-**Columnas volcadas por `Script Volcado Horas Extras Secretarias`:**
+**Columnas volcadas por `VAP_Script Volcado Horas Extras Secretarias`:**
 
 | Concepto | Col. origen (`EXTRA SECRETARIAS 2026`) | Col. destino (`VINCULACIÓN GASTOS PERSONAL`) |
 |----------|----------------------------------------|----------------------------------------------|
@@ -89,7 +94,7 @@ VAP
 | € OTROS EXTRAS | I | AH |
 | Nombre empleado | E | C (clave de cruce) |
 
-**Triggers configurados en `Scripts Formulario Horas Extras Secretarias`:**
+**Triggers configurados en `VAP_Script_Actualizacion_Automatica_Secretarias`:**
 
 | Función | Tipo de trigger | Evento |
 |---------|----------------|--------|
@@ -120,6 +125,25 @@ VAP
 
 **Orden de conceptos en el Excel exportado:** `APTOS`, `FINANCIACIONES`, `RESEÑAS`, `SABADOS_50`, `SABADOS_60`, `HORAS_PUNTOS`
 
+---
+
+#### Sincronización de Profesores
+
+| Script | Ubicación GAS | Descripción |
+|--------|--------------|-------------|
+| `VAP_Script_Actualizacion_Automatica_Profesores` | Proyecto Apps Script independiente, vinculado al formulario de profesores | Gemelo del de secretarias. Sincroniza la pregunta lista "SELECCIONE EL PROFESOR" con los profesores activos (`Alta = TRUE`) de `VAP_Profesores`. Al recibir un envío (`onFormSubmit`), busca el `ID_Profesor` por nombre y lo escribe en la hoja de respuestas. Incluye control de frecuencia (cache 30 s) y trigger de respaldo horario. |
+
+**Triggers configurados en `VAP_Script_Actualizacion_Automatica_Profesores`:**
+
+| Función | Tipo de trigger | Evento |
+|---------|----------------|--------|
+| `onFormSubmit` | `forForm` | Al enviar el formulario |
+| `onSpreadsheetEditTrigger` | `forSpreadsheet` | `onEdit` en `VAP_BBDD_Personas` |
+| `onSpreadsheetChangeTrigger` | `forSpreadsheet` | `onChange` en `VAP_BBDD_Personas` (altas/bajas de filas) |
+| `actualizarPreguntaProfesores` | `timeBased` | Cada hora (respaldo) |
+
+> ⚠️ Debe vivir en un proyecto Apps Script **independiente** del de secretarias (ver DT-07): ambos comparten nombres globales y colisionarían en el mismo proyecto.
+
 
 ### 4.4 Hojas dentro de `VAP_BBDD_Personas`
 
@@ -129,7 +153,7 @@ VAP
 | `VAP_Complementos_Secretarias` | Catálogo de complementos salariales disponibles |
 | `VAP_Responsables` | Listado de responsables (managers) del sistema |
 | `VAP_Responsables_Complementos` | Relación entre responsables y complementos asignados |
-| `VAP_Profesores` | Listado de profesores (uso futuro) |
+| `VAP_Profesores` | Listado de profesores con estado activo/inactivo. Columnas: `Empresa`, `Id_Sage`, `ID_Profesor`, `Nombre`, `Tipología_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` |
 | `Config` | Listado de valores necesarios para script varios |
 
 ---
@@ -156,8 +180,15 @@ VAP
 
 ### FASE 2 – Profesores
 
-- [ ] Revisar y completar la hoja `VAP_Profesores` en `VAP_BBDD_Personas`
-- [ ] Identificar fuentes de datos actuales y su estructura
+#### Fase 2.A – Sincronización de formularios
+
+- [x] Revisión y carga de la hoja `VAP_Profesores` en `VAP_BBDD_Personas` (con estado `Alta`)
+- [x] Sincronización automática del desplegable "SELECCIONE EL PROFESOR" con los profesores activos de `VAP_Profesores` (lista dinámica, sin mantenimiento manual)
+- [x] Escritura automática del `ID_Profesor` en la hoja de respuestas al enviar el formulario
+
+#### Fase 2.B – Pendiente
+
+- [ ] Identificar todas las fuentes de datos actuales de profesores y su estructura
 - [ ] Definir complementos salariales específicos del colectivo
 - [ ] Evaluar reutilización de la webapp de secretarias o necesidad de versión propia
 - [ ] Diseñar el flujo de volcado hacia el cálculo final de nóminas
@@ -180,8 +211,19 @@ VAP
 - Implementación de emails de confirmación y aviso al gestor
 - Desarrollo y despliegue de `VAP_index_Consulta_Complementos_Secretarias`
 - Vinculación del formulario `EXTRA SECRETARIAS 2026` con `VAP_Secretarias`
-- Actualización del script de volcado de horas extras con las nuevas columnas con script `Script Volcado Horas Extras Secretarias`
-- Actualización de validacion de respeustas en formulario `EXTRA SECRETARIAS 2026` con script `Scripts Formulario Horas Extras Secretarias`
+- Actualización del script de volcado de horas extras con las nuevas columnas con script `VAP_Script Volcado Horas Extras Secretarias`
+- Actualización de validación de respuestas en formulario `EXTRA SECRETARIAS 2026` con script `VAP_Script_Actualizacion_Automatica_Secretarias`
+
+### Sesión 3 - 25/05/26
+- Limpieza del repositorio: eliminado el archivo duplicado del script de sincronización del formulario; se conserva `VAP_Script_Actualizacion_Automatica_Secretarias` como nombre único
+- Alineación de los nombres de scripts del ADR con los archivos reales del repositorio (prefijo `VAP_`)
+- Creación de `README.md` con la descripción del proyecto y el mapa de archivos
+
+### Sesión 4 - 25/05/26
+- Desarrollo de `VAP_Script_Actualizacion_Automatica_Profesores` (gemelo del de secretarias) para el formulario de profesores
+- Sincronización del desplegable "SELECCIONE EL PROFESOR" con `VAP_Profesores` (filtrando `Alta = TRUE`) y escritura del `ID_Profesor` en las respuestas
+- Despliegue en un proyecto Apps Script independiente vinculado al formulario; triggers de producción + respaldo horario activos (248 profesores activos cargados en la primera sincronización)
+- Documentación del nuevo script en el ADR y el README
 
 ---
 
@@ -191,8 +233,10 @@ VAP
 |----|---------------------|---------|---------------------------|
 | R-01 | Dependencia total de Google Workspace | Alto | Asumida como decisión corporativa. Documentar exportaciones periódicas |
 | R-02 | Permisos de acceso a la webapp no gestionados por rol de Google | Medio | La webapp valida internamente que el responsable corresponde al complemento |
-| R-03 | Si una secretaria cambia de nombre en BBDD, los registros históricos quedan desvinculados | Medio | Usar siempre `ID_Secre` como clave primaria en lugar del nombre |
-| R-04 | ~~El script de volcado de horas extras es manual (no automático)~~ **RESUELTO** | ~~Medio~~ | El script `Script Volcado Horas Extras Secretarias` tiene trigger `onFormSubmit` activo: el volcado se ejecuta automáticamente al recibir cada envío del formulario |
+| R-03 | Si una persona (secretaria o profesor) cambia de nombre en BBDD, los registros históricos quedan desvinculados y el cruce por nombre del formulario falla | Medio | Usar siempre `ID_Secre` / `ID_Profesor` como clave primaria; mantener nombres únicos por colectivo |
+| R-04 | ~~El script de volcado de horas extras es manual (no automático)~~ **RESUELTO** | ~~Medio~~ | El script `VAP_Script Volcado Horas Extras Secretarias` tiene trigger `onFormSubmit` activo: el volcado se ejecuta automáticamente al recibir cada envío del formulario |
+| R-05 | Los scripts de sincronización de secretarias y profesores comparten nombres globales (`onFormSubmit`, `FORM_ID`…) | Bajo | Desplegar cada uno en un proyecto Apps Script independiente (ver DT-07); no pegar ambos en el mismo proyecto |
+| R-06 | El cruce por nombre exige que el `Nombre` de `VAP_Profesores` coincida con el texto del desplegable; al sincronizar, la lista del formulario se sobrescribe con la columna `Nombre` | Bajo | Mantener `Nombre` con el formato deseado (`APELLIDOS, NOMBRE`) y no editar la lista del formulario a mano |
 
 ---
 
@@ -205,5 +249,6 @@ VAP
 | Complemento salarial | Concepto variable que se suma al salario base mensual |
 | Responsable / Manager | Persona autorizada a reportar un complemento concreto |
 | `ID_Secre` | Identificador único de cada secretaria en la BBDD |
+| `ID_Profesor` | Identificador único de cada profesor en la BBDD |
 | Webapp | Aplicación web generada con Google Apps Script |
 | HH.EE. | Horas Extras |
