@@ -13,7 +13,10 @@ Está construido sobre **Google Workspace**: Google Sheets como base de datos, G
 ```
 Sistema_VAP
 ├── ADR.md                          # Architecture Decision Record (documento de referencia)
+├── CHANGELOG.md                    # Registro de cambios (Keep a Changelog)
 ├── README.md                       # Este archivo
+├── scripts_generales/              # Scripts transversales (no atados a un único colectivo)
+│   └── VAP_script_export_SAGE.js   # Cálculos sobre la exportación SAGE laboral (menú "VAP_Acciones")
 ├── VAP_script_secretarias/         # FASE 1 — Secretarias (en producción)
 │   ├── VAP_Script_Actualizacion_Automatica_Secretarias.js
 │   ├── VAP_Script Volcado Horas Extras Secretarias.js
@@ -69,6 +72,18 @@ Sistema_VAP
 | [script-netos.js](VAP_scripts_profesores/script-netos.js) | Vuelca el **neto** de la nómina al destino (columna T). |
 | [script-brutos.js](VAP_scripts_profesores/script-brutos.js) | Vuelca **bruto + IRPF** (importe y %) al destino (columnas L, R, S). |
 | `script-netos-v1.js` / `script-brutos-v1.js` | Copias **idénticas** byte a byte de los anteriores (backups). |
+
+---
+
+## Scripts generales
+
+Scripts transversales que operan sobre datos comunes a varios colectivos (p. ej. la exportación de SAGE laboral), agrupados en `scripts_generales/`.
+
+| Archivo | Dónde vive en GAS | Qué hace |
+|---------|-------------------|----------|
+| [VAP_script_export_SAGE.js](scripts_generales/VAP_script_export_SAGE.js) | Apps Script **enlazado** al Spreadsheet que contiene la pestaña `bbdd_export_sage_laboral` | Herramienta de cálculos con menú propio **"VAP_Acciones"**, ampliable por partes. Acción **"Calculo Salario Base"**: localiza por nombre de cabecera `TOTAL_BRUTO`, `SEGURO_MEDICO` y `COBE`, pasa a positivo los dos descuentos y los suma al bruto → escribe `salario_base_bruto` en la columna **R** (`= TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE|`). Acción **"Envio Datos (futuro)"**: placeholder, por desarrollar. |
+
+> El menú `onOpen` está preparado para crecer con más acciones (`addItem`) o submenús (`addSubMenu`). Las columnas de entrada se localizan **por nombre de cabecera** (robusto ante reordenación); solo la columna de resultado (R) es de posición fija.
 
 ---
 

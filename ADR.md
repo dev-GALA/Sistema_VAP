@@ -1,6 +1,6 @@
 # Sistema Valoración Actividad Productiva (VAP)
 **ADR – Architecture Decision Record**
-**Versión:** 1.5
+**Versión:** 1.6
 **Fecha última actualización:** 25 Mayo 2026
 
 
@@ -40,6 +40,8 @@ Para poder avanzar de forma ordenada, el proyecto se estructura en fases, mejora
 | DT-06 | Separar la BBDD de personal (`VAP_BBDD_Personal`) del resto de hojas operativas | Centraliza las altas/bajas en un único punto, reduciendo errores de sincronización | Mantener listas dispersas por cada hoja operativa |
 | DT-07 | Desplegar la sincronización de cada colectivo (secretarias / profesores) en un proyecto Apps Script independiente | Los scripts gemelos comparten nombres globales (`onFormSubmit`, `FORM_ID`…); en un mismo proyecto colisionarían | Un único proyecto Apps Script con todo el código |
 | DT-08 | Reutilizar el patrón de sincronización de secretarias como gemelo para profesores | Mismo comportamiento ya probado; minimiza el coste de desarrollo y mantenimiento | Diseñar un mecanismo distinto para cada colectivo |
+| DT-09 | Acumular respuestas de formulario por mes/año en lugar de reemplazar por la última | Preservar datos parciales de múltiples envíos del mismo profesor; cada mes es un ciclo independiente | "Último gana entero"; mezclar meses sin distinguir |
+| DT-10 | Agrupar los cálculos sobre la exportación de SAGE en un único Apps Script enlazado con menú propio ("VAP_Acciones"), ampliable por acciones/submenús, y localizar las columnas **por nombre de cabecera** (no por índice fijo) | Un único punto de entrada para el usuario, fácil de extender por partes sin tocar la estructura; el cruce por cabecera resiste reordenaciones de columnas en el export | Un script/proyecto por cálculo; fórmulas nativas en celdas; localizar columnas por letra/posición fija |
 
 
 ---
@@ -145,7 +147,95 @@ VAP
 > ⚠️ Debe vivir en un proyecto Apps Script **independiente** del de secretarias (ver DT-07): ambos comparten nombres globales y colisionarían en el mismo proyecto.
 
 
-### 4.4 Hojas dentro de `VAP_BBDD_Personas`
+#### Volcado de Actividad de Profesores (DT-09)
+
+| Script | Ubicación GAS | Descripción |
+|--------|--------------|-------------|
+| `VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26` | Hoja de respuestas del formulario `REGISTRO DE ACTIVIDAD DE PROFESORES 26 (respuestas)` | **Volcado con ACUMULACIÓN por mes/año** (DT-09): toma las múltiples respuestas de cada profesor durante un mes y acumula los datos columna a columna. Para cada columna, la última celda **no vacía** gana; una celda vacía **no borra** lo anterior; el `0` se considera dato. Agrupa por `(nombre + mes seleccionado + año de marca temporal)` y escribe el grupo más reciente de cada profesor en `VINCULACIÓN GASTOS PERSONAL`. Usa `LockService` para evitar escrituras concurrentes. Trigger: `onFormSubmit` al enviar formulario. |
+
+**Columnas origen (`REGISTRO DE ACTIVIDAD DE PROFESORES 26 - Respuestas`):**
+
+| Columna | Contenido | Uso |
+|---------|-----------|-----|
+| A | Marca temporal | Se extrae el **año**; se normaliza con el mes para agrupar |
+| C | SELECCIONE EL MES | Se usa para agrupar (junto con nombre y año); valores típicos: "MAYO", "JUNIO", etc. |
+| E | Nombre del profesor | Clave principal de agrupación y búsqueda en destino |
+| F..BQ | Datos de actividades/gastos (64 columnas) | Se acumulan dentro de cada (profesor, mes, año) |
+
+**Columnas destino (`VINCULACIÓN GASTOS PERSONAL - Hoja 1`):**
+
+| Rango | Contenido | Origen |
+|-------|-----------|--------|
+| C | Nombre del profesor | Búsqueda y cruce |
+| AC..CN | Datos acumulados (64 columnas) | Mapeo directo F..BQ → AC..CN |
+
+**Lógica de acumulación:**
+
+1. Lee todas las respuestas del origen (filas 2 en adelante).
+2. Agrupa por `(normalizeKey(nombre) + normalizeKey(mes_seleccionado) + año_de_marca_temporal)`.
+3. Dentro de cada grupo (en orden cronológico):
+   - Por cada columna mapeada: la **última celda no vacía** es el valor final.
+   - Una celda vacía no sobrescribe (preserva lo anterior).
+   - El valor `0` se trata como dato válido.
+4. Por profesor, reduce a **un** grupo: el más reciente (por timestamp).
+5. En el destino: si el profesor existe, actualiza su fila; si no existe, crea una fila nueva.
+
+**Funciones auxiliares:**
+
+| Función | Parámetro | Retorna | Descripción |
+|---------|-----------|---------|------------|
+| `isEmpty(v)` | Valor de celda | boolean | Determina si está "vacía". Trata `null`, `undefined`, `''` y espacios como vacío; **PERO `0` es dato válido**. |
+| `getYear(v)` | Marca temporal (Date o string) | number/string | Extrae el año. Si es un Date, usa `.getFullYear()`; si es string, intenta parsear. Si falla, devuelve `''`. |
+| `normalizeKey(name)` | Nombre o mes | string | Normaliza para comparación: trim, espacios múltiples a uno, minúsculas, sin tildes/diacríticos. Ejemplo: "José GARCÍA" → "jose garcia". |
+
+**Triggers configurados:**
+
+| Función | Tipo | Evento |
+|---------|------|--------|
+| `onFormSubmit` | `forForm` | Al enviar el formulario `REGISTRO DE ACTIVIDAD DE PROFESORES 26` |
+
+**Nota de futuro (mejora propuesta):**
+- Ampliar el destino a una fila por (profesor, mes) para mantener histórico mensual.
+- Validar explícitamente que el mes elegido coincide con el año de la marca temporal.
+
+
+#### Cálculos sobre Exportación SAGE Laboral (transversal, DT-10)
+
+| Script | Ubicación GAS | Descripción |
+|--------|--------------|-------------|
+| `VAP_script_export_SAGE` (`scripts_generales/VAP_script_export_SAGE.js`) | Apps Script **enlazado** al Spreadsheet que contiene la pestaña `bbdd_export_sage_laboral` | Herramienta de cálculos con menú propio **"VAP_Acciones"**, ampliable por partes (una acción = una función + un ítem de menú). Las columnas de entrada se localizan **por nombre de cabecera** (fila 1); solo la columna de resultado es de posición fija. |
+
+**Acciones del menú `VAP_Acciones`:**
+
+| Ítem de menú | Función GAS | Descripción |
+|--------------|-------------|-------------|
+| Calculo Salario Base | `calcularSalarioBaseBruto` | Pasa a positivo (valor absoluto) `SEGURO_MEDICO` y `COBE` y los suma a `TOTAL_BRUTO`; escribe el resultado en la columna **R** con cabecera `salario_base_bruto`. Fórmula: `salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE|`. Las filas vacías en las tres columnas no se modifican. |
+| Envio Datos (futuro) | `enviarDatosFuturo` | Placeholder; por ahora solo avisa de que está en desarrollo. |
+
+**Columnas (pestaña `bbdd_export_sage_laboral`, cabeceras en fila 1):**
+
+| Cabecera | Rol | Transformación |
+|----------|-----|----------------|
+| `TOTAL_BRUTO` | Base del cálculo | Se usa tal cual |
+| `SEGURO_MEDICO` | Descuento a reincorporar | Valor absoluto (a positivo) |
+| `COBE` | Descuento a reincorporar | Valor absoluto (a positivo) |
+| `salario_base_bruto` (col. **R**) | Resultado | Se escribe (cabecera incluida) |
+
+**Funciones auxiliares:**
+
+| Función | Parámetro | Retorna | Descripción |
+|---------|-----------|---------|------------|
+| `normalizarCabecera_(h)` | Cabecera | string | Normaliza para comparar: trim, espacios múltiples a uno, mayúsculas, sin tildes/diacríticos. |
+| `aNumero_(v)` | Valor de celda | number/null | Convierte a número; admite texto en formato es-ES (`"1.234,56 €"` → `1234.56`). Devuelve `null` si está vacío o no es interpretable. |
+
+**Trigger configurado:**
+
+| Función | Tipo | Evento |
+|---------|------|--------|
+| `onOpen` | simple trigger | Al abrir el Spreadsheet (crea el menú `VAP_Acciones`) |
+
+
+
 
 | Hoja | Propósito |
 |------|-----------|
@@ -186,12 +276,13 @@ VAP
 - [x] Sincronización automática del desplegable "SELECCIONE EL PROFESOR" con los profesores activos de `VAP_Profesores` (lista dinámica, sin mantenimiento manual)
 - [x] Escritura automática del `ID_Profesor` en la hoja de respuestas al enviar el formulario
 
-#### Fase 2.B – Pendiente
+#### Fase 2.B – En curso
 
+- [x] Inicio del flujo de cálculo de nóminas sobre la exportación SAGE laboral: script transversal `VAP_script_export_SAGE` (menú "VAP_Acciones") con la primera acción **Calculo Salario Base** (`salario_base_bruto`)
 - [ ] Identificar todas las fuentes de datos actuales de profesores y su estructura
 - [ ] Definir complementos salariales específicos del colectivo
 - [ ] Evaluar reutilización de la webapp de secretarias o necesidad de versión propia
-- [ ] Diseñar el flujo de volcado hacia el cálculo final de nóminas
+- [ ] Completar el flujo de volcado hacia el cálculo final de nóminas (resto de acciones del menú, incl. "Envio Datos")
 
 ---
 
@@ -225,7 +316,29 @@ VAP
 - Despliegue en un proyecto Apps Script independiente vinculado al formulario; triggers de producción + respaldo horario activos (248 profesores activos cargados en la primera sincronización)
 - Documentación del nuevo script en el ADR y el README
 
----
+### Sesión 5 - 25/05/26
+- **Modificación de `VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26`:** cambio de arquitectura de "último gana entero" a **acumulación por (profesor + mes + año)** (DT-09)
+  - Agrupa respuestas por nombre normalizado + mes seleccionado (col C) + año de marca temporal (col A)
+  - Acumula columna a columna: última celda no vacía gana; vacío no pisa; 0 es dato válido
+  - Reduce a un grupo por profesor: el más reciente (por timestamp)
+  - Escribe en destino el grupo más reciente, preservando datos parciales de múltiples envíos
+- Adición de funciones auxiliares: `isEmpty(v)` e `getYear(v)` para mejorar robustez
+- Implementación de sincronización con `LockService` (30s timeout) para evitar escrituras concurrentes
+- Creación de backup: `backup_VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js`
+- Documentación completa:
+  - `README.md` en la carpeta de scripts: guía de instalación, uso, lógica, troubleshooting
+  - Decisión técnica DT-09 en el ADR con contexto, rationale, alternativas consideradas y consecuencias
+  - Sección 4.3.1 del ADR con descripción detallada del script, columnas, funciones auxiliares y triggers
+
+### Sesión 6 - 25/05/26
+- **Nuevo script transversal `scripts_generales/VAP_script_export_SAGE.js`** (Apps Script enlazado al Spreadsheet con la pestaña `bbdd_export_sage_laboral`): herramienta de cálculos con menú propio **"VAP_Acciones"**, concebida para crecer por partes
+  - Acción **Calculo Salario Base** (`calcularSalarioBaseBruto`): pasa a positivo `SEGURO_MEDICO` y `COBE` y los suma a `TOTAL_BRUTO` → `salario_base_bruto` en la columna R (`= TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE|`)
+  - Acción **Envio Datos (futuro)** (`enviarDatosFuturo`): placeholder, por desarrollar
+  - Localización de columnas **por nombre de cabecera** (DT-10); funciones auxiliares `normalizarCabecera_` y `aNumero_` (parseo de números en formato es-ES)
+- Decisión técnica **DT-10** (script único con menú propio y cruce por cabecera) añadida al ADR
+- Documentación: entrada en `CHANGELOG.md`, sección "Scripts generales" en `README.md` (con árbol del repo actualizado) y subsección 4.3 del ADR con script, acciones, columnas y funciones auxiliares
+
+
 
 ## 7. Riesgos y Limitaciones Conocidas
 
