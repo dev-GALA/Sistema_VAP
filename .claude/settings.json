@@ -6,7 +6,18 @@
       "Bash(git ls-tree *)",
       "mcp__claude_ai_Google_Drive__read_file_content",
       "Bash(node --check scripts_generales/VAP_script_export_SAGE.js)",
-      "Bash(grep -c \"logs\\\\` / \\\\`errores\\\\|hojas \\\\`logs\\\\|Run ID\" README.md ADR.md CHANGELOG.md)"
+      "Bash(grep -c \"logs\\\\` / \\\\`errores\\\\|hojas \\\\`logs\\\\|Run ID\" README.md ADR.md CHANGELOG.md)",
+      "Bash(git config *)",
+      "Bash(echo \"user.name : $\\(git config user.name\\)\")",
+      "Bash(echo \"user.email: $\\(git config user.email\\)\")",
+      "Bash(command -v gh)",
+      "Bash(gh auth *)",
+      "Bash(timeout 15 ssh -T -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10 git@github.com)",
+      "Bash(echo \"  user.name : $\\(git config user.name\\)\")",
+      "Bash(echo \"  user.email: $\\(git config user.email\\)\")",
+      "Bash(git remote *)",
+      "Bash(timeout 20 git ls-remote origin)",
+      "Bash(timeout 15 ssh -T -o BatchMode=yes git@github.com)"
     ],
     "additionalDirectories": [
       "/tmp"
