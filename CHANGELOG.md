@@ -52,8 +52,8 @@ formulario de profesores y rediseño del volcado del registro de actividad para 
   - **Acción "Calculo Salario Base"** (`calcularSalarioBaseBruto`): localiza por **nombre de
     cabecera** las columnas `TOTAL_BRUTO`, `SEGURO_MEDICO` y `COBE`; transforma a positivo
     (valor absoluto) los dos descuentos y los suma al total bruto. Escribe el resultado en
-    la columna **R** con cabecera `salario_base_bruto`.
-    Fórmula: `salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE|`.
+    la columna **S** con cabecera `salario_base_bruto`.
+    Fórmula: `salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE_Transporte| + |COBE_Alimentacion|`.
     Las filas vacías en las tres columnas no se tocan; el volcado se hace en bloque.
   - **Acción "Envio Datos (futuro)"** (`enviarDatosFuturo`): placeholder; por ahora solo
     avisa de que está en desarrollo.
@@ -61,7 +61,43 @@ formulario de profesores y rediseño del volcado del registro de actividad para 
     mayúsculas y sin espacios sobrantes) y `aNumero_` (convierte texto a número admitiendo
     formato es-ES, p. ej. `"1.234,56 €"` → `1234.56`).
   - Las columnas de entrada se localizan **por nombre de cabecera** (robusto ante
-    reordenación); solo la columna de resultado (R) es de posición fija.
+    reordenación); solo la columna de resultado (S) es de posición fija.
+
+#### Vinculación de gastos de personal — acciones "Export Neto" y "Export Bruto" (fusión)
+- **Fusionados los scripts de volcado de nóminas (neto y bruto) dentro de
+  `scripts_generales/VAP_script_export_SAGE.js`** como dos acciones nuevas del menú
+  `VAP_Acciones`: **"Export Neto"** y **"Export Bruto"**. Sustituyen a los scripts
+  standalone `script-netos*.js` / `script-brutos*.js` (archivados en `backup_old_js/`),
+  para mantener **un solo proyecto** en lugar de tres.
+  - **Origen**: la pestaña `bbdd_export_sage_laboral` de este mismo libro (antes los
+    scripts leían de un `Informe` externo). Clave de cruce: `Empresa` + `Codigo_Empleado`
+    (por cabecera) contra `EMPRESA` (col E) + `Nº EMPLEADO` (col F) del destino.
+  - **Destinos** (sin cambios): neto → libro de Vinculación `…MPTs`; bruto → `…t04A`;
+    ambos con pestaña `Hoja 1` (verificado) y cabecera real en la fila 6.
+  - **8 campos mapeados** (verificados contra las hojas reales) origen → destino:
+    `SEGURO_MEDICO`→ADESLAS (G), `COBE_Alimentacion`→COBEE COMIDA (H),
+    `COBE_Transporte`→COBEE TRANSPORTE (I), `salario_base_bruto`→Salario Base (L),
+    `SS_EMP`→SS Empresa (P), `SS_TRABAH`→SS trabajador (Q), `IRPF`→IRPF (R),
+    `Líquido_a_percibir`→Nomina NETO (T). Cada botón vuelca los 8 campos a su hoja.
+  - **Comportamiento SOBRESCRIBIR** (refresca cada vez), escribiendo solo las celdas que
+    cambian (preserva fórmulas/formato del resto). La columna `% IRPF` (S) del destino ya
+    no se toca (no tiene origen en el bbdd).
+  - **Controles**: duplicados en origen/destino (los de destino bloquean la escritura),
+    `NO_ENCONTRADO_DESTINO`, y LOG fila-a-fila `LOG NETOS` / `LOG BRUTOS` (antes→después)
+    en cada libro destino.
+  - **Función compartida** `volcarVinculacion_(targetId, logName, etiqueta, runId)` con
+    dos envoltorios finos `exportNeto()` / `exportBruto()`.
+
+#### Auditoría centralizada (hojas `logs` y `errores`)
+- **Nuevo registro de auditoría centralizado** en el libro `VAP_Export_Sage`, vía el
+  envoltorio `ejecutarAccion_(nombre, fn)` que envuelve las tres acciones del menú:
+  - Hoja **`logs`**: una fila por acción ejecutada — `Timestamp`, `Acción activada`,
+    `Resultado` (OK/ERROR), `Registro de acciones`, `Run ID`, `Usuario`, `Duración (s)`.
+  - Hoja **`errores`**: una fila por fallo — `Timestamp`, `Acción`, `Tipo de error`,
+    `Descripción del error`, `Posible solución`, `Run ID`, `Usuario`. `clasificarError_()`
+    deduce el tipo y una solución sugerida.
+  - **Correlación por `Run ID`** entre `logs`, `errores` y los `LOG NETOS`/`LOG BRUTOS`.
+  - Política ante error: **registrar + relanzar** la excepción.
 
 #### Documentación
 - **Nuevo `VAP_scripts_profesores/README.md`**: guía completa del script de registro de
@@ -79,8 +115,29 @@ formulario de profesores y rediseño del volcado del registro de actividad para 
   en este `CHANGELOG`, nueva sección **"Scripts generales"** en `README.md` (con el árbol del
   repositorio actualizado) y, en `ADR.md`, la decisión técnica **DT-10**, la subsección 4.3
   del script y la entrada de la **Sesión 6 — 25/05/26**.
+- **Documentación de la fusión neto/bruto + auditoría**: decisiones técnicas **DT-11**
+  (fusionar el volcado de nóminas en el script SAGE, origen `bbdd_export_sage_laboral`,
+  cruce por cabecera y sobrescritura) y **DT-12** (auditoría centralizada `logs`/`errores`
+  correlacionada por `Run ID`) en `ADR.md`; actualización de la subsección 4.3 (acciones,
+  mapeo de 8 campos, hojas de log), del árbol del repo en `README.md` y entrada de la
+  **Sesión 7 — 25/05/26**.
 
 ### Cambiado
+
+#### Script SAGE — menú y columna de resultado
+- Eliminado el ítem de menú **"Envio Datos (futuro)"** y su función `enviarDatosFuturo()`:
+  su hueco lo cubren las nuevas acciones **Export Neto** / **Export Bruto**.
+- Corregida la columna de resultado de **Calculo Salario Base**: `salario_base_bruto` se
+  escribe en la columna **S** (no R), y la fórmula suma los **dos** descuentos COBE:
+  `= TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE_Transporte| + |COBE_Alimentacion|`.
+
+#### Organización del repositorio (nóminas y documentación)
+- Movidos a `backup_old_js/` los scripts de volcado de nóminas previos
+  (`script_vinculacion_gastos_personal_brutos_old.js`,
+  `script_vinculacion_gastos_personal_neto_old.js`) y retirados del repo los
+  `script-netos*.js` / `script-brutos*.js`, ya consolidados en el script SAGE.
+- Retirado `VAP_scripts_profesores/README.md` (guía del registro de actividad): su
+  contenido vive ya en `ADR.md` (subsección 4.3) y en el `README.md` raíz.
 
 #### Registro de Actividad de Profesores — `VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js`
 - **Cambio de arquitectura de "último gana entero" a acumulación por

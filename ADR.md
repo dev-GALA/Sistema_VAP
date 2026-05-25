@@ -1,6 +1,6 @@
 # Sistema Valoración Actividad Productiva (VAP)
 **ADR – Architecture Decision Record**
-**Versión:** 1.6
+**Versión:** 1.7
 **Fecha última actualización:** 25 Mayo 2026
 
 
@@ -42,6 +42,8 @@ Para poder avanzar de forma ordenada, el proyecto se estructura en fases, mejora
 | DT-08 | Reutilizar el patrón de sincronización de secretarias como gemelo para profesores | Mismo comportamiento ya probado; minimiza el coste de desarrollo y mantenimiento | Diseñar un mecanismo distinto para cada colectivo |
 | DT-09 | Acumular respuestas de formulario por mes/año en lugar de reemplazar por la última | Preservar datos parciales de múltiples envíos del mismo profesor; cada mes es un ciclo independiente | "Último gana entero"; mezclar meses sin distinguir |
 | DT-10 | Agrupar los cálculos sobre la exportación de SAGE en un único Apps Script enlazado con menú propio ("VAP_Acciones"), ampliable por acciones/submenús, y localizar las columnas **por nombre de cabecera** (no por índice fijo) | Un único punto de entrada para el usuario, fácil de extender por partes sin tocar la estructura; el cruce por cabecera resiste reordenaciones de columnas en el export | Un script/proyecto por cálculo; fórmulas nativas en celdas; localizar columnas por letra/posición fija |
+| DT-11 | Fusionar el volcado de nóminas (neto y bruto) **dentro** del script SAGE como acciones de menú (`Export Neto` / `Export Bruto`), leyendo de `bbdd_export_sage_laboral` y **sobrescribiendo** los 8 campos mapeados en cada hoja de Vinculación | Un solo proyecto que mantener en vez de tres; el personal completo ya vive en el bbdd del propio libro; sobrescribir permite el refresco mensual de nóminas | Mantener scripts standalone separados; leer del `Informe` externo; política "solo rellenar celdas vacías" (no permitiría refrescar cada mes) |
+| DT-12 | Registrar la auditoría de acciones y errores en dos hojas centralizadas (`logs` / `errores`) del libro `VAP_Export_Sage`, correlacionadas con el detalle fila-a-fila por `Run ID` | Trazabilidad de quién ejecutó qué y cuándo, y diagnóstico de fallos con tipo y solución sugerida, sin mezclar el resumen de acción con el detalle de cambios | Solo el LOG fila-a-fila en cada destino; depender únicamente del registro de ejecuciones de Apps Script |
 
 
 ---
@@ -199,34 +201,68 @@ VAP
 - Validar explícitamente que el mes elegido coincide con el año de la marca temporal.
 
 
-#### Cálculos sobre Exportación SAGE Laboral (transversal, DT-10)
+#### Cálculos y Vinculación sobre Exportación SAGE Laboral (transversal, DT-10 / DT-11 / DT-12)
 
 | Script | Ubicación GAS | Descripción |
 |--------|--------------|-------------|
-| `VAP_script_export_SAGE` (`scripts_generales/VAP_script_export_SAGE.js`) | Apps Script **enlazado** al Spreadsheet que contiene la pestaña `bbdd_export_sage_laboral` | Herramienta de cálculos con menú propio **"VAP_Acciones"**, ampliable por partes (una acción = una función + un ítem de menú). Las columnas de entrada se localizan **por nombre de cabecera** (fila 1); solo la columna de resultado es de posición fija. |
+| `VAP_script_export_SAGE` (`scripts_generales/VAP_script_export_SAGE.js`) | Apps Script **enlazado** al Spreadsheet `VAP_Export_Sage` (pestaña `bbdd_export_sage_laboral`) | Herramienta con menú propio **"VAP_Acciones"**, ampliable por partes. Agrupa el cálculo del salario base y el volcado de nóminas (neto/bruto) a las hojas de Vinculación. Las columnas de origen se localizan **por nombre de cabecera** (fila 1). |
 
 **Acciones del menú `VAP_Acciones`:**
 
 | Ítem de menú | Función GAS | Descripción |
 |--------------|-------------|-------------|
-| Calculo Salario Base | `calcularSalarioBaseBruto` | Pasa a positivo (valor absoluto) `SEGURO_MEDICO` y `COBE` y los suma a `TOTAL_BRUTO`; escribe el resultado en la columna **R** con cabecera `salario_base_bruto`. Fórmula: `salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE|`. Las filas vacías en las tres columnas no se modifican. |
-| Envio Datos (futuro) | `enviarDatosFuturo` | Placeholder; por ahora solo avisa de que está en desarrollo. |
+| Calculo Salario Base | `calcularSalarioBaseBruto` → `calcularSalarioBaseBruto_` | Pasa a positivo (valor absoluto) `SEGURO_MEDICO`, `COBE_Transporte` y `COBE_Alimentacion` y los suma a `TOTAL_BRUTO`; escribe el resultado en la columna **S** con cabecera `salario_base_bruto`. Fórmula: `salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO| + |COBE_Transporte| + |COBE_Alimentacion|`. Las filas vacías no se modifican. |
+| Export Neto | `exportNeto` → `volcarVinculacion_` | Vuelca los 8 campos mapeados de `bbdd_export_sage_laboral` a la hoja de Vinculación de **netos** (`…MPTs`, pestaña `Hoja 1`). |
+| Export Bruto | `exportBruto` → `volcarVinculacion_` | Igual que Export Neto, contra la hoja de Vinculación de **brutos** (`…t04A`, pestaña `Hoja 1`). |
 
-**Columnas (pestaña `bbdd_export_sage_laboral`, cabeceras en fila 1):**
+> Las tres acciones se ejecutan a través del envoltorio `ejecutarAccion_`, que registra cada ejecución en la hoja `logs` y los fallos en `errores` (DT-12).
+
+**Calculo Salario Base — columnas (pestaña `bbdd_export_sage_laboral`, cabeceras en fila 1):**
 
 | Cabecera | Rol | Transformación |
 |----------|-----|----------------|
 | `TOTAL_BRUTO` | Base del cálculo | Se usa tal cual |
 | `SEGURO_MEDICO` | Descuento a reincorporar | Valor absoluto (a positivo) |
-| `COBE` | Descuento a reincorporar | Valor absoluto (a positivo) |
-| `salario_base_bruto` (col. **R**) | Resultado | Se escribe (cabecera incluida) |
+| `COBE_Transporte` | Descuento a reincorporar | Valor absoluto (a positivo) |
+| `COBE_Alimentacion` | Descuento a reincorporar | Valor absoluto (a positivo) |
+| `salario_base_bruto` (col. **S**) | Resultado | Se escribe (cabecera incluida) |
+
+**Export Neto / Export Bruto — volcado a Vinculación (DT-11):**
+
+Origen `bbdd_export_sage_laboral`; cruce por `Empresa` + `Codigo_Empleado` (cabecera) contra `EMPRESA` (col E) + `Nº EMPLEADO` (col F) del destino (cabecera real del destino en la **fila 6**). Comportamiento **SOBRESCRIBIR**: escribe solo las celdas que cambian; la columna `% IRPF` (S) del destino **no** se toca. Cada acción vuelca **los 8 campos** a su hoja respectiva.
+
+| Cabecera origen (bbdd) | → Columna destino | Cabecera destino |
+|------------------------|-------------------|------------------|
+| `SEGURO_MEDICO` | G | ADESLAS |
+| `COBE_Alimentacion` | H | COBEE COMIDA |
+| `COBE_Transporte` | I | COBEE TRANSPORTE |
+| `salario_base_bruto` | L | Salario Base |
+| `SS_EMP` | P | SS Empresa |
+| `SS_TRABAH` | Q | SS trabajador |
+| `IRPF` | R | IRPF |
+| `Líquido_a_percibir` | T | Nomina NETO |
+
+Controles: duplicados en origen (último valor no vacío por campo) y en destino (bloquean la escritura), `NO_ENCONTRADO_DESTINO`, y LOG fila-a-fila `LOG NETOS` / `LOG BRUTOS` (antes→después) en cada libro destino.
+
+**Auditoría centralizada (DT-12) — hojas en `VAP_Export_Sage`:**
+
+| Hoja | Contenido | Columnas |
+|------|-----------|----------|
+| `logs` | Una fila por acción ejecutada | Timestamp · Acción activada · Resultado · Registro de acciones · Run ID · Usuario · Duración (s) |
+| `errores` | Una fila por fallo | Timestamp · Acción · Tipo de error · Descripción del error · Posible solución · Run ID · Usuario |
+
+> El `Run ID` correlaciona `logs`, `errores` y los `LOG NETOS` / `LOG BRUTOS` de los destinos.
 
 **Funciones auxiliares:**
 
-| Función | Parámetro | Retorna | Descripción |
-|---------|-----------|---------|------------|
-| `normalizarCabecera_(h)` | Cabecera | string | Normaliza para comparar: trim, espacios múltiples a uno, mayúsculas, sin tildes/diacríticos. |
-| `aNumero_(v)` | Valor de celda | number/null | Convierte a número; admite texto en formato es-ES (`"1.234,56 €"` → `1234.56`). Devuelve `null` si está vacío o no es interpretable. |
+| Función | Descripción |
+|---------|-------------|
+| `ejecutarAccion_(nombre, fn)` | Envoltorio: mide tiempo, ejecuta la acción, registra en `logs`; si falla registra en `errores` (con tipo y solución) y **relanza** la excepción. |
+| `volcarVinculacion_(targetId, logName, etiqueta, runId)` | Motor común de volcado a una hoja de Vinculación. |
+| `clasificarError_(error)` | Deduce tipo de error y solución sugerida a partir del mensaje. |
+| `normalizarCabecera_(h)` / `normalizeText_(s)` | Normalizan cabeceras/claves (sin tildes, espacios colapsados; mayúsculas / minúsculas respectivamente). |
+| `aNumero_(v)` / `toNumber_(v)` | Convierten a número admitiendo formato es-ES (`"1.234,56 €"` → `1234.56`). |
+| `makeKey_`, `hasValue_`, `valuesEqual_`, `getOrCreateLogSheet_`, `appendLogRows_` | Auxiliares de cruce, comparación y registro. |
 
 **Trigger configurado:**
 
@@ -278,11 +314,13 @@ VAP
 
 #### Fase 2.B – En curso
 
-- [x] Inicio del flujo de cálculo de nóminas sobre la exportación SAGE laboral: script transversal `VAP_script_export_SAGE` (menú "VAP_Acciones") con la primera acción **Calculo Salario Base** (`salario_base_bruto`)
+- [x] Inicio del flujo de cálculo de nóminas sobre la exportación SAGE laboral: script transversal `VAP_script_export_SAGE` (menú "VAP_Acciones") con la acción **Calculo Salario Base** (`salario_base_bruto`)
+- [x] Volcado de nóminas a las hojas de Vinculación: acciones **Export Neto** y **Export Bruto** (fusión de los scripts neto/bruto, origen `bbdd_export_sage_laboral`, 8 campos por empleado, sobrescritura) (DT-11)
+- [x] Auditoría centralizada de acciones y errores (hojas `logs` / `errores`, correlación por `Run ID`) (DT-12)
 - [ ] Identificar todas las fuentes de datos actuales de profesores y su estructura
 - [ ] Definir complementos salariales específicos del colectivo
 - [ ] Evaluar reutilización de la webapp de secretarias o necesidad de versión propia
-- [ ] Completar el flujo de volcado hacia el cálculo final de nóminas (resto de acciones del menú, incl. "Envio Datos")
+- [ ] Completar el flujo de volcado hacia el cálculo final de nóminas
 
 ---
 
@@ -338,6 +376,17 @@ VAP
 - Decisión técnica **DT-10** (script único con menú propio y cruce por cabecera) añadida al ADR
 - Documentación: entrada en `CHANGELOG.md`, sección "Scripts generales" en `README.md` (con árbol del repo actualizado) y subsección 4.3 del ADR con script, acciones, columnas y funciones auxiliares
 
+### Sesión 7 - 25/05/26
+- **Fusión del volcado de nóminas en `scripts_generales/VAP_script_export_SAGE.js`** (DT-11): los scripts standalone de neto y bruto pasan a ser dos acciones del menú `VAP_Acciones` — **Export Neto** y **Export Bruto**
+  - Origen cambiado al `bbdd_export_sage_laboral` del propio libro (antes leían de un `Informe` externo); cruce por `Empresa` + `Codigo_Empleado` contra `EMPRESA` (E) + `Nº EMPLEADO` (F)
+  - Mapeo de **8 campos** verificado contra las hojas reales (leídas vía Google Drive): ADESLAS, COBEE COMIDA/TRANSPORTE (cruzados H↔I), Salario Base, SS Empresa, SS trabajador, IRPF y Nomina NETO; pestaña destino `Hoja 1` confirmada en ambos libros, cabecera real en la fila 6
+  - Comportamiento **SOBRESCRIBIR** (refresco mensual), escribiendo solo celdas que cambian; `% IRPF` (S) ya no se toca
+  - Motor común `volcarVinculacion_` + envoltorios `exportNeto`/`exportBruto`; eliminado el placeholder "Envio Datos (futuro)"
+- **Auditoría centralizada** (DT-12): hojas `logs` y `errores` en `VAP_Export_Sage`, vía `ejecutarAccion_`, correlacionadas por `Run ID`; `clasificarError_` propone tipo y solución; política registrar + relanzar
+- Corregida la columna de `salario_base_bruto` en la documentación (R → **S**) y la fórmula (dos columnas COBE)
+- Reorganización del repo: scripts de nóminas previos movidos a `backup_old_js/`; `script-netos*.js` / `script-brutos*.js` retirados
+- Documentación: decisiones **DT-11** y **DT-12**, actualización de la subsección 4.3, `CHANGELOG.md`, árbol y "Scripts generales" del `README.md`
+
 
 
 ## 7. Riesgos y Limitaciones Conocidas
@@ -350,6 +399,8 @@ VAP
 | R-04 | ~~El script de volcado de horas extras es manual (no automático)~~ **RESUELTO** | ~~Medio~~ | El script `VAP_Script Volcado Horas Extras Secretarias` tiene trigger `onFormSubmit` activo: el volcado se ejecuta automáticamente al recibir cada envío del formulario |
 | R-05 | Los scripts de sincronización de secretarias y profesores comparten nombres globales (`onFormSubmit`, `FORM_ID`…) | Bajo | Desplegar cada uno en un proyecto Apps Script independiente (ver DT-07); no pegar ambos en el mismo proyecto |
 | R-06 | El cruce por nombre exige que el `Nombre` de `VAP_Profesores` coincida con el texto del desplegable; al sincronizar, la lista del formulario se sobrescribe con la columna `Nombre` | Bajo | Mantener `Nombre` con el formato deseado (`APELLIDOS, NOMBRE`) y no editar la lista del formulario a mano |
+| R-07 | Export Neto/Bruto **sobrescriben** las 8 columnas mapeadas en la Vinculación; una edición manual en esas columnas se pierde al re-ejecutar | Medio | Tratar el bbdd como fuente de verdad de esos campos; consultar el LOG fila-a-fila (`LOG NETOS`/`LOG BRUTOS`, antes→después) y la hoja `logs` para auditar antes/después de cada ejecución |
+| R-08 | Export Neto/Bruto mapean los campos de origen a columnas de destino por **posición fija** (G, H, I, L, P, Q, R, T); si se insertan/mueven columnas en la hoja de Vinculación, el volcado escribiría en la columna equivocada | Medio | Mantener estable la estructura de columnas del destino; ante un cambio, actualizar `VINC_FIELDS` en el script (las cabeceras del **origen** sí se localizan por nombre) |
 
 ---
 
