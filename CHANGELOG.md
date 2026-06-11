@@ -3,7 +3,43 @@
 Todos los cambios relevantes de **Sistema VAP** se documentan en este archivo.
 
 El formato sigue la convención de [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
-Las decisiones de arquitectura que respaldan estos cambios están en [ADR.md](ADR.md).
+Las decisiones de arquitectura que respaldan estos cambios están en [`docs/adr/`](docs/adr/README.md);
+el diseño del sistema, en [`docs/SSD.md`](docs/SSD.md); las fases, en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+---
+
+## [2026-06-11]
+
+Reorganización de la documentación y nueva portada/lanzador de complementos de secretarias para GALA Hub.
+
+### Añadido
+
+- **Portal / lanzador de complementos (secretarias)**
+  `VAP_script_secretarias/VAP_Complementos Secretarias/VAP_index_Portal_Complementos_Secretarias.html`
+  (template GAS `Portal`): **portada alineada con GALA Hub** con dos tarjetas para **elegir**
+  Reportar o Consultar, que **enlazan a las webapps existentes** (Reportar → URL base; Consultar →
+  `?page=consultas`). No duplica la lógica de las webapps ni las modifica; la URL del webapp se
+  inyecta con `ScriptApp.getService().getUrl()` (sin IDs hardcodeados). Es el punto de entrada del
+  recurso `rec-004` de GALA Hub; los enlaces directos siguen funcionando por separado.
+- **`doGet` del backend**: caso aditivo `?page=portal` que sirve el template `Portal` (las rutas
+  `Index` por defecto y `?page=consultas` siguen intactas).
+- **Carpeta `docs/`** con la documentación de referencia:
+  - **`docs/SSD.md`** — *Software Specification & Design Document*: documento único que cubre
+    especificación (antecedentes, objetivos, requisitos) y diseño (arquitectura, recursos,
+    modelo de datos, componentes/scripts, flujos, riesgos y glosario).
+  - **`docs/adr/`** — decisiones de arquitectura, **una por archivo** (`ADR-0001` … `ADR-0012`,
+    equivalentes a las antiguas `DT-01` … `DT-12`), con índice (`README.md`) y plantilla
+    (`0000-plantilla.md`).
+  - **`docs/ROADMAP.md`** — fases del proyecto y estado de avance, más un backlog de mejoras
+    propuestas.
+
+### Cambiado
+
+- **Eliminado `ADR.md`** de la raíz: su contenido se ha repartido entre `docs/SSD.md` (diseño,
+  riesgos, glosario), `docs/adr/` (decisiones) y `docs/ROADMAP.md` (fases). El registro de
+  trabajo por sesiones del antiguo ADR se consolida en este `CHANGELOG`.
+- **`README.md`**: actualizados el árbol del repositorio y todas las referencias para apuntar a
+  `docs/` (antes apuntaban a `ADR.md` / `DT-NN`).
 
 ---
 
@@ -164,6 +200,33 @@ formulario de profesores y rediseño del volcado del registro de actividad para 
 ### Notas
 - Los IDs de spreadsheets, formularios y carpetas de Drive están **hardcodeados** en cada
   script (habitual en Apps Script); tenerlo en cuenta si el repositorio se hace público.
-- Mejoras futuras propuestas para el registro de actividad (ver ADR / README): destino con
-  una fila por `(profesor, mes)` para histórico mensual, validación explícita de que el mes
-  elegido coincide con el año de la marca temporal, y hoja de auditoría de cambios.
+- Mejoras futuras propuestas para el registro de actividad (ver `docs/SSD.md` / `docs/adr/`):
+  destino con una fila por `(profesor, mes)` para histórico mensual, validación explícita de
+  que el mes elegido coincide con el año de la marca temporal, y hoja de auditoría de cambios.
+
+---
+
+## [2026-03-24]
+
+Sesión centrada en notificaciones, consulta de envíos y horas extras de secretarias.
+
+### Añadido
+
+- Emails de **confirmación** al responsable y **aviso** al gestor al recibir una remesa.
+- Webapp de **consulta de envíos** (`VAP_index_Consultas_Envios_Complementos_Secretarias`).
+- Vinculación del formulario `EXTRA SECRETARIAS 2026` con `VAP_Secretarias` y actualización del
+  script de volcado de horas extras y de la validación de respuestas.
+
+---
+
+## [2026-02-25]
+
+Sesión inicial: análisis del sistema y primera versión de complementos de secretarias.
+
+### Añadido
+
+- Análisis del sistema existente y definición de objetivos.
+- Creación de `VAP_BBDD_Personas` y sus hojas internas.
+- Webapp de **reporte de complementos** (`VAP_index_Reportar_Complementos_Secretarias`) con
+  validación responsable ↔ complemento y gestión de envíos/correcciones por mes/año.
+- Backend `VAP_Export_Complementos_Mensuales_Secretarias` (`Code.gs`).

@@ -11,7 +11,11 @@
       "Bash(ls -la \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\fcsainz\\\\WorkspaceGALA\\\\Sistema_VAP\\\\Sistema_VAP\\\\VAP_scripts_profesores\")",
       "Bash(mkdir -p scripts_generales)",
       "Bash(git mv *)",
-      "Bash(mv VAP_Script_Calculos_Sage_Laboral.js scripts_generales/VAP_script_export_SAGE.js)"
+      "Bash(mv VAP_Script_Calculos_Sage_Laboral.js scripts_generales/VAP_script_export_SAGE.js)",
+      "Bash(cd \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\fcsainz\\\\WorkspaceGALA\\\\Sistema_VAP\")",
+      "Bash(echo \"---EXIT: $?---\")",
+      "Bash(diff \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\tmp\\\\deployed_code.gs\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\fcsainz\\\\WorkspaceGALA\\\\Sistema_VAP\\\\VAP_script_secretarias\\\\VAP_Complementos Secretarias\\\\VAP_Export_Complementos_Mensuales_Secretarias\")",
+      "Bash(diff --strip-trailing-cr \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\tmp\\\\deployed_code.gs\" \"\\\\\\\\wsl.localhost\\\\Ubuntu\\\\home\\\\fcsainz\\\\WorkspaceGALA\\\\Sistema_VAP\\\\VAP_script_secretarias\\\\VAP_Complementos Secretarias\\\\VAP_Export_Complementos_Mensuales_Secretarias\")"
     ]
   }
 }

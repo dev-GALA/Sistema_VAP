@@ -4,7 +4,12 @@ Sistema interno de **GALA Formación** para automatizar el cálculo de los salar
 
 Está construido sobre **Google Workspace**: Google Sheets como base de datos, Google Apps Script para la lógica y webapps propias para el reporte y la consulta de complementos. La fuente única de verdad del personal es el Google Sheet `VAP_BBDD_Personas`.
 
-> 📐 Las decisiones de arquitectura, las fases del proyecto, los riesgos y el glosario están en **[ADR.md](ADR.md)**, que es el documento de referencia. Este README solo describe el contenido del repositorio.
+> 📐 La documentación de referencia vive en **[`docs/`](docs/)**:
+> - **[docs/SSD.md](docs/SSD.md)** — especificación y diseño del sistema (arquitectura, datos, scripts, riesgos, glosario).
+> - **[docs/adr/](docs/adr/README.md)** — decisiones de arquitectura, una por archivo (ADR-0001 … ADR-0012).
+> - **[docs/ROADMAP.md](docs/ROADMAP.md)** — fases del proyecto y estado de avance.
+>
+> Este README solo describe el contenido del repositorio.
 
 ---
 
@@ -12,7 +17,10 @@ Está construido sobre **Google Workspace**: Google Sheets como base de datos, G
 
 ```
 Sistema_VAP
-├── ADR.md                          # Architecture Decision Record (documento de referencia)
+├── docs/                           # Documentación de referencia
+│   ├── SSD.md                      # Especificación + diseño del sistema
+│   ├── ROADMAP.md                  # Fases y estado de avance
+│   └── adr/                        # Decisiones de arquitectura (ADR-0001 … ADR-0012)
 ├── CHANGELOG.md                    # Registro de cambios (Keep a Changelog)
 ├── README.md                       # Este archivo
 ├── scripts_generales/              # Scripts transversales (no atados a un único colectivo)
@@ -26,7 +34,7 @@ Sistema_VAP
 │       └── VAP_index_Consultas_Envios_Complementos_Secretarias.html  # Webapp consulta
 ├── VAP_scripts_profesores/         # FASE 2 — Profesores
 │   ├── VAP_Script_Actualizacion_Automatica_Profesores.js  # Sincronización del formulario (en producción)
-│   └── VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js  # Volcado de actividad, acumulación por mes/año (DT-09)
+│   └── VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js  # Volcado de actividad, acumulación por mes/año (ADR-0009)
 └── backup_old_js/                  # Respaldos de versiones anteriores (NO se ejecutan)
     ├── backup_VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js
     ├── script_vinculacion_gastos_personal_brutos_old.js  # volcado bruto previo (fusionado en SAGE)
@@ -48,9 +56,10 @@ Sistema_VAP
 
 | Archivo | Nombre en el proyecto GAS | Qué hace |
 |---------|---------------------------|----------|
-| [VAP_Export_Complementos_Mensuales_Secretarias](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_Export_Complementos_Mensuales_Secretarias) | `Code.gs` | Backend de ambas webapps (reporte y consulta), exportación mensual a XLSX en Drive y envío de emails de confirmación/aviso. |
-| [VAP_index_Reportar_Complementos_Secretarias.html](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_index_Reportar_Complementos_Secretarias.html) | `Index` | Webapp de reporte masivo de complementos por responsable, con envíos y correcciones por mes/año. |
-| [VAP_index_Consultas_Envios_Complementos_Secretarias.html](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_index_Consultas_Envios_Complementos_Secretarias.html) | `Consultas` | Webapp para que cada responsable consulte sus últimos envíos por período. |
+| [VAP_Export_Complementos_Mensuales_Secretarias](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_Export_Complementos_Mensuales_Secretarias) | `Code.gs` | Backend de las tres webapps (reporte, consulta y portal), exportación mensual a XLSX en Drive y envío de emails de confirmación/aviso. `doGet` enruta por `?page=`: por defecto `Index`, `?page=consultas`, `?page=portal`. |
+| [VAP_index_Reportar_Complementos_Secretarias.html](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_index_Reportar_Complementos_Secretarias.html) | `Index` | Webapp de reporte masivo de complementos por responsable, con envíos y correcciones por mes/año (URL base). |
+| [VAP_index_Consultas_Envios_Complementos_Secretarias.html](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_index_Consultas_Envios_Complementos_Secretarias.html) | `Consultas` | Webapp para que cada responsable consulte sus últimos envíos por período (`?page=consultas`; es el botón del email de confirmación). |
+| [VAP_index_Portal_Complementos_Secretarias.html](VAP_script_secretarias/VAP_Complementos%20Secretarias/VAP_index_Portal_Complementos_Secretarias.html) | `Portal` | **Portada/lanzador** (acceso desde GALA Hub, `?page=portal`): dos tarjetas para elegir **Reportar** o **Consultar**, que enlazan a las webapps existentes. No duplica lógica ni modifica las dos webapps anteriores; la URL se inyecta con `ScriptApp.getService().getUrl()`. |
 
 ---
 
@@ -64,11 +73,11 @@ Sistema_VAP
 
 > ⚠️ Debe desplegarse en un proyecto Apps Script **independiente** del de secretarias: ambos comparten nombres globales (`onFormSubmit`, `FORM_ID`…) y colisionarían en el mismo proyecto.
 
-### Volcado de actividad — Registro de Actividad de Profesores (DT-09)
+### Volcado de actividad — Registro de Actividad de Profesores (ADR-0009)
 
 | Archivo | Dónde vive en GAS | Qué hace |
 |---------|-------------------|----------|
-| [VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js](VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js) | Hoja de respuestas del formulario `REGISTRO DE ACTIVIDAD DE PROFESORES 26` | Vuelca la actividad de cada profesor a `VINCULACIÓN GASTOS PERSONAL` **acumulando por (profesor + mes + año)**: la última celda *no vacía* gana, el vacío no pisa y el `0` es dato válido. Trigger `onFormSubmit`; usa `LockService`. Detalle técnico completo (columnas, lógica, funciones auxiliares) en [ADR.md](ADR.md) (DT-09). |
+| [VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js](VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js) | Hoja de respuestas del formulario `REGISTRO DE ACTIVIDAD DE PROFESORES 26` | Vuelca la actividad de cada profesor a `VINCULACIÓN GASTOS PERSONAL` **acumulando por (profesor + mes + año)**: la última celda *no vacía* gana, el vacío no pisa y el `0` es dato válido. Trigger `onFormSubmit`; usa `LockService`. Detalle técnico completo (columnas, lógica, funciones auxiliares) en [SSD §7.4](docs/SSD.md) y [ADR-0009](docs/adr/0009-acumular-respuestas-por-mes-y-anio.md). |
 
 **Instalación (resumen):** copiar el script a la hoja de respuestas (`Herramientas → Editor de secuencias de comandos`), guardar y crear un activador con función `onFormSubmit`, origen *"Desde una hoja de cálculo"*, tipo *"Al enviar el formulario"*. La cuenta que ejecuta necesita **acceso de Editor** al spreadsheet de destino. Se conserva un backup de la versión anterior en `backup_old_js/`.
 
@@ -79,7 +88,7 @@ Sistema_VAP
 
 ### Volcado de nóminas → Vinculación (fusionado en el script SAGE)
 
-> Los antiguos scripts standalone de volcado de nóminas (neto y bruto) se han **fusionado** en [scripts_generales/VAP_script_export_SAGE.js](scripts_generales/VAP_script_export_SAGE.js) como las acciones **Export Neto** y **Export Bruto** del menú `VAP_Acciones` (ver [Scripts generales](#scripts-generales) y DT-11 en [ADR.md](ADR.md)). Cruzan por `Empresa` + `Codigo_Empleado` (origen `bbdd_export_sage_laboral`) contra `EMPRESA` (E) + `Nº EMPLEADO` (F) del destino y **sobrescriben** los 8 campos mapeados, con LOG fila-a-fila en `LOG NETOS` / `LOG BRUTOS`. Las versiones previas se conservan en `backup_old_js/`.
+> Los antiguos scripts standalone de volcado de nóminas (neto y bruto) se han **fusionado** en [scripts_generales/VAP_script_export_SAGE.js](scripts_generales/VAP_script_export_SAGE.js) como las acciones **Export Neto** y **Export Bruto** del menú `VAP_Acciones` (ver [Scripts generales](#scripts-generales) y [ADR-0011](docs/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md)). Cruzan por `Empresa` + `Codigo_Empleado` (origen `bbdd_export_sage_laboral`) contra `EMPRESA` (E) + `Nº EMPLEADO` (F) del destino y **sobrescriben** los 8 campos mapeados, con LOG fila-a-fila en `LOG NETOS` / `LOG BRUTOS`. Las versiones previas se conservan en `backup_old_js/`.
 
 ---
 
@@ -113,7 +122,7 @@ Scripts transversales que operan sobre datos comunes a varios colectivos (p. ej.
 | `Líquido_a_percibir` | T · Nomina NETO |
 
 > **Orden de uso:** ejecutar **Calculo Salario Base** antes que los export (la columna "Salario Base" del destino se alimenta del `salario_base_bruto` calculado).
-> Las cabeceras del **origen** se localizan **por nombre** (robusto ante reordenación); el mapeo al **destino** usa posiciones de columna fijas (`VINC_FIELDS`). La columna `% IRPF` (S) del destino no se toca. Detalle completo en [ADR.md](ADR.md) (DT-10/DT-11/DT-12).
+> Las cabeceras del **origen** se localizan **por nombre** (robusto ante reordenación); el mapeo al **destino** usa posiciones de columna fijas (`VINC_FIELDS`). La columna `% IRPF` (S) del destino no se toca. Detalle completo en [SSD §7.5](docs/SSD.md#75-transversal--cálculos-y-volcado-sage) y los ADR [0010](docs/adr/0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md) / [0011](docs/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md) / [0012](docs/adr/0012-auditoria-centralizada-logs-y-errores.md).
 
 ---
 
