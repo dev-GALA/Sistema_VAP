@@ -3,8 +3,162 @@
 Todos los cambios relevantes de **Sistema VAP** se documentan en este archivo.
 
 El formato sigue la convención de [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
-Las decisiones de arquitectura que respaldan estos cambios están en [`docs/adr/`](docs/adr/README.md);
+Las decisiones de arquitectura que respaldan estos cambios están en [`docs/adr/`](docs/adr/README_ADR.md);
 el diseño del sistema, en [`docs/SSD.md`](docs/SSD.md); las fases, en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+---
+
+## [2026-08-17]
+
+Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de secretarias**
+(ya probado y funcionando) y **documentación del problema y del modelo de datos real**.
+
+### Añadido
+
+- **Volcado de Horas Extras bajo demanda** ([ADR-0013](docs/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)).
+  Nueva acción de menú `VAP_Acciones → "Volcar Horas Extras del mes..."` en el Spreadsheet de
+  respuestas, para que la Responsable de Administración pueda lanzarlo cuando lo necesite:
+  - **Filtrado por periodo**: solo se exportan las respuestas cuyo `MES` (columna C) coincide con el
+    mes elegido **y** cuyo año de marca temporal coincide con el del periodo.
+  - **Desplegable de mes y año** en un diálogo `HtmlService`, con el **mes en curso preseleccionado**
+    según la fecha de ejecución. Se puede elegir otro mes: el cierre suele hacerse a principios del
+    mes siguiente.
+  - **Informe previo**: cuántas filas coinciden y cuántas no, desglosadas por motivo (otro mes, otro
+    año, mes no reconocible). **Nada se escribe hasta confirmar.**
+  - **Reenvío como corrección**: si una secretaria aparece varias veces en el periodo, gana el envío
+    de **marca temporal más reciente**.
+  - **Copia a `Anteriores`** de las filas exportadas, sellada con periodo, fecha y `Run ID`.
+- **Nuevo archivo `VAP_index_Dialogo_Volcado_Horas_Extras.html`** (template GAS `DialogoVolcado`):
+  el diálogo del volcado. El proyecto GAS pasa a tener dos archivos.
+- **Volcado de Actividad de Profesores bajo demanda** ([ADR-0014](docs/adr/0014-volcado-actividad-profesores-por-periodo.md)),
+  con el mismo patrón que horas extras y las adaptaciones que exige el caso:
+  - **Se conserva íntegra la acumulación campo a campo** de
+    [ADR-0009](docs/adr/0009-acumular-respuestas-por-mes-y-anio.md): por cada una de las 64 columnas
+    gana la última celda **no vacía**; el vacío no borra lo ya reportado; el `0` sí cuenta. Es lo que
+    permite que **varias secretarias reporten partes distintas** del mismo profesor — en el histórico
+    hay **122 pares (profesor, mes) con más de un reporte**.
+  - **En destino solo se escriben las columnas con valor**; las demás conservan lo que hubiera.
+  - **`Hoja 1` del libro de respuestas se adopta como histórico**: ya cumplía esa función con 1.730
+    filas de enero a julio de 2026. No se crea pestaña nueva.
+  - Antes se reducía cada profesor **al mes más reciente**, sin poder elegir el periodo a volcar.
+- **Nuevo archivo `VAP_index_Dialogo_Volcado_Actividad_Profesores.html`** (template GAS
+  `DialogoVolcado` de su propio proyecto).
+- **Comprobación de destino limpio en ambos volcados.** El proceso parte cada mes de una hoja de
+  Vinculación vacía; antes de escribir, los scripts cuentan cuántas celdas del rango destino ya
+  tienen dato para las personas del periodo y **avisan en rojo** si no son cero. Detecta el error más
+  probable del flujo: ejecutar contra la hoja del mes anterior.
+- **Log con el nombre real de cada columna** en el volcado de profesores
+  (`HORA TEÓRICA PRESENCIAL B L-V: (vacío) → 12`), leído de la cabecera del formulario. Con 64
+  campos, un registro posicional sería ilegible. Incidencias propias: `VARIOS_REPORTES` (profesor con
+  más de un reporte, con las sucursales de origen) y `VALOR_SOBRESCRITO` (dos reportes con valores
+  distintos para el mismo campo).
+- **Hoja de auditoría `LOG Volcado`**, creada automáticamente en el Spreadsheet de respuestas.
+  Registra tres categorías: `MOVIMIENTO` (cambios antes→después), `INCIDENCIA` (mes no reconocido,
+  fila sin nombre, sin marca temporal, valor no numérico, marca temporal fuera de mes, envíos
+  múltiples) y `ERROR` (nombre duplicado en destino, acceso, bloqueo, tiempo excedido), estos
+  últimos con tipo y solución sugerida. Extiende a este script el patrón de
+  [ADR-0012](docs/adr/0012-auditoria-centralizada-logs-y-errores.md).
+- **Bloqueo por ambigüedad**: si una secretaria aparece más de una vez en la hoja de destino, su
+  fila **no se escribe** y se registra el error. Antes se escribía a ciegas en la primera
+  coincidencia.
+- **`docs/problem.md`** — *Problem Statement & Jobs To Be Done*: el problema que resuelve el sistema,
+  con independencia de cómo esté construido. Combina los marcos de Ulwick (enunciado del *job* y
+  *desired outcomes*) y Klement/Intercom (*job stories*). Incluye el histórico del proceso, los cinco
+  roles ejecutores, la distinción entre captura, consolidación y ajuste, restricciones,
+  anti-objetivos, supuestos y preguntas abiertas.
+- **`CLAUDE.md`** — contexto del proyecto para el trabajo asistido.
+- **SSD §6.1.1 y §6.1.2** — catálogo de complementos y estructura de la hoja `Config`.
+- **SSD §6.3** — la premisa **"cada mes se parte de una hoja de Vinculación limpia"**, de la que
+  depende que los volcados sean correctos y que no estaba escrita en ninguna parte.
+- **SSD §7.2** — estructura real del Spreadsheet de respuestas de horas extras, flujo del volcado y
+  esquema de la hoja `LOG Volcado`.
+- **SSD §7.4** — estructura del formulario de profesores (72 cabeceras), flujo del volcado,
+  acumulación campo a campo, comprobación de destino limpio e incidencias propias.
+- **SSD §9** — riesgos **R-09 … R-17** procedentes de la revisión del código y de los datos.
+- **`docs/FLUJO.md`** — mapa del flujo de datos y usuarios, **del momento cero al cálculo final de
+  nóminas**. Nueve diagramas Mermaid y el recorrido explicado: quién reporta qué, dónde aterriza,
+  qué script lo consolida y a qué hoja va. Cada nodo va **codificado por color** según lo que se ha
+  podido verificar: verde comprobado, amarillo paso manual, discontinuo sin confirmar, rojo sin
+  trazabilidad. Deja **8 zonas oscuras señaladas** en su §9, y advierte de que el calendario del mes
+  (§10) es todavía una inferencia.
+- **`docs/dudas/`** — carpeta para las cuestiones detectadas y **sin resolver**, con plantilla e
+  índice. Separa tres cosas que se confunden: una **duda** (falta información para decidir), una
+  **decisión** (ya tomada, en `adr/`) y una **tarea** (ya se sabe qué hacer, en el ROADMAP).
+- **[DUDA-0001](docs/dudas/0001-tres-libros-destino-de-los-volcados.md)** — los volcados escriben en
+  **tres libros distintos**: horas extras y actividad en `1qK3…o8kc`, las nóminas en los libros de
+  neto y bruto. Los rangos de columnas **no se solapan** (7-20 frente a 29-92), así que cabrían en
+  la misma hoja. No consta cuál de los tres alimenta el cálculo final.
+- **[`docs/dudas/deuda-tecnica.md`](docs/dudas/deuda-tecnica.md)** — inventario de **17 entradas**
+  detectadas revisando el código y los datos, clasificadas por prioridad y esfuerzo. Nada impide que
+  el sistema funcione hoy: son cosas que funcionan por casualidad, que se romperán al crecer, o que
+  nadie sabe explicar.
+
+### Cambiado
+
+- **`VAP_Script Volcado Horas Extras Secretarias.js` reescrito.** El trigger `onFormSubmit` deja de
+  usarse para el volcado (se conserva la función, desactivada por la constante
+  `AUTO_VOLCADO_AL_ENVIAR`). La regla *"último registro por empleada sin mirar el mes"* se sustituye
+  por el filtrado por periodo.
+- **`VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js` reescrito.** El trigger `onFormSubmit`
+  deja de usarse: **si sigue instalado en el proyecto GAS hay que borrarlo**, porque apunta a una
+  función que ya no existe. El `COLUMN_MAP` de 64 entradas ahora se **genera** a partir de tres
+  constantes en lugar de mantenerse a mano (verificado que produce el mismo mapeo `F..BQ → AC..CN`).
+- **Reorganizados los archivos de horas extras** en `VAP_script_secretarias/VAP_Horas_Extras_Secretarias/`,
+  agrupando por proyecto GAS igual que `VAP_Complementos Secretarias/`.
+- **La hoja de respuestas ya no necesita vaciarse.** Hasta ahora, las respuestas antiguas se movían
+  a mano a `Anteriores` para que el volcado no arrastrase datos de meses pasados: era un
+  mantenimiento del que dependía la corrección del resultado y que no estaba documentado. El filtro
+  por periodo lo hace innecesario, y el histórico se conserva íntegro.
+- **SSD verificado contra los Spreadsheets reales** (`VAP_BBDD_Personas` y
+  `VAP_Carga_Datos_Mensuales_Complementos_Secretarias`): columnas, catálogo de conceptos, relación
+  responsable↔concepto y volúmenes.
+- **Riesgo R-04 reformulado**: el volcado de horas extras vuelve a ser manual, pero por decisión de
+  diseño y con revisión previa, no por falta de automatización. **R-09 y R-10 cerrados** por los
+  ADR-0013 y 0014.
+- **ROADMAP reorganizado**, con una **tabla resumen de fases** al principio (estado y avance por
+  subfase, 40 de 61 puntos):
+  - El volcado y cálculo de nóminas **deja de colgar de la Fase 2** y pasa a ser la **Fase 3,
+    transversal**: afecta a todo el personal, incluido el de **sueldo fijo** que no está en ninguno
+    de los dos colectivos. En `bbdd_export_sage_laboral` hay **501 empleados** frente a los ~400 que
+    gestiona el sistema por complementos.
+  - Las **verificaciones** (seguro médico, COBEE y transferencias) se **fusionan en esa Fase 3** como
+    3.B, 3.C y 3.D, en lugar de ser una fase aparte. La fase cambia de naturaleza a mitad: 3.A mueve
+    datos, 3.B-3.D los comprueban.
+  - **Documentación y deuda técnica** pasa a ser la **Fase 4**, con 4.A desgranada en 17 puntos
+    agrupados por bloque (el problema, el SSD verificado, decisiones y dudas, el repositorio).
+- **Código reorganizado bajo `code_dev/`**, con una carpeta por proyecto de Apps Script. Antes los
+  scripts colgaban de la raíz del repositorio.
+- **Índices renombrados** a `README_ADR.md` y `README_dudas.md`, para no tener varios `README.md`
+  indistinguibles en el editor. Actualizados los enlaces en los 8 documentos que los referenciaban.
+- **`docs/problem.md`**: eliminados el **mapa del *job*** (§4.4) y las **fuerzas del progreso** (§6),
+  por no aportar valor al caso. Se conserva la distinción **captura / consolidación / ajuste**, que
+  delimita el alcance del sistema y de la que dependen el anti-objetivo de §8 y el supuesto S-05.
+  Secciones renumeradas y referencias cruzadas corregidas.
+
+### Corregido
+
+- **El mes del formulario se ignoraba.** El formulario de horas extras captura el mes en la columna
+  C desde siempre, pero el script no la leía: un envío de un mes podía sobrescribir el de otro. En
+  la verificación previa al cambio ya convivían 25 respuestas de `JULIO` con 1 de `JUNIO`.
+
+### Detectado (pendiente — ver [ROADMAP](docs/ROADMAP.md))
+
+Verificación de los Spreadsheets y revisión del código:
+
+- **`PRUEBA_DATA` (`CON_SECR_07`) está activo en producción** y se ofrece como concepto reportable.
+  Nunca se ha usado en 1.724 registros.
+- **El responsable `5` no tiene ningún concepto asignado**: si entrara en la webapp, sería rechazado.
+  Solo **4** responsables han reportado alguna vez, de 5 dados de alta.
+- **`VAP_Responsables` tiene la cabecera `"Nombre "` con un espacio final.** Hoy no rompe nada porque
+  `readTable_` aplica `trim()`; cualquier código nuevo sin `trim` fallaría en silencio.
+- **`VAP_Secretarias` usa `Fecha Alta` y `VAP_Profesores` usa `Fecha_Alta`** para la misma columna.
+- **`Tipología_Profesor` solo toma los valores `1` y `2`**, sin significado documentado y sin uso en
+  ningún script. Si condiciona la retribución, es relevante para el cálculo.
+- **`toNumber_` del script SAGE corrompe decimales con punto** (`"1234.56"` → `123456`) y alimenta la
+  comparación que decide si una celda cambió (R-14).
+- **Export Neto/Bruto escribe celda a celda**, con riesgo de agotar el tiempo de ejecución (R-15).
+- **El volcado de actividad de profesores sigue sin dejar rastro** (R-10) y reprocesa la hoja de
+  respuestas completa en cada envío.
 
 ---
 

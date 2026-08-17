@@ -5,7 +5,7 @@
 
 > Documento único que cubre **especificación** (qué debe hacer el sistema) y **diseño**
 > (cómo está construido). Las **decisiones de arquitectura** se registran aparte, una por
-> archivo, en [`docs/adr/`](adr/README.md). Las **fases y el estado de avance** están en
+> archivo, en [`docs/adr/`](adr/README_ADR.md). Las **fases y el estado de avance** están en
 > [`docs/ROADMAP.md`](ROADMAP.md). El **registro cronológico de cambios** está en
 > [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -154,21 +154,91 @@ VAP
 
 ### 6.1 Hojas de `VAP_BBDD_Personas`
 
-| Hoja | Propósito |
-|------|-----------|
-| `VAP_Secretarias` | Listado de secretarias con estado activo/inactivo (`Alta`) |
-| `VAP_Complementos_Secretarias` | Catálogo de complementos salariales disponibles |
-| `VAP_Responsables` | Listado de responsables (managers) del sistema |
-| `VAP_Responsables_Complementos` | Relación responsable ↔ complementos asignados |
-| `VAP_Profesores` | Listado de profesores. Columnas: `Empresa`, `Id_Sage`, `ID_Profesor`, `Nombre`, `Tipología_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` |
-| `Config` | Valores de configuración para scripts varios (p. ej. emails de notificación por tipo) |
+> Estructura **verificada contra el Spreadsheet real el 17 agosto 2026**. Los recuentos de filas son
+> de esa fecha y solo dan idea de la escala.
 
-**Columnas clave usadas por el backend de complementos:**
+| Hoja | Propósito | Columnas (en orden) | Filas |
+|------|-----------|---------------------|-------|
+| `VAP_Secretarias` | Listado de secretarias con estado activo/inactivo | `Empresa`, `Id_Sage`, `ID_Secre`, `Nombre_Secretaria`, `Alta`, `Fecha Alta`, `Fecha Baja` | 110 · **106 de alta** |
+| `VAP_Profesores` | Listado de profesores | `Empresa`, `Id_Sage`, `ID_Profesor`, `Nombre`, `Tipología_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` | 293 · **280 de alta** |
+| `VAP_Complementos_Secretarias` | Catálogo de complementos salariales | `ID_Concepto`, `Concepto`, `Tipo_Valor`, `Activo` | 7 |
+| `VAP_Responsables` | Listado de responsables (managers) | `ID_Respon`, `Nombre `, `Email`, `Activa` | 5 |
+| `VAP_Responsables_Complementos` | Relación responsable ↔ complementos asignados | `ID_Respon`, `ID_Concepto`, `Activa` | 6 |
+| `Config` | Destinatarios de notificaciones por tipo (ver 6.1.2) | *(posicionales, ver abajo)* | 3 |
+
+> ⚠️ **Dos irregularidades en las cabeceras reales**, ambas inofensivas hoy pero frágiles:
+>
+> 1. **`VAP_Responsables` tiene la cabecera `"Nombre "` con un espacio final.** No rompe nada porque
+>    el backend la lee con `readTable_`, que aplica `trim()` a las cabeceras. Cualquier código nuevo
+>    que use `headers.indexOf("Nombre")` sin `trim` **fallaría en silencio**.
+> 2. **Las hojas de personal no nombran igual las mismas columnas:** `VAP_Secretarias` usa
+>    `Fecha Alta` / `Fecha Baja` (con espacio) y `VAP_Profesores` usa `Fecha_Alta` / `Fecha_Baja`
+>    (con guion bajo). Ninguna se usa hoy en código, pero conviene saberlo antes de escribirlo.
+
+**Escala del personal** (17 agosto 2026): **403 personas** en total — 110 secretarias (106 de alta) y
+293 profesores (280 de alta), **386 activas**. Las bajas se conservan en la hoja con `Alta = FALSE`;
+no se eliminan filas.
+
+**Dos campos que conviene aclarar:**
+
+- **`Empresa`** toma **9 valores distintos** en secretarias y **10** en profesores. No se corresponde
+  con las autoescuelas de la red (55): apunta a la **sociedad mercantil** de la que depende cada
+  persona, no al centro donde trabaja. Es la clave que usa el volcado SAGE junto a `Id_Sage`.
+- **`Tipología_Profesor`** solo toma los valores **`1`** (122 profesores) y **`2`** (171). Son
+  códigos numéricos **cuyo significado no está documentado en ninguna parte** ni se usa hoy en
+  ningún script. 🔍 *Pendiente de aclarar qué distingue una tipología de otra: si condiciona la
+  retribución, es un dato relevante para el cálculo.*
+
+**Columnas clave usadas por el backend de complementos** (constantes `COL_*` del `Code.gs`):
 
 - `VAP_Secretarias`: `ID_Secre`, `Nombre_Secretaria`, `Alta`.
 - `VAP_Complementos_Secretarias`: `ID_Concepto`, `Concepto`, `Tipo_Valor`, `Activo`.
 - `VAP_Responsables`: `ID_Respon`, `Nombre`, `Email`, `Activa`.
 - `VAP_Responsables_Complementos`: `ID_Respon`, `ID_Concepto`, `Activa`.
+
+#### 6.1.1 Catálogo de complementos (`VAP_Complementos_Secretarias`)
+
+| ID_Concepto | Concepto | Tipo_Valor | Activo |
+|-------------|----------|------------|--------|
+| `CON_SECR_01` | APTOS | € | TRUE |
+| `CON_SECR_02` | FINANCIACIONES | € | TRUE |
+| `CON_SECR_03` | RESEÑAS | € | TRUE |
+| `CON_SECR_04` | SABADOS_50 | € | TRUE |
+| `CON_SECR_05` | SABADOS_60 | € | TRUE |
+| `CON_SECR_06` | HORAS_PUNTOS | HORAS | TRUE |
+| `CON_SECR_07` | PRUEBA_DATA | € | TRUE |
+
+- `Tipo_Valor` distingue importes en **€** de cantidades en **HORAS**; la webapp lo usa para
+  etiquetar el campo de entrada.
+- La constante `CONCEPT_ORDER` del backend fija el orden de los conceptos en el Excel mensual y
+  contiene **6**: los `CON_SECR_01` a `CON_SECR_06`. Un concepto fuera de esa lista se exporta
+  igualmente, pero al final y por orden alfabético.
+
+> ⚠️ **`PRUEBA_DATA` (`CON_SECR_07`) está marcado como activo** y, por tanto, se ofrece como
+> concepto reportable a quien lo tenga asignado. Es un concepto de pruebas vivo en producción.
+
+**Asignación responsable ↔ concepto** (`VAP_Responsables_Complementos`): 6 relaciones activas.
+Responsable `1` → `CON_SECR_01`; `2` → `CON_SECR_02` y `CON_SECR_03`; `3` → `CON_SECR_04` y
+`CON_SECR_05`; `4` → `CON_SECR_06`. El responsable `5` **no tiene ningún concepto asignado**, por lo
+que `vap_bootstrapForEmail` lo rechazaría con *"Manager válido, pero sin conceptos activos
+asignados"*.
+
+#### 6.1.2 Hoja `Config` — destinatarios de notificaciones
+
+Estructura **posicional** (no se lee por cabecera): la fila 1 es un título (`Config_Notificaciones`)
+y los datos empiezan en la fila 2, con tres columnas: **A** tipo · **B** email · **C** activo.
+La lee `getNotificationEmailsByType_`, que descarta las filas con la columna C a falso.
+
+| Tipo | Efecto en el email de confirmación |
+|------|-----------------------------------|
+| `GESTION_SEGUIMIENTO_COMPLEMENTOS_SECRETARIAS` | Se añade al **Para**, junto a la responsable que reporta |
+| `COPIA_GENERAL_COMPLEMENTOS_SECRETARIAS` | Se añade en **CC** |
+
+> Cambiar quién recibe los avisos **no requiere tocar código**: basta con editar esta hoja. Como se
+> lee por posición y no por cabecera, **no se deben reordenar sus columnas**.
+>
+> Estado actual: un único destinatario activo en `GESTION_SEGUIMIENTO`; `COPIA_GENERAL` sin
+> destinatarios activos.
 
 ### 6.2 Hojas de `VAP_Carga_Datos_Mensuales_Complementos_Secretarias`
 
@@ -182,6 +252,20 @@ VAP
 > referencian el `Batch_ID` original en `Corrige_Batch_ID`; el tipo (PARCIAL/TOTAL) se guarda
 > en `Logs.Tipo_Correccion`. Ver [ADR-0005](adr/0005-gestion-de-envios-por-mes-y-anio.md).
 
+**Estado verificado el 17 agosto 2026** (Spreadsheet `VAP_Carga_Datos_Mensuales_Complementos_Secretarias`):
+las tres hojas existen con exactamente las columnas documentadas arriba. Volumen acumulado desde la
+puesta en producción, con datos de **febrero a julio de 2026**:
+
+| Hoja | Filas | Detalle |
+|------|-------|---------|
+| `Data` | 1.724 | 41 `Batch_ID` distintos · 107 secretarias · 4 responsables · 1.616 en modo `NUEVO` y 108 en `CORRECCION` |
+| `Logs` | 65 | 44 `ENVIO` · 7 `CORRECCION` · 14 `EXPORT_OK` — **todas con resultado `OK`** |
+| `Errores` | 0 | Ningún valor rechazado por no numérico desde el arranque |
+
+> La hoja `Errores` vacía indica que **el mecanismo de validación de entrada nunca ha rechazado un
+> valor**. Mide que la webapp no recibe basura, no que los importes sean correctos: un dato erróneo
+> pero bien formado se registra sin incidencia.
+
 ### 6.3 Hoja destino `VINCULACIÓN GASTOS PERSONAL`
 
 Hoja final donde confluyen los volcados. Cabecera real en la **fila 6** (para Export
@@ -190,6 +274,16 @@ Neto/Bruto). Rangos relevantes:
 - **Horas extras secretarias:** Nº horas → `AE`; € otros extras → `AH`; cruce por nombre en `C`.
 - **Actividad profesores:** datos `F..BQ` (origen) → `AC..CN` (destino); cruce por nombre en `C`.
 - **Nóminas (neto/bruto):** 8 campos a `G,H,I,L,P,Q,R,T`; cruce por `EMPRESA` (E) + `Nº EMPLEADO` (F).
+
+> **Premisa del proceso: cada mes se parte de una hoja limpia.** La hoja de Vinculación no se
+> reutiliza arrastrando los datos del mes anterior. De ahí que los volcados puedan escribir **solo
+> los campos que el periodo trae con valor** sin riesgo de mezclar meses: lo que no se reporta queda
+> vacío porque la hoja ya lo estaba.
+>
+> Es una premisa **de la que depende la corrección del resultado**, así que los volcados de horas
+> extras y de actividad la comprueban antes de escribir: cuentan las celdas del rango destino que ya
+> tienen dato para las personas del periodo y avisan si no son cero
+> ([ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)).
 
 ### 6.4 Hojas de auditoría en `VAP_Export_Sage`
 
@@ -243,7 +337,74 @@ exportación mensual y los emails.
 | Script | Ubicación GAS | Descripción |
 |--------|--------------|-------------|
 | `VAP_Script_Actualizacion_Automatica_Secretarias` | Spreadsheet `VAP_BBDD_Personas` | Sincroniza la pregunta lista "SECRETARIA" del formulario `EXTRA SECRETARIAS 2026` con las secretarias activas; al enviar (`onFormSubmit`) escribe el `ID_Secre`. Cache 30 s + respaldo horario |
-| `VAP_Script Volcado Horas Extras Secretarias` | Hoja de respuestas de `EXTRA SECRETARIAS 2026` | Vuelca (`onFormSubmit`) Nº horas (G→AE) y € otros extras (I→AH) a `VINCULACIÓN GASTOS PERSONAL`, último registro por empleado. Usa `LockService` |
+| `VAP_Script Volcado Horas Extras Secretarias` + plantilla `DialogoVolcado` | Hoja de respuestas de `EXTRA SECRETARIAS 2026` | Volcado **bajo demanda** desde el menú `VAP_Acciones`: se elige el periodo en un desplegable, se revisa el informe y solo entonces se escriben Nº horas (G→AE) y € otros extras (I→AH) en `VINCULACIÓN GASTOS PERSONAL`. Usa `LockService`. Ver [ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md) |
+
+**Quién reporta:** las **propias secretarias**, mediante el formulario `EXTRA SECRETARIAS 2026`.
+
+#### Estructura del Spreadsheet de respuestas *(verificada el 17 agosto 2026)*
+
+Dos pestañas:
+
+**`Respuestas de formulario`** — la que lee el script. 26 respuestas, del 24 al 27 de julio de 2026.
+
+| Col | Cabecera | ¿La usa el script de volcado? |
+|-----|----------|-------------------------------|
+| A | Marca temporal | **Sí** — su año acota el periodo y decide qué envío es el más reciente |
+| B | Dirección de correo electrónico | No |
+| **C** | **MES** | **Sí** — filtro de periodo |
+| D | SECRETARIA -old | No (residuo de la migración del formulario) |
+| E | SECRETARIA | **Sí** — cruce por nombre contra la col. `C` del destino |
+| F | ID_Secre | No (lo escribe `VAP_Script_Actualizacion_Automatica_Secretarias`) |
+| G | Nº HORAS EXTRA | **Sí** → destino `AE` |
+| H | MOTIVO HORAS EXTRA | No |
+| I | € OTROS EXTRAS | **Sí** → destino `AH` |
+| J | MOTIVO OTROS EXTRAS | No |
+
+**`Anteriores`** — archivo histórico. 162 filas iniciales, de enero a julio de 2026, **sin fila de
+cabeceras** y con una estructura que **no coincide** con la pestaña activa (`A` marca temporal ·
+`B` email · `C` nombre · `D` mes · `E` nº horas · `F` motivo): corresponde al **formulario anterior**,
+previo a la migración.
+
+Desde [ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md), cada exportación
+**añade una copia** de las filas exportadas al final de esta hoja, con la estructura de la pestaña
+activa más tres columnas de trazabilidad: `ARCHIVADO <MES> <AÑO>`, fecha de copia y `Run ID`.
+
+> Hasta agosto de 2026, las respuestas antiguas se **movían a mano** a esta hoja para vaciar la
+> pestaña activa: era lo que evitaba que el volcado arrastrase datos de meses pasados. **Ese
+> mantenimiento manual ya no es necesario**: el filtro por periodo lo sustituye, y la hoja de
+> respuestas conserva el histórico íntegro.
+
+#### Flujo del volcado *(desde ADR-0013)*
+
+1. Menú **`VAP_Acciones` → "Volcar Horas Extras del mes..."** abre un diálogo `HtmlService`
+   (plantilla `DialogoVolcado`).
+2. Se elige **mes y año** en sendos desplegables, con el **mes en curso preseleccionado** según la
+   fecha de ejecución.
+3. `vapAnalizarPeriodo` revisa la hoja **sin escribir nada** y devuelve el informe: filas que
+   coinciden con el periodo y filas que no, desglosadas por motivo (otro mes, otro año, mes no
+   reconocible), más las incidencias detectadas.
+4. La usuaria **acepta o cancela**.
+5. Si acepta, `vapEjecutarExportacion` escribe en el destino y copia las filas a `Anteriores`.
+
+**Criterio de coincidencia:** `MES` (col. C) = mes elegido **Y** año de la marca temporal = año del
+periodo. **Envíos múltiples:** si una secretaria aparece varias veces en el periodo, gana el de
+**marca temporal más reciente** — reenviar el formulario funciona como corrección.
+
+#### Auditoría: hoja `LOG Volcado`
+
+Se crea automáticamente en el Spreadsheet de respuestas. Columnas: `Timestamp`, `Run ID`, `Usuario`,
+`Periodo`, `Categoría`, `Tipo`, `Fila origen`, `Secretaria`, `Detalle`.
+
+| Categoría | Qué recoge |
+|-----------|------------|
+| `MOVIMIENTO` | `ACTUALIZADO` (con valor antes→después por columna), `SIN_CAMBIO`, `FILA_NUEVA`, `COPIA_ARCHIVO` |
+| `INCIDENCIA` | `MES_NO_RECONOCIDO`, `SIN_NOMBRE`, `SIN_MARCA_TEMPORAL`, `VALOR_NO_NUMERICO`, `MARCA_TEMPORAL_FUERA_DE_MES`, `VARIOS_ENVIOS` |
+| `ERROR` | `NOMBRE_DUPLICADO_DESTINO`, `ACCESO_AL_DESTINO`, `PESTANA_NO_ENCONTRADA`, `BLOQUEO`, `TIEMPO_EXCEDIDO`, `NO_CLASIFICADO` — con tipo y solución sugerida |
+| `RESUMEN` | Una fila por ejecución con el recuento total |
+
+> **Nombre duplicado en destino:** si una secretaria aparece más de una vez en `VINCULACIÓN GASTOS
+> PERSONAL`, su fila **no se escribe** y se registra el error. El script no elige por su cuenta cuál
+> de las dos es la correcta.
 
 **Triggers de `VAP_Script_Actualizacion_Automatica_Secretarias`:** `onFormSubmit` (forForm),
 `onSpreadsheetEditTrigger` (onEdit), `onSpreadsheetChangeTrigger` (onChange),
@@ -261,22 +422,80 @@ exportación mensual y los emails.
 
 ### 7.4 Profesores — Registro de Actividad (acumulación)
 
-**`VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26`** (hoja de respuestas de
-`REGISTRO DE ACTIVIDAD DE PROFESORES 26`). Volcado **con acumulación por (profesor + mes + año)**
-(ver [ADR-0009](adr/0009-acumular-respuestas-por-mes-y-anio.md)).
+**`VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26`** + plantilla `DialogoVolcado` (hoja de
+respuestas de `REGISTRO DE ACTIVIDAD DE PROFESORES 26`). Volcado **bajo demanda por periodo**, con
+**acumulación campo a campo** ([ADR-0009](adr/0009-acumular-respuestas-por-mes-y-anio.md),
+[ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)).
 
-**Columnas origen:** A (marca temporal → año), C (mes seleccionado), E (nombre), F..BQ (64
-columnas de datos). **Destino:** nombre en `C`, datos `F..BQ → AC..CN`.
+**Quién reporta:** las **secretarias**, sobre la actividad del profesorado que gestionan. El
+profesorado no reporta su propia actividad.
 
-**Lógica de acumulación:**
-1. Lee todas las respuestas (filas ≥ 2).
-2. Agrupa por `normalizeKey(nombre) + normalizeKey(mes) + año(marca temporal)`.
-3. Por columna, la **última celda no vacía** gana; el vacío no pisa; el `0` es dato válido.
-4. Por profesor, reduce a **un** grupo: el más reciente por timestamp.
-5. En destino: actualiza la fila del profesor o crea una nueva.
+#### Estructura del Spreadsheet de respuestas *(verificada el 17 agosto 2026)*
 
-**Auxiliares:** `isEmpty(v)` (trata `0` como dato), `getYear(v)`, `normalizeKey(name)`
-(trim, espacios colapsados, minúsculas, sin tildes). Trigger: `onFormSubmit`. Usa `LockService`.
+| Col | Cabecera | Uso |
+|-----|----------|-----|
+| A | Marca temporal | Año del periodo y orden entre reportes |
+| B | Dirección de correo electrónico | — |
+| **C** | SELECCIONE EL MES | **Filtro de periodo** |
+| D | SUCURSAL | Informativo (53 valores distintos); se anota en el log |
+| E | SELECCIONE EL PROFESOR | Cruce por nombre contra la col. `C` del destino |
+| F..BQ | 64 columnas de actividad | **Se vuelcan** → `AC..CN` |
+| BR | OBSERVACIONES | No se vuelca (texto libre) |
+| BS | *(sin nombre)* | No se usa |
+| BT | ID_Profesor | Lo escribe `VAP_Script_Actualizacion_Automatica_Profesores` |
+
+**`Hoja 1`** (de este mismo libro) es el **archivo histórico**: 1.730 filas de enero a julio de 2026,
+295 profesores, 53 sucursales. Cada exportación le **añade una copia** de las filas volcadas, sellada
+con periodo, fecha y `Run ID`. No confundir con la `Hoja 1` del libro **destino**.
+
+> ⚠️ `Hoja 1` conserva las cabeceras del **formulario anterior** (`HORA EXTRA TALLER` /
+> `SÁBADOS TALLER`) mientras el formulario actual dice `HORA EXTRA MECÁNICO` / `SÁBADOS MECÁNICOS`.
+> Las copias se añaden **por posición**: conviene confirmar que son el mismo concepto renombrado.
+
+#### Flujo del volcado
+
+1. Menú **`VAP_Acciones` → "Volcar Actividad del mes..."** abre el diálogo `DialogoVolcado`.
+2. Se elige **mes y año**, con el mes en curso preseleccionado.
+3. `vapAnalizarPeriodo` revisa **sin escribir** y devuelve el informe: filas que coinciden y que no,
+   profesores implicados, campos con dato, reportes múltiples e incidencias.
+4. La usuaria **acepta o cancela**.
+5. `vapEjecutarExportacion` escribe en el destino y copia las filas al histórico.
+
+#### Lógica de acumulación *(ADR-0009, intacta)*
+
+1. Se filtran las respuestas del periodo: `MES` (col. C) = mes elegido **y** año de la marca temporal
+   = año del periodo.
+2. Se agrupan por profesor (`normalizeKey` del nombre).
+3. **Por columna, gana la última celda no vacía** según marca temporal; el vacío **no** pisa; el `0`
+   es dato válido y sí pisa. Es lo que permite que **varias secretarias reporten partes distintas**
+   de la actividad del mismo profesor: en el histórico hay 122 pares (profesor, mes) con más de un
+   reporte.
+4. En destino se escriben **solo las columnas con valor**; las demás conservan lo que hubiera.
+
+#### Comprobación de destino limpio
+
+El proceso **parte cada mes de una hoja de `VINCULACIÓN` limpia** (ver §6.3). Por eso, antes de
+escribir, `contarCeldasOcupadasDestino_` cuenta cuántas celdas del rango `AC..CN` ya tienen datos
+para los profesores del periodo. El resultado esperado es **0**; si no lo es, el informe avisa de
+que probablemente se esté volcando **sobre la hoja del mes anterior**. La misma comprobación existe
+en el volcado de horas extras, adaptada a sus columnas `AE`/`AH`.
+
+#### Auditoría: hoja `LOG Volcado`
+
+Mismo esquema que en horas extras (§7.2). Particularidades de este script:
+
+- El detalle usa el **nombre real de cada columna** leído de la cabecera del formulario
+  (`HORA TEÓRICA PRESENCIAL B L-V: (vacío) → 12`), no su posición. Con 64 campos, un log posicional
+  sería ilegible. Se recorta a 12 campos por fila con un contador del resto.
+- Incidencia `VARIOS_REPORTES`: profesor con más de un reporte en el periodo, indicando las filas y
+  las sucursales de origen.
+- Incidencia `VALOR_SOBRESCRITO`: dos reportes traen valores distintos para el mismo campo; se anota
+  cuál ha ganado y desde qué fila.
+
+**Auxiliares:** `isEmpty(v)` (trata `0` como dato), `normalizeKey(name)`, `normalizarMes_`,
+`nombreColumna_`, `clasificarError_`. Usa `LockService`. El `COLUMN_MAP` (64 entradas) se **genera**
+a partir de `SRC_FIRST_DATA_COL`/`SRC_LAST_DATA_COL`/`DST_FIRST_DATA_COL` en lugar de mantenerse a
+mano.
 
 ### 7.5 Transversal — Cálculos y volcado SAGE
 
@@ -364,11 +583,20 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-01 | Dependencia total de Google Workspace | Alto | Asumida como decisión corporativa. Documentar exportaciones periódicas |
 | R-02 | Permisos de webapp no gestionados por rol nativo de Google | Medio | La webapp valida internamente que el responsable corresponde al complemento |
 | R-03 | Cambio de nombre de una persona desvincula históricos y rompe el cruce por nombre | Medio | Usar siempre `ID_Secre` / `ID_Profesor`; mantener nombres únicos por colectivo |
-| R-04 | ~~Volcado de horas extras manual~~ **RESUELTO** | ~~Medio~~ | Trigger `onFormSubmit` activo en `VAP_Script Volcado Horas Extras Secretarias` |
+| R-04 | Volcado de horas extras: **bajo demanda por decisión de diseño** (antes automático vía `onFormSubmit`) | Bajo | Acción de menú con informe y confirmación previa ([ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)). Ver R-09 |
 | R-05 | Scripts de sincronización comparten nombres globales | Bajo | Desplegar cada uno en proyecto Apps Script independiente ([ADR-0007](adr/0007-proyectos-apps-script-independientes.md)) |
 | R-06 | El cruce por nombre exige que `Nombre` coincida con el texto del desplegable | Bajo | Mantener `Nombre` con el formato deseado (`APELLIDOS, NOMBRE`); no editar la lista a mano |
 | R-07 | Export Neto/Bruto **sobrescriben** las 8 columnas; una edición manual se pierde al re-ejecutar | Medio | Tratar el bbdd como fuente de verdad; auditar con `LOG NETOS`/`LOG BRUTOS` y `logs` |
 | R-08 | Export Neto/Bruto mapean al destino por **posición fija** (G,H,I,L,P,Q,R,T) | Medio | Mantener estable la estructura del destino; ante cambios, actualizar `VINC_FIELDS` |
+| R-09 | **Ambos volcados dependen de que alguien pulse el botón**: si no se ejecutan, no se vuelca nada y no hay aviso | Medio | Es el precio de la revisión previa. Incluir el paso en el procedimiento de cierre mensual ([ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md), [ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
+| R-10 | ~~El volcado de actividad de profesores no deja rastro~~ **RESUELTO** (17 ago 2026) | ~~Alto~~ | Hoja `LOG Volcado` con movimientos, incidencias y errores ([ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
+| R-11 | Ejecutar dos veces el mismo periodo **duplica** las filas en el histórico (`Anteriores` / `Hoja 1`) | Bajo | El informe avisa antes de confirmar si ya existen filas de ese periodo; no se impide |
+| R-12 | La plantilla HTML del diálogo se localiza **por nombre** (`DialogoVolcado`): renombrarla rompe el menú. Además, **ambos proyectos usan el mismo nombre de plantilla** con contenido distinto | Bajo | Documentado en el README y en cada script. Son proyectos GAS independientes ([ADR-0007](adr/0007-proyectos-apps-script-independientes.md)), así que no colisionan |
+| R-16 | `Hoja 1` (histórico de profesores) conserva las cabeceras del formulario **anterior** (`TALLER`) mientras el formulario dice `MECÁNICO`; las copias se añaden **por posición** | Medio | Confirmar si son el mismo concepto renombrado. Si no lo fueran, el histórico mezclaría significados |
+| R-17 | La premisa **"cada mes se parte de hoja limpia"** (§6.3) no está garantizada por ningún automatismo | Medio | Los volcados **comprueban y avisan** si el destino ya tiene datos, pero no lo impiden ([ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
+| R-13 | El repositorio y los proyectos GAS se sincronizan **copiando y pegando a mano**: pueden divergir sin que nadie lo detecte | Medio | Verificar contra el proyecto GAS ante cualquier duda; alternativa evaluable: `clasp` |
+| R-14 | `toNumber_` del script SAGE elimina el punto decimal antes de convertir (`"1234.56"` → `123456`), y alimenta la comparación que decide si una celda cambió | Medio | Solo afecta a celdas con formato texto. Pendiente de unificar con `aNumero_`. Ver [ROADMAP](ROADMAP.md) |
+| R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [ROADMAP](ROADMAP.md) |
 
 ## 10. Glosario
 
@@ -387,7 +615,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 
 ## 11. Referencias
 
-- **Decisiones de arquitectura:** [`docs/adr/`](adr/README.md) (ADR-0001 … ADR-0012)
+- **Decisiones de arquitectura:** [`docs/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0012)
 - **Fases y avance:** [`docs/ROADMAP.md`](ROADMAP.md)
 - **Cambios cronológicos:** [`../CHANGELOG.md`](../CHANGELOG.md)
 - **Mapa del repositorio:** [`../README.md`](../README.md)

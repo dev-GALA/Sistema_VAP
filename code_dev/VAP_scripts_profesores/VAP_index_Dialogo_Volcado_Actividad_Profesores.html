@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<!--
+  Diálogo del volcado de Actividad de Profesores.
+  En el proyecto Apps Script este archivo se llama "DialogoVolcado".
+  Lo abre abrirDialogoVolcado() desde el menú "VAP_Acciones".
+
+  Flujo: elegir periodo -> Revisar -> informe -> Exportar / Cancelar.
+  No escribe nada hasta que se pulsa "Exportar".
+-->
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Roboto, Arial, sans-serif;
+        font-size: 13px;
+        color: #202124;
+        margin: 0;
+        padding: 16px 18px;
+      }
+      h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 500; }
+      .sub { color: #5f6368; font-size: 12px; margin-bottom: 16px; }
+
+      .fila { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
+      .campo { display: flex; flex-direction: column; }
+      label { font-size: 11px; color: #5f6368; margin-bottom: 4px; }
+      select {
+        font-size: 13px; padding: 6px 8px; border: 1px solid #dadce0;
+        border-radius: 4px; background: #fff; min-width: 140px;
+      }
+      select:focus { outline: none; border-color: #1a73e8; }
+
+      button {
+        font-family: inherit; font-size: 13px; font-weight: 500;
+        padding: 8px 16px; border-radius: 4px; cursor: pointer; border: 1px solid transparent;
+      }
+      .secundario { background: #fff; color: #1a73e8; border-color: #dadce0; }
+      .secundario:hover { background: #f8f9fa; }
+      .secundario:disabled { background: #f1f3f4; color: #80868b; cursor: default; }
+      .principal { background: #188038; color: #fff; }
+      .principal:hover { background: #157030; }
+
+      #informe {
+        border: 1px solid #dadce0; border-radius: 4px; padding: 12px;
+        margin: 14px 0; background: #f8f9fa; max-height: 270px; overflow-y: auto;
+      }
+      .linea { display: flex; justify-content: space-between; padding: 3px 0; }
+      .linea .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+      .ok  { color: #188038; }
+      .no  { color: #c5221f; }
+      .sub-linea { padding: 2px 0 2px 16px; color: #5f6368; font-size: 12px; }
+      .separador { border-top: 1px solid #e0e0e0; margin: 8px 0; }
+      .aviso {
+        background: #fef7e0; border-left: 3px solid #f9ab00;
+        padding: 8px 10px; margin-top: 10px; font-size: 12px; border-radius: 2px;
+      }
+      .info {
+        background: #e8f0fe; border-left: 3px solid #1a73e8;
+        padding: 8px 10px; margin-top: 10px; font-size: 12px; border-radius: 2px;
+      }
+      .error {
+        background: #fce8e6; border-left: 3px solid #c5221f;
+        padding: 8px 10px; margin-top: 10px; font-size: 12px; border-radius: 2px;
+      }
+      .alerta {
+        background: #fce8e6; border-left: 3px solid #c5221f;
+        padding: 10px 12px; margin-top: 10px; font-size: 12px; border-radius: 2px;
+        line-height: 1.45;
+      }
+      .nota { color: #5f6368; font-size: 11px; margin-top: 10px; }
+      .acciones { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+      .oculto { display: none; }
+      .cargando { color: #5f6368; font-style: italic; padding: 20px 0; text-align: center; }
+      ul.incidencias { margin: 6px 0 0 0; padding-left: 18px; }
+      ul.incidencias li { margin-bottom: 3px; }
+    </style>
+  </head>
+
+  <body>
+    <h3>Volcar Actividad de Profesores a Vinculación</h3>
+    <div class="sub" id="hoy">Cargando…</div>
+
+    <div class="fila">
+      <div class="campo">
+        <label for="mes">Mes a exportar</label>
+        <select id="mes"></select>
+      </div>
+      <div class="campo">
+        <label for="anio">Año</label>
+        <select id="anio"></select>
+      </div>
+      <button class="secundario" id="btnRevisar" onclick="revisar()">Revisar</button>
+    </div>
+
+    <div id="informe" class="oculto"></div>
+
+    <div class="acciones">
+      <button class="secundario" onclick="google.script.host.close()">Cancelar</button>
+      <button class="principal oculto" id="btnExportar" onclick="exportar()">Exportar</button>
+    </div>
+
+    <script>
+      google.script.run.withSuccessHandler(function (p) {
+        var selMes = document.getElementById('mes');
+        p.meses.forEach(function (m) {
+          var o = document.createElement('option');
+          o.value = m;
+          o.textContent = m.charAt(0) + m.slice(1).toLowerCase();
+          if (m === p.mes) o.selected = true;      // mes en curso, primera opción
+          selMes.appendChild(o);
+        });
+
+        var selAnio = document.getElementById('anio');
+        [p.anio, p.anio - 1].forEach(function (a) {
+          var o = document.createElement('option');
+          o.value = a; o.textContent = a;
+          selAnio.appendChild(o);
+        });
+
+        document.getElementById('hoy').textContent =
+          'Fecha de ejecución: ' + p.hoy + ' · se propone el mes en curso';
+      }).withFailureHandler(function (e) {
+        document.getElementById('hoy').textContent = 'Error al cargar: ' + e.message;
+      }).vapPeriodoPropuesto();
+
+      function revisar() {
+        var caja = document.getElementById('informe');
+        caja.className = '';
+        caja.innerHTML = '<div class="cargando">Revisando las respuestas…</div>';
+        document.getElementById('btnExportar').className = 'principal oculto';
+        document.getElementById('btnRevisar').disabled = true;
+
+        google.script.run
+          .withSuccessHandler(pintarInforme)
+          .withFailureHandler(function (e) {
+            caja.innerHTML = '<div class="error"><b>Error:</b> ' + e.message + '</div>';
+            document.getElementById('btnRevisar').disabled = false;
+          })
+          .vapAnalizarPeriodo(valor('mes'), valor('anio'));
+      }
+
+      function pintarInforme(r) {
+        var caja = document.getElementById('informe');
+        document.getElementById('btnRevisar').disabled = false;
+
+        if (!r.ok) {
+          caja.innerHTML = '<div class="error"><b>Error:</b> ' + r.error + '</div>';
+          return;
+        }
+
+        var h = '';
+        h += fila('Respuestas revisadas', r.totalFilas, '');
+        h += '<div class="separador"></div>';
+        h += fila('✔ COINCIDEN', r.coinciden, 'ok');
+        h += sub(r.profesores + ' profesor(es) a exportar');
+        h += sub(r.celdasConValor + ' campo(s) de actividad con dato');
+        if (r.multiReporte) {
+          h += sub(r.multiReporte + ' con varios reportes: se acumulan campo a campo');
+        }
+        h += '<div class="separador"></div>';
+        h += fila('✘ NO COINCIDEN', r.noCoinciden, 'no');
+        if (r.porOtroMes)  h += sub(r.porOtroMes + ' de otro mes');
+        if (r.porOtroAnio) h += sub(r.porOtroAnio + ' de otro año');
+        if (r.sinMes)      h += sub(r.sinMes + ' sin mes reconocible en la columna C');
+        if (r.noCoinciden) h += sub('(no se tocan)');
+
+        if (r.multiReporte) {
+          h += '<div class="info"><b>Acumulación por campo:</b> ' + r.multiReporte + ' profesor(es) '
+             + 'tienen más de un reporte este mes. Por cada campo vale la última celda con dato; '
+             + 'una celda vacía no borra lo ya reportado.</div>';
+        }
+
+        if (r.avisosFecha) {
+          h += '<div class="aviso"><b>' + r.avisosFecha + ' fila(s)</b> coinciden en el mes pero su '
+             + 'marca temporal cae fuera de él. <b>Se exportan igualmente</b> y quedan en el log.</div>';
+        }
+
+        if (r.incidencias && r.incidencias.length) {
+          h += '<div class="aviso"><b>Incidencias detectadas (' + r.incidencias.length + '):</b>'
+             + '<ul class="incidencias">'
+             + r.incidencias.slice(0, 6).map(function (t) { return '<li>' + t + '</li>'; }).join('')
+             + (r.incidencias.length > 6
+                 ? '<li>… y ' + (r.incidencias.length - 6) + ' más (todas en el log)</li>' : '')
+             + '</ul></div>';
+        }
+
+        if (r.yaArchivado) {
+          h += '<div class="aviso">En <b>' + r.archivoNombre + '</b> ya hay filas de ' + r.mes + ' '
+             + r.anio + ' de una ejecución previa. Se añadirán de nuevo.</div>';
+        }
+
+        if (r.coinciden === 0) {
+          h += '<div class="nota">No hay nada que exportar para este periodo.</div>';
+          caja.innerHTML = h;
+          return;
+        }
+
+        if (r.destinoOcupado > 0) {
+          h += '<div class="alerta"><b>Atención: el destino no está vacío.</b><br>'
+             + 'Hay <b>' + r.destinoOcupado + ' celda(s)</b> con datos en el rango AC..CN de los '
+             + 'profesores de este periodo. Como cada mes se parte de una hoja limpia, esto suele '
+             + 'significar que <b>se está volcando sobre la hoja del mes anterior</b>.<br>'
+             + 'Compruébalo antes de exportar: los campos que este mes no traiga dato conservarán '
+             + 'el valor antiguo.</div>';
+        } else if (r.destinoOcupado === -1) {
+          h += '<div class="aviso">No se ha podido comprobar si el destino está vacío. '
+             + 'Revísalo manualmente antes de exportar.</div>';
+        }
+
+        h += '<div class="info"><b>Solo se escriben los campos con dato.</b> Si este mes un campo '
+           + 'viene vacío, no se escribe nada en él. Si en un volcado posterior sí trae dato, lo '
+           + 'sobrescribe.</div>';
+
+        h += '<div class="nota">Se escribirá en <b>VINCULACIÓN GASTOS PERSONAL</b> y se copiarán '
+           + r.coinciden + ' fila(s) a <b>' + r.archivoNombre + '</b>.<br>'
+           + 'La hoja de respuestas <b>no se modifica</b>.</div>';
+
+        caja.innerHTML = h;
+        document.getElementById('btnExportar').className = 'principal';
+      }
+
+      function exportar() {
+        var caja = document.getElementById('informe');
+        caja.innerHTML = '<div class="cargando">Exportando… no cierres esta ventana.</div>';
+        document.getElementById('btnExportar').className = 'principal oculto';
+        document.getElementById('btnRevisar').disabled = true;
+
+        google.script.run
+          .withSuccessHandler(function (r) {
+            if (!r.ok) {
+              caja.innerHTML = '<div class="error"><b>Error:</b> ' + r.error + '</div>';
+              document.getElementById('btnRevisar').disabled = false;
+              return;
+            }
+            var h = '<div class="linea"><b>Exportación completada</b></div><div class="separador"></div>';
+            h += fila('Profesores actualizados', r.actualizados, 'ok');
+            h += fila('Sin cambios', r.sinCambios, '');
+            h += fila('Filas nuevas creadas', r.creados, '');
+            if (r.bloqueados) h += fila('Bloqueados (nombre duplicado)', r.bloqueados, 'no');
+            h += '<div class="separador"></div>';
+            h += fila('Celdas escritas', r.celdasEscritas, '');
+            h += fila('Celdas conservadas (sin dato este mes)', r.celdasConservadas, '');
+            h += fila('Filas copiadas al histórico', r.copiadas, '');
+            if (r.incidencias) h += fila('Incidencias anotadas', r.incidencias, '');
+            h += '<div class="nota">Detalle campo a campo en la hoja <b>LOG Volcado</b>.</div>';
+            caja.innerHTML = h;
+          })
+          .withFailureHandler(function (e) {
+            caja.innerHTML = '<div class="error"><b>Error:</b> ' + e.message
+                           + '<br>Revisa la hoja <b>LOG Volcado</b>.</div>';
+            document.getElementById('btnRevisar').disabled = false;
+          })
+          .vapEjecutarExportacion(valor('mes'), valor('anio'));
+      }
+
+      function valor(id) { var e = document.getElementById(id); return e.options[e.selectedIndex].value; }
+      function fila(t, n, cls) {
+        return '<div class="linea"><span class="' + cls + '">' + t + '</span>'
+             + '<span class="n ' + cls + '">' + n + '</span></div>';
+      }
+      function sub(t) { return '<div class="sub-linea">→ ' + t + '</div>'; }
+    </script>
+  </body>
+</html>

@@ -23,6 +23,8 @@ Formato: ver [`0000-plantilla.md`](0000-plantilla.md). Equivalencia con la antig
 | [0010](0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md) | Script único SAGE con menú propio y cruce por cabecera | Aceptada | DT-10 |
 | [0011](0011-fusionar-volcado-de-nominas-en-el-script-sage.md) | Fusionar el volcado de nóminas en el script SAGE | Aceptada | DT-11 |
 | [0012](0012-auditoria-centralizada-logs-y-errores.md) | Auditoría centralizada en `logs` / `errores` | Aceptada | DT-12 |
+| [0013](0013-volcado-horas-extras-por-periodo-bajo-demanda.md) | Volcado de Horas Extras por periodo y bajo demanda | Aceptada | — |
+| [0014](0014-volcado-actividad-profesores-por-periodo.md) | Volcado de Actividad de Profesores por periodo y bajo demanda | Aceptada | — |
 
 ## Estados posibles
 
