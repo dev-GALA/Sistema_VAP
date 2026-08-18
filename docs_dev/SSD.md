@@ -6,7 +6,7 @@
 > Documento único que cubre **especificación** (qué debe hacer el sistema) y **diseño**
 > (cómo está construido). Las **decisiones de arquitectura** se registran aparte, una por
 > archivo, en [`docs/adr/`](adr/README_ADR.md). Las **fases y el estado de avance** están en
-> [`docs/ROADMAP.md`](ROADMAP.md). El **registro cronológico de cambios** está en
+> [`docs/ROADMAP.md`](../docs/ROADMAP.md). El **registro cronológico de cambios** está en
 > [`../CHANGELOG.md`](../CHANGELOG.md).
 
 ---
@@ -15,7 +15,7 @@
 
 1. [Antecedentes y propósito](#1-antecedentes-y-propósito)
 2. [Objetivos y alcance](#2-objetivos-y-alcance)
-3. [Requisitos](#3-requisitos)
+3. [Requisitos](#3-requisitos) → `requisitos.md`
 4. [Arquitectura general](#4-arquitectura-general)
 5. [Recursos del sistema](#5-recursos-del-sistema)
 6. [Modelo de datos](#6-modelo-de-datos)
@@ -55,44 +55,25 @@ secretarias, sincronización de formularios, volcados a la hoja de Vinculación 
 sobre la exportación SAGE laboral.
 
 **Fuera de alcance (por ahora):** cálculo final de nóminas de profesores (en curso, ver
-[ROADMAP](ROADMAP.md)); gestión de permisos por rol nativo de Google (ver [R-02](#9-riesgos-y-limitaciones)).
+[ROADMAP](../docs/ROADMAP.md)); gestión de permisos por rol nativo de Google (ver [R-02](#9-riesgos-y-limitaciones)).
 
 ## 3. Requisitos
 
-### 3.1 Requisitos funcionales — Secretarias
+> **Los requisitos ya no viven aquí.** La referencia canónica es
+> **[`requisitos.md`](requisitos.md)**, derivado de las
+> [historias de usuario](historias_usuarios.md), con el estado de cumplimiento de cada uno.
 
-- **RF-01** Centralizar el personal activo/inactivo en una única fuente de verdad.
-- **RF-02** Permitir a cada responsable (manager) **reportar** complementos salariales de
-  forma masiva por secretaria, mes y año, vía webapp propia.
-- **RF-03** Validar que el responsable solo reporta los **conceptos que tiene asignados**.
-- **RF-04** Gestionar **envíos** y **correcciones** (parcial/total) identificados por mes + año.
-- **RF-05** Enviar **email de confirmación** al responsable y **aviso** al gestor en cada remesa.
-- **RF-06** Permitir a cada responsable **consultar** sus envíos por período.
-- **RF-07** **Exportar** mensualmente, a demanda, los datos fusionados por secretaria y concepto.
-- **RF-08** Volcar las **horas extras** del formulario a la hoja de Vinculación.
+Este apartado contenía 14 requisitos funcionales y 5 no funcionales, escritos **desde el código hacia
+arriba**: describían lo ya construido. Los de `requisitos.md` van en sentido contrario —describen lo
+que debe cumplirse— y por eso son muchos más: la diferencia son los que **aún no tienen código
+detrás**.
 
-### 3.2 Requisitos funcionales — Profesores
+**Ninguno de los 14 antiguos se ha perdido ni contradicho**: todos están absorbidos, y la
+correspondencia entre una numeración y otra está en
+[`requisitos.md` §4](requisitos.md#4-correspondencia-con-los-requisitos-del-ssd).
 
-- **RF-09** Sincronizar automáticamente el desplegable de profesores del formulario con los
-  profesores activos.
-- **RF-10** Escribir automáticamente el `ID_Profesor` en las respuestas al enviar el formulario.
-- **RF-11** Volcar la actividad de cada profesor a la hoja de Vinculación **acumulando** por
-  (profesor + mes + año).
-
-### 3.3 Requisitos funcionales — Transversales
-
-- **RF-12** Calcular el salario base bruto sobre la exportación SAGE laboral.
-- **RF-13** Volcar nóminas (neto y bruto) a las hojas de Vinculación.
-- **RF-14** Auditar de forma centralizada las acciones y los errores.
-
-### 3.4 Requisitos no funcionales
-
-- **RNF-01** No requerir infraestructura nueva: todo sobre **Google Workspace**.
-- **RNF-02** Robustez ante reordenación de columnas en las fuentes (cruce **por cabecera**).
-- **RNF-03** Durabilidad temporal: el sistema distingue por **mes + año**, sin reestructurar
-  hojas con el paso de los años.
-- **RNF-04** Concurrencia segura en los volcados (`LockService`).
-- **RNF-05** Trazabilidad: cada acción/volcado deja rastro auditable.
+> Se mantiene el apartado, en lugar de borrarlo, para que quien llegue a este documento buscando
+> requisitos no concluya que no los hay.
 
 ## 4. Arquitectura general
 
@@ -578,6 +559,11 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 
 ## 9. Riesgos y limitaciones
 
+> **Cada riesgo tiene ahora un requisito detrás, o no lo tiene y eso también consta.** Al confrontar
+> esta tabla con [`requisitos.md`](requisitos.md) aparecieron tres riesgos que faltaban —R-18, R-19 y
+> R-20— y dos que nadie había convertido en requisito: los duplicados del histórico (R-11) y las
+> cabeceras del histórico de profesores (R-16). Ambos son ya [RF-70 y RF-71](requisitos.md).
+
 | ID | Riesgo / Limitación | Impacto | Medida actual o propuesta |
 |----|---------------------|---------|---------------------------|
 | R-01 | Dependencia total de Google Workspace | Alto | Asumida como decisión corporativa. Documentar exportaciones periódicas |
@@ -587,16 +573,19 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-05 | Scripts de sincronización comparten nombres globales | Bajo | Desplegar cada uno en proyecto Apps Script independiente ([ADR-0007](adr/0007-proyectos-apps-script-independientes.md)) |
 | R-06 | El cruce por nombre exige que `Nombre` coincida con el texto del desplegable | Bajo | Mantener `Nombre` con el formato deseado (`APELLIDOS, NOMBRE`); no editar la lista a mano |
 | R-07 | Export Neto/Bruto **sobrescriben** las 8 columnas; una edición manual se pierde al re-ejecutar | Medio | Tratar el bbdd como fuente de verdad; auditar con `LOG NETOS`/`LOG BRUTOS` y `logs` |
-| R-08 | Export Neto/Bruto mapean al destino por **posición fija** (G,H,I,L,P,Q,R,T) | Medio | Mantener estable la estructura del destino; ante cambios, actualizar `VINC_FIELDS` |
-| R-09 | **Ambos volcados dependen de que alguien pulse el botón**: si no se ejecutan, no se vuelca nada y no hay aviso | Medio | Es el precio de la revisión previa. Incluir el paso en el procedimiento de cierre mensual ([ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md), [ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
+| R-08 | Export Neto/Bruto mapean al destino por **posición fija** (G,H,I,L,P,Q,R,T) | Medio | **Matiza a [RNF-02](requisitos.md):** el cruce por cabecera protege el **origen**, no el destino. | Mantener estable la estructura del destino; ante cambios, actualizar `VINC_FIELDS` |
+| R-09 | **Ambos volcados dependen de que alguien pulse el botón**: si no se ejecutan, no se vuelca nada y no hay aviso | Medio | **No es solo un riesgo: es [RNF-05](requisitos.md)**, elevado a requisito — nada que escriba se ejecuta sin confirmación humana. El riesgo residual (que nadie lo pulse) se mitiga con el seguimiento del cierre, [HU-29](historias_usuarios.md). Es el precio de la revisión previa. Incluir el paso en el procedimiento de cierre mensual ([ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md), [ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
 | R-10 | ~~El volcado de actividad de profesores no deja rastro~~ **RESUELTO** (17 ago 2026) | ~~Alto~~ | Hoja `LOG Volcado` con movimientos, incidencias y errores ([ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
 | R-11 | Ejecutar dos veces el mismo periodo **duplica** las filas en el histórico (`Anteriores` / `Hoja 1`) | Bajo | El informe avisa antes de confirmar si ya existen filas de ese periodo; no se impide |
 | R-12 | La plantilla HTML del diálogo se localiza **por nombre** (`DialogoVolcado`): renombrarla rompe el menú. Además, **ambos proyectos usan el mismo nombre de plantilla** con contenido distinto | Bajo | Documentado en el README y en cada script. Son proyectos GAS independientes ([ADR-0007](adr/0007-proyectos-apps-script-independientes.md)), así que no colisionan |
 | R-16 | `Hoja 1` (histórico de profesores) conserva las cabeceras del formulario **anterior** (`TALLER`) mientras el formulario dice `MECÁNICO`; las copias se añaden **por posición** | Medio | Confirmar si son el mismo concepto renombrado. Si no lo fueran, el histórico mezclaría significados |
 | R-17 | La premisa **"cada mes se parte de hoja limpia"** (§6.3) no está garantizada por ningún automatismo | Medio | Los volcados **comprueban y avisan** si el destino ya tiene datos, pero no lo impiden ([ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)) |
 | R-13 | El repositorio y los proyectos GAS se sincronizan **copiando y pegando a mano**: pueden divergir sin que nadie lo detecte | Medio | Verificar contra el proyecto GAS ante cualquier duda; alternativa evaluable: `clasp` |
-| R-14 | `toNumber_` del script SAGE elimina el punto decimal antes de convertir (`"1234.56"` → `123456`), y alimenta la comparación que decide si una celda cambió | Medio | Solo afecta a celdas con formato texto. Pendiente de unificar con `aNumero_`. Ver [ROADMAP](ROADMAP.md) |
-| R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [ROADMAP](ROADMAP.md) |
+| R-14 | `toNumber_` del script SAGE elimina el punto decimal antes de convertir (`"1234.56"` → `123456`), y alimenta la comparación que decide si una celda cambió | Medio | Solo afecta a celdas con formato texto. Pendiente de unificar con `aNumero_`. Ver [ROADMAP](../docs/ROADMAP.md) |
+| R-18 | **Los procesos que se ejecutan solos no dejan rastro consultable.** Los dos scripts de sincronización de formularios escriben únicamente en el registro interno de la plataforma, que se borra | Alto | Pendiente: [RF-47](requisitos.md). Son justo los que deciden **quién aparece en los formularios**, y nadie está delante cuando fallan |
+| R-19 | **Los movimientos de datos entre libros se hacen copiando y pegando**, y ninguno deja constancia de qué se movió ni cuándo | Alto | Pendiente: [RF-25](requisitos.md), [DUDA-0003](../docs/dudas/0003-momentos-de-copia-y-pega-del-proceso.md). Rompe la cadena de trazabilidad justo en el punto donde el dato sale del sistema |
+| R-20 | **El archivo donde se calcula la nómina está fuera del sistema**: no consta su estructura y no se controla lo que entra en él | Alto | Pendiente: [DUDA-0001](../docs/dudas/0001-tres-libros-destino-de-los-volcados.md). Es el supuesto S-06 de [`problem.md`](problem.md) |
+| R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [ROADMAP](../docs/ROADMAP.md) |
 
 ## 10. Glosario
 
@@ -616,6 +605,6 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 ## 11. Referencias
 
 - **Decisiones de arquitectura:** [`docs/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0012)
-- **Fases y avance:** [`docs/ROADMAP.md`](ROADMAP.md)
+- **Fases y avance:** [`docs/ROADMAP.md`](../docs/ROADMAP.md)
 - **Cambios cronológicos:** [`../CHANGELOG.md`](../CHANGELOG.md)
 - **Mapa del repositorio:** [`../README.md`](../README.md)

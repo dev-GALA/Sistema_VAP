@@ -3,8 +3,8 @@
 Todos los cambios relevantes de **Sistema VAP** se documentan en este archivo.
 
 El formato sigue la convención de [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
-Las decisiones de arquitectura que respaldan estos cambios están en [`docs/adr/`](docs/adr/README_ADR.md);
-el diseño del sistema, en [`docs/SSD.md`](docs/SSD.md); las fases, en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Las decisiones de arquitectura que respaldan estos cambios están en [`docs/adr/`](docs_dev/adr/README_ADR.md);
+el diseño del sistema, en [`docs/SSD.md`](docs_dev/SSD.md); las fases, en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ---
 
@@ -15,7 +15,7 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
 
 ### Añadido
 
-- **Volcado de Horas Extras bajo demanda** ([ADR-0013](docs/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)).
+- **Volcado de Horas Extras bajo demanda** ([ADR-0013](docs_dev/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)).
   Nueva acción de menú `VAP_Acciones → "Volcar Horas Extras del mes..."` en el Spreadsheet de
   respuestas, para que la Responsable de Administración pueda lanzarlo cuando lo necesite:
   - **Filtrado por periodo**: solo se exportan las respuestas cuyo `MES` (columna C) coincide con el
@@ -30,10 +30,10 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   - **Copia a `Anteriores`** de las filas exportadas, sellada con periodo, fecha y `Run ID`.
 - **Nuevo archivo `VAP_index_Dialogo_Volcado_Horas_Extras.html`** (template GAS `DialogoVolcado`):
   el diálogo del volcado. El proyecto GAS pasa a tener dos archivos.
-- **Volcado de Actividad de Profesores bajo demanda** ([ADR-0014](docs/adr/0014-volcado-actividad-profesores-por-periodo.md)),
+- **Volcado de Actividad de Profesores bajo demanda** ([ADR-0014](docs_dev/adr/0014-volcado-actividad-profesores-por-periodo.md)),
   con el mismo patrón que horas extras y las adaptaciones que exige el caso:
   - **Se conserva íntegra la acumulación campo a campo** de
-    [ADR-0009](docs/adr/0009-acumular-respuestas-por-mes-y-anio.md): por cada una de las 64 columnas
+    [ADR-0009](docs_dev/adr/0009-acumular-respuestas-por-mes-y-anio.md): por cada una de las 64 columnas
     gana la última celda **no vacía**; el vacío no borra lo ya reportado; el `0` sí cuenta. Es lo que
     permite que **varias secretarias reporten partes distintas** del mismo profesor — en el histórico
     hay **122 pares (profesor, mes) con más de un reporte**.
@@ -57,7 +57,7 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   fila sin nombre, sin marca temporal, valor no numérico, marca temporal fuera de mes, envíos
   múltiples) y `ERROR` (nombre duplicado en destino, acceso, bloqueo, tiempo excedido), estos
   últimos con tipo y solución sugerida. Extiende a este script el patrón de
-  [ADR-0012](docs/adr/0012-auditoria-centralizada-logs-y-errores.md).
+  [ADR-0012](docs_dev/adr/0012-auditoria-centralizada-logs-y-errores.md).
 - **Bloqueo por ambigüedad**: si una secretaria aparece más de una vez en la hoja de destino, su
   fila **no se escribe** y se registra el error. Antes se escribía a ciegas en la primera
   coincidencia.
@@ -141,24 +141,60 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   C desde siempre, pero el script no la leía: un envío de un mes podía sobrescribir el de otro. En
   la verificación previa al cambio ya convivían 25 respuestas de `JULIO` con 1 de `JUNIO`.
 
-### Detectado (pendiente — ver [ROADMAP](docs/ROADMAP.md))
+### Detectado
 
-Verificación de los Spreadsheets y revisión del código:
+Inventario completo, con prioridad y esfuerzo, en
+**[`docs/dudas/deuda-tecnica.md`](docs/dudas/deuda-tecnica.md)** (17 entradas). Lo más relevante:
 
-- **`PRUEBA_DATA` (`CON_SECR_07`) está activo en producción** y se ofrece como concepto reportable.
-  Nunca se ha usado en 1.724 registros.
-- **El responsable `5` no tiene ningún concepto asignado**: si entrara en la webapp, sería rechazado.
-  Solo **4** responsables han reportado alguna vez, de 5 dados de alta.
-- **`VAP_Responsables` tiene la cabecera `"Nombre "` con un espacio final.** Hoy no rompe nada porque
-  `readTable_` aplica `trim()`; cualquier código nuevo sin `trim` fallaría en silencio.
-- **`VAP_Secretarias` usa `Fecha Alta` y `VAP_Profesores` usa `Fecha_Alta`** para la misma columna.
-- **`Tipología_Profesor` solo toma los valores `1` y `2`**, sin significado documentado y sin uso en
-  ningún script. Si condiciona la retribución, es relevante para el cálculo.
+**En el código**
+
 - **`toNumber_` del script SAGE corrompe decimales con punto** (`"1234.56"` → `123456`) y alimenta la
-  comparación que decide si una celda cambió (R-14).
-- **Export Neto/Bruto escribe celda a celda**, con riesgo de agotar el tiempo de ejecución (R-15).
-- **El volcado de actividad de profesores sigue sin dejar rastro** (R-10) y reprocesa la hoja de
-  respuestas completa en cada envío.
+  comparación que decide si una celda cambió (DT-01 · R-14). Convive con `aNumero_`, que sí parsea
+  bien: dos funciones para lo mismo con semánticas distintas.
+- **Export Neto/Bruto escribe celda a celda**: hasta **4.008 llamadas** individuales a la API con 501
+  empleados, con riesgo de agotar el tiempo de ejecución (DT-02 · R-15).
+- **Tres parsers de número distintos** entre los scripts: `aNumero_`, `toNumber_` y `parseNumber_`
+  (DT-03).
+- **El mapeo de destino va por posición fija**: insertar una columna en Vinculación desplaza todo y
+  el volcado escribe en el sitio equivocado **sin dar error** (DT-04 · R-08).
+
+**En los datos**
+
+- **`TALLER` vs `MECÁNICO`** (DT-08 · R-16): el histórico de profesores conserva las cabeceras del
+  formulario anterior (`HORA EXTRA TALLER`) mientras el actual dice `MECÁNICO`. Las copias se añaden
+  **por posición**: si no son el mismo concepto renombrado, el histórico mezclaría significados.
+- **`PRUEBA_DATA` (`CON_SECR_07`) está activo en producción** y se ofrece como concepto reportable.
+  Nunca se ha usado en 1.724 registros (DT-09).
+- **El responsable `5` no tiene ningún concepto asignado**: si entrara en la webapp, sería rechazado.
+  Solo **4** responsables han reportado alguna vez, de 5 dados de alta y 6 mencionados (DT-10).
+- **`Tipología_Profesor` solo toma los valores `1` y `2`**, sin significado documentado y sin uso en
+  ningún script. Si condiciona la retribución, es relevante para el cálculo (DT-11).
+- **Cabeceras inconsistentes** (DT-07): `VAP_Responsables` tiene `"Nombre "` con un espacio final —
+  hoy no rompe nada porque `readTable_` aplica `trim()`, pero cualquier código nuevo sin `trim`
+  fallaría en silencio; y `VAP_Secretarias` usa `Fecha Alta` donde `VAP_Profesores` usa `Fecha_Alta`.
+
+**En `VAP_Export_Sage`** *(verificado por primera vez en esta sesión)*
+
+- **501 empleados**, ~100 más que los ~400 que gestiona el sistema VAP: SAGE incluye personal que no
+  entra en ninguno de los dos colectivos.
+- **El cálculo del salario base es correcto**: 498 de 501 filas cuadran exactamente con la fórmula;
+  las 3 restantes no tienen datos en esas columnas.
+- **El orden de uso no se está siguiendo**: 9 Export Neto y 7 Export Bruto frente a solo **2 Calculo
+  Salario Base** entre mayo y julio, cuando la documentación pide calcular antes de cada export.
+- **`vinculo_columnas` duplica el mapeo del código** (DT-06): coincide exactamente con `VINC_FIELDS`,
+  pero el script no la lee. Es una copia manual que puede divergir sin que nadie se entere.
+- **`PRODUCTIVIDAD` (col. J) no se vuelca a Vinculación** pese a ser donde acaba todo lo que produce
+  este sistema. Debe volver a nóminas por otra vía, sin documentar.
+- **`Porcentaje_de_jornada` no se usa en ningún cálculo**, con 153 de 501 personas a jornada parcial.
+
+**En el proceso**
+
+- **Los volcados escriben en tres libros distintos** y no consta cuál alimenta el cálculo final
+  ([DUDA-0001](docs/dudas/0001-tres-libros-destino-de-los-volcados.md)).
+- **La premisa "cada mes se parte de hoja limpia" no la garantiza ningún automatismo** (R-17): los
+  volcados comprueban y avisan, pero no lo impiden.
+- **El repositorio y los proyectos GAS se sincronizan copiando y pegando a mano** (DT-12 · R-13).
+- **No hay tests ni linter** (DT-17): la única verificación automática es de sintaxis.
 
 ---
 

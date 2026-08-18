@@ -36,6 +36,9 @@ cambiar algo) · 🟢 baja (higiene)
 | [DT-15](#dt-15--el-backend-de-complementos-no-tiene-extensión) | El backend de complementos no tiene extensión | 🟢 | Trivial |
 | [DT-16](#dt-16--falta-el-mapa-del-flujo-de-datos-y-usuarios) | ~~Falta el mapa del flujo de datos y usuarios~~ **v0.1 en `FLUJO.md`** | 🟢 | — |
 | [DT-17](#dt-17--no-hay-tests-ni-linter) | No hay tests ni linter | 🟡 | Medio |
+| [DT-18](#dt-18--funciones-que-hacen-demasiadas-cosas) | Funciones que hacen demasiadas cosas | 🟡 | Medio |
+| [DT-19](#dt-19--el-mismo-código-copiado-en-varios-scripts) | El mismo código copiado en varios scripts | 🟡 | Medio |
+| [DT-20](#dt-20--el-id-del-libro-destino-está-escrito-en-dos-scripts) | El ID del libro destino está escrito en dos scripts | 🔴 | Trivial |
 
 ---
 
@@ -180,6 +183,61 @@ done
 
 Nada comprueba la **lógica**: ni la acumulación campo a campo, ni el filtrado por periodo, ni el
 cálculo del salario base. Cada cambio se valida ejecutándolo contra datos reales de producción.
+
+### DT-18 · Funciones que hacen demasiadas cosas
+
+Contra el principio de **responsabilidad única** ([CLAUDE.md](../../CLAUDE.md)). Las funciones más
+largas del sistema:
+
+| Función | Líneas | Cuántas cosas hace |
+|---------|--------|--------------------|
+| `volcarVinculacion_` | 185 | Lee origen, cruza, compara, escribe destino y escribe log |
+| `vap_generarExcelMensual` | 165 | Consulta, fusiona, da formato, crea el archivo y lo guarda |
+| `vap_submitBatch` | 155 | **Cinco**: valida, escribe datos, escribe log, escribe errores y envía correo |
+| `ejecutarVolcado_` | 149 | Escribe destino, copia al histórico y registra |
+| `analizarVolcado_` | 134 | Lee, filtra por periodo, cruza y compone el informe |
+
+**Por qué importa aquí y no es una cuestión de estilo:** ninguna de estas funciones se puede probar
+por partes. Para comprobar que el cruce por nombre funciona hay que ejecutar el volcado entero contra
+datos reales — que es exactamente lo que dice [DT-17](#dt-17--no-hay-tests-ni-linter) que no se puede
+hacer. Las dos deudas se sostienen la una a la otra: **no hay tests porque no hay nada del tamaño de
+un test**.
+
+`vap_submitBatch` es el caso más claro: si mañana falla el envío del correo, el fallo vive en la
+misma función que decide si el dato se guarda.
+
+### DT-19 · El mismo código copiado en varios scripts
+
+| Función | En cuántos scripts |
+|---------|--------------------|
+| `normalizeKey` | **3** |
+| `contarCeldasOcupadasDestino_` | 2 |
+| `escribirLog_` | 2 |
+| `formatearFecha_` | 2 |
+
+Los dos volcados son **gemelos por decisión** ([ADR-0008](../../docs_dev/adr/0008-reutilizar-patron-de-sincronizacion.md)):
+reutilizar el patrón fue deliberado y acertado. Lo que no se decidió es que la reutilización fuera
+**copiando el código**.
+
+La consecuencia se ve en lo ya ocurrido: `contarCeldasOcupadasDestino_` está en los dos volcados de
+actividad y **no en los export**, que es justamente el agujero que hay que tapar. Con una función
+copiada, una corrección se aplica donde uno se acuerda.
+
+> Apps Script permite **bibliotecas compartidas**. Es la vía natural, y su coste es que crea una
+> dependencia entre proyectos que hay que versionar con cuidado. Decisión pendiente, y merece un ADR.
+
+### DT-20 · El ID del libro destino está escrito en dos scripts
+
+`TARGET_SPREADSHEET_ID` con el mismo valor aparece en el volcado de horas extras **y** en el de
+actividad. Cambiar de libro destino exige **acordarse de tocar los dos**.
+
+Es trivial de arreglar y está marcado en rojo por una razón: es el mecanismo concreto por el que
+[DUDA-0001](0001-tres-libros-destino-de-los-volcados.md) se vuelve peligrosa. Si al resolverla hay
+que reapuntar los volcados y solo se cambia uno, **la mitad de la actividad de la plantilla acaba en
+un libro y la otra mitad en otro** — y ningún aviso lo delata, porque los dos escriben sin error.
+
+**Contra el principio de inversión de dependencias:** lo que puede cambiar debe estar en un solo
+sitio del que dependan los demás, no repetido en cada consumidor.
 
 **Dificultad:** el código depende de `SpreadsheetApp`, que no existe fuera de Apps Script. Habría que
 separar la lógica pura (normalización, acumulación, comparación) de la que toca Sheets, y probar solo

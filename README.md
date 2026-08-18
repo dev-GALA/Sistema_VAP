@@ -4,12 +4,30 @@ Sistema interno de **GALA Formación** para automatizar el cálculo de los salar
 
 Está construido sobre **Google Workspace**: Google Sheets como base de datos, Google Apps Script para la lógica y webapps propias para el reporte y la consulta de complementos. La fuente única de verdad del personal es el Google Sheet `VAP_BBDD_Personas`.
 
-> 📐 La documentación de referencia vive en **[`docs/`](docs/)**:
-> - **[docs/problem.md](docs/problem.md)** — qué problema resuelve el sistema y para quién (*Jobs To Be Done*).
-> - **[docs/SSD.md](docs/SSD.md)** — especificación y diseño del sistema (arquitectura, datos, scripts, riesgos, glosario).
-> - **[docs/adr/](docs/adr/README_ADR.md)** — decisiones de arquitectura, una por archivo (ADR-0001 … ADR-0014).
+> 📐 **La documentación está repartida en dos carpetas, según para quién sea.**
+>
+> **[`docs/`](docs/) — el proceso y el trabajo por delante.** Lo que se comparte y se revisa con
+> quien opera el sistema:
+> - **[docs/FLUJO.md](docs/FLUJO.md)** — el mapa del proceso mensual: qué dato nace dónde, por qué
+>   manos pasa y qué le ocurre hasta la transferencia.
+> - **[docs/retomar_trabajos.md](docs/retomar_trabajos.md)** — qué toca hacer ahora, en objetivos pequeños y
+>   cerrables, y qué lo bloquea.
 > - **[docs/ROADMAP.md](docs/ROADMAP.md)** — fases del proyecto y estado de avance.
-> - **[CLAUDE.md](CLAUDE.md)** — contexto y convenciones para el trabajo asistido.
+> - **[docs/dudas/](docs/dudas/README_dudas.md)** — cuestiones detectadas sin resolver, y la deuda
+>   técnica.
+> - **[docs/reuniones/](docs/reuniones/README_reuniones.md)** — guion y acta de cada reunión: el
+>   mismo archivo antes y después.
+> - **[docs/flujo_doc/](docs/flujo_doc/)** — el mapa del flujo listo para revisar fuera del
+>   repositorio: el texto en un documento y los ocho diagramas en archivos aparte.
+>
+> **[`docs_dev/`](docs_dev/) — el problema y el diseño.** Documentación de desarrollo:
+> - **[docs_dev/problem.md](docs_dev/problem.md)** — qué problema resuelve el sistema y para quién
+>   (*Jobs To Be Done*).
+> - **[docs_dev/SSD.md](docs_dev/SSD.md)** — especificación y diseño (arquitectura, datos, scripts,
+>   riesgos, glosario).
+> - **[docs_dev/adr/](docs_dev/adr/README_ADR.md)** — decisiones de arquitectura, una por archivo.
+>
+> Y **[CLAUDE.md](CLAUDE.md)** — contexto y convenciones para el trabajo asistido.
 >
 > Este README solo describe el contenido del repositorio.
 
@@ -22,12 +40,19 @@ Está construido sobre **Google Workspace**: Google Sheets como base de datos, G
 
 ```
 Sistema_VAP
-├── docs/                           # Documentación de referencia
+├── docs/                           # EL PROCESO — lo que se revisa con quien opera el sistema
+│   ├── FLUJO.md                    # Mapa del proceso mensual, del dato a la nómina
+│   ├── retomar_trabajos.md         # Qué toca ahora, en sprints, y qué lo bloquea
+│   ├── ROADMAP.md                  # Fases y estado de avance
+│   ├── dudas/                      # Cuestiones sin resolver + deuda técnica
+│   ├── reuniones/                  # Guion y acta de cada reunión, una por archivo
+│   └── flujo_doc/                  # El mapa del flujo, listo para revisar fuera del repo
+│       ├── FLUJO_Sistema_VAP_revision.docx   # El texto
+│       └── diagramas/              # Los 8 diagramas, en PDF (para imprimir) y PNG
+├── docs_dev/                       # EL DISEÑO — documentación de desarrollo
 │   ├── problem.md                  # El problema y los Jobs To Be Done
 │   ├── SSD.md                      # Especificación + diseño del sistema
-│   ├── ROADMAP.md                  # Fases y estado de avance
-│   ├── adr/                        # Decisiones de arquitectura (ADR-0001 … ADR-0014)
-│   └── dudas/                      # Cuestiones detectadas sin resolver
+│   └── adr/                        # Decisiones de arquitectura (ADR-0001 … ADR-0014)
 ├── CLAUDE.md                       # Contexto y convenciones para el trabajo asistido
 ├── CHANGELOG.md                    # Registro de cambios (Keep a Changelog)
 ├── README.md                       # Este archivo
@@ -66,7 +91,7 @@ Sistema_VAP
 | [VAP_Script Volcado Horas Extras Secretarias.js](code_dev/VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script%20Volcado%20Horas%20Extras%20Secretarias.js) | Hoja de respuestas de `EXTRA SECRETARIAS 2026` (`Código.gs`) | Volcado **bajo demanda** de las horas extras a `VINCULACIÓN GASTOS PERSONAL`: Nº horas (G→AE) y € otros extras (I→AH). Filtra por el `MES` de la columna C y el año de la marca temporal; muestra un informe y pide confirmación antes de escribir. Audita en la hoja `LOG Volcado`. Usa `LockService`. |
 | [VAP_index_Dialogo_Volcado_Horas_Extras.html](code_dev/VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_index_Dialogo_Volcado_Horas_Extras.html) | Mismo proyecto GAS, template **`DialogoVolcado`** | Diálogo del volcado: desplegables de mes y año (mes en curso preseleccionado), informe de filas que coinciden y que no, y botón de exportación. |
 
-**Cómo se usa el volcado de horas extras** (desde [ADR-0013](docs/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)):
+**Cómo se usa el volcado de horas extras** (desde [ADR-0013](docs_dev/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)):
 
 1. En el Sheet de respuestas: menú **`VAP_Acciones` → "Volcar Horas Extras del mes..."**.
 2. Elegir **mes** y **año** (viene preseleccionado el mes en curso) y pulsar **Revisar**.
@@ -108,10 +133,10 @@ profesorado no reporta su propia actividad.
 
 | Archivo | Dónde vive en GAS | Qué hace |
 |---------|-------------------|----------|
-| [VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js](code_dev/VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js) | Hoja de respuestas de `REGISTRO DE ACTIVIDAD DE PROFESORES 26` (`Código.gs`) | Volcado **bajo demanda** de las 64 columnas de actividad (`F..BQ` → `AC..CN`) a `VINCULACIÓN GASTOS PERSONAL`. Filtra por el `MES` de la columna C y el año de la marca temporal; muestra un informe y pide confirmación. **Acumula campo a campo** ([ADR-0009](docs/adr/0009-acumular-respuestas-por-mes-y-anio.md)). Audita en `LOG Volcado`. Usa `LockService`. |
+| [VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js](code_dev/VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js) | Hoja de respuestas de `REGISTRO DE ACTIVIDAD DE PROFESORES 26` (`Código.gs`) | Volcado **bajo demanda** de las 64 columnas de actividad (`F..BQ` → `AC..CN`) a `VINCULACIÓN GASTOS PERSONAL`. Filtra por el `MES` de la columna C y el año de la marca temporal; muestra un informe y pide confirmación. **Acumula campo a campo** ([ADR-0009](docs_dev/adr/0009-acumular-respuestas-por-mes-y-anio.md)). Audita en `LOG Volcado`. Usa `LockService`. |
 | [VAP_index_Dialogo_Volcado_Actividad_Profesores.html](code_dev/VAP_scripts_profesores/VAP_index_Dialogo_Volcado_Actividad_Profesores.html) | Mismo proyecto GAS, template **`DialogoVolcado`** | Diálogo del volcado: desplegables de mes y año, informe de coincidencias e incidencias, y botón de exportación. |
 
-**Cómo se usa** (desde [ADR-0014](docs/adr/0014-volcado-actividad-profesores-por-periodo.md)):
+**Cómo se usa** (desde [ADR-0014](docs_dev/adr/0014-volcado-actividad-profesores-por-periodo.md)):
 
 1. En el Sheet de respuestas: menú **`VAP_Acciones` → "Volcar Actividad del mes..."**.
 2. Elegir **mes** y **año** (viene preseleccionado el mes en curso) y pulsar **Revisar**.
@@ -137,7 +162,7 @@ cuenta que ejecuta necesita **acceso de Editor** al spreadsheet de destino.
 
 ### Volcado de nóminas → Vinculación (fusionado en el script SAGE)
 
-> Los antiguos scripts standalone de volcado de nóminas (neto y bruto) se han **fusionado** en [scripts_generales/VAP_script_export_SAGE.js](code_dev/scripts_generales/VAP_script_export_SAGE.js) como las acciones **Export Neto** y **Export Bruto** del menú `VAP_Acciones` (ver [Scripts generales](#scripts-generales) y [ADR-0011](docs/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md)). Cruzan por `Empresa` + `Codigo_Empleado` (origen `bbdd_export_sage_laboral`) contra `EMPRESA` (E) + `Nº EMPLEADO` (F) del destino y **sobrescriben** los 8 campos mapeados, con LOG fila-a-fila en `LOG NETOS` / `LOG BRUTOS`. Las versiones previas se conservan en `backup_old_js/`.
+> Los antiguos scripts standalone de volcado de nóminas (neto y bruto) se han **fusionado** en [scripts_generales/VAP_script_export_SAGE.js](code_dev/scripts_generales/VAP_script_export_SAGE.js) como las acciones **Export Neto** y **Export Bruto** del menú `VAP_Acciones` (ver [Scripts generales](#scripts-generales) y [ADR-0011](docs_dev/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md)). Cruzan por `Empresa` + `Codigo_Empleado` (origen `bbdd_export_sage_laboral`) contra `EMPRESA` (E) + `Nº EMPLEADO` (F) del destino y **sobrescriben** los 8 campos mapeados, con LOG fila-a-fila en `LOG NETOS` / `LOG BRUTOS`. Las versiones previas se conservan en `backup_old_js/`.
 
 ---
 
@@ -171,7 +196,7 @@ Scripts transversales que operan sobre datos comunes a varios colectivos (p. ej.
 | `Líquido_a_percibir` | T · Nomina NETO |
 
 > **Orden de uso:** ejecutar **Calculo Salario Base** antes que los export (la columna "Salario Base" del destino se alimenta del `salario_base_bruto` calculado).
-> Las cabeceras del **origen** se localizan **por nombre** (robusto ante reordenación); el mapeo al **destino** usa posiciones de columna fijas (`VINC_FIELDS`). La columna `% IRPF` (S) del destino no se toca. Detalle completo en [SSD §7.5](docs/SSD.md#75-transversal--cálculos-y-volcado-sage) y los ADR [0010](docs/adr/0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md) / [0011](docs/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md) / [0012](docs/adr/0012-auditoria-centralizada-logs-y-errores.md).
+> Las cabeceras del **origen** se localizan **por nombre** (robusto ante reordenación); el mapeo al **destino** usa posiciones de columna fijas (`VINC_FIELDS`). La columna `% IRPF` (S) del destino no se toca. Detalle completo en [SSD §7.5](docs_dev/SSD.md#75-transversal--cálculos-y-volcado-sage) y los ADR [0010](docs_dev/adr/0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md) / [0011](docs_dev/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md) / [0012](docs_dev/adr/0012-auditoria-centralizada-logs-y-errores.md).
 
 ---
 

@@ -12,7 +12,7 @@ Separa tres cosas que se confunden con facilidad:
 | | Dónde vive | Qué es |
 |---|---|---|
 | **Una duda** | `docs/dudas/` | Falta información para poder decidir |
-| **Una decisión** | [`docs/adr/`](../adr/README_ADR.md) | Ya se decidió; queda registrado el porqué |
+| **Una decisión** | [`docs/adr/`](../../docs_dev/adr/README_ADR.md) | Ya se decidió; queda registrado el porqué |
 | **Una tarea** | [`docs/ROADMAP.md`](../ROADMAP.md) | Se sabe qué hacer; falta hacerlo |
 
 El recorrido habitual es **duda → decisión → tarea**. Cuando una duda se resuelve y da lugar a un
@@ -23,11 +23,13 @@ cambio de diseño, se crea el ADR correspondiente y se enlaza desde la duda.
 | # | Duda | Estado | Bloquea |
 |---|------|--------|---------|
 | [0001](0001-tres-libros-destino-de-los-volcados.md) | Los volcados van a tres libros distintos | 🔴 Abierta | Unificar el destino de los volcados · cerrar la Fase 3.A |
+| [0002](0002-signo-de-seguro-medico-y-cobee-en-sage.md) | Con qué signo llegan de SAGE el seguro médico y COBEE | 🔴 Abierta | Dar por correcta la fórmula del salario base · el signo de los importes en Vinculación |
+| [0003](0003-momentos-de-copia-y-pega-del-proceso.md) | Los momentos de copia y pega del proceso | 🔴 Abierta | Convertirlos en pasos semiautomáticos · saber cuándo entró cada dato |
 
 ## Deuda técnica
 
 **[`deuda-tecnica.md`](deuda-tecnica.md)** — inventario de lo detectado revisando el código y los
-datos: **17 entradas** clasificadas por prioridad y esfuerzo. Nada de ello impide que el sistema
+datos: **20 entradas** clasificadas por prioridad y esfuerzo. Nada de ello impide que el sistema
 funcione hoy; son cosas que **funcionan por casualidad, que se romperán al crecer, o que nadie sabe
 explicar**.
 

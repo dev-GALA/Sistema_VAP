@@ -12,7 +12,7 @@
 ## El hallazgo
 
 Los volcados del sistema **no confluyen en una sola hoja**, como sugiere la documentación
-([SSD §6.3](../SSD.md), *"hoja final donde confluyen los volcados"*), sino que escriben en **tres
+([SSD §6.3](../../docs_dev/SSD.md), *"hoja final donde confluyen los volcados"*), sino que escriben en **tres
 libros de Google Sheets diferentes**:
 
 | Qué se vuelca | Script | Libro destino (ID) | Columnas |

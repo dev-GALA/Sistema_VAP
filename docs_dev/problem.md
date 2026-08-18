@@ -48,7 +48,7 @@ error, es el terreno del problema.
 | | |
 |---|---|
 | Personas cuya retribución depende de este proceso | **~400** |
-| Responsables que reportan datos cada mes | **6** |
+| Responsables de complemento que reportan cada mes | **4** |
 | Autoescuelas de la red | 55 |
 
 El ciclo completo se repite **doce veces al año**. La escala
@@ -132,6 +132,11 @@ hay 122 casos de un mismo profesor con más de un reporte en el mismo mes.
    discrepancia sobre un dato de origen, no hay a qué agarrarse.
 5. **Fricción para quien reporta.** Los responsables que envían los datos tampoco tenían constancia
    de lo enviado ni forma de corregirlo con garantías.
+6. **El proceso no tiene principio visible ni marcador de avance.** El mes arranca con un acuerdo
+   verbal que no queda registrado, así que quien no estuvo en esa conversación no sabe cuándo se
+   cierra. Y durante el mes **no hay forma de saber qué falta**: solo consta lo que llega, nunca lo
+   que no llega. De ahí que perseguir a cada fuente sea trabajo manual recurrente — y que el coste
+   no esté tanto en consolidar como en **averiguar si ya se puede consolidar**.
 
 > **Alcance de la trazabilidad.** El rastro que se busca es el de **lo que cada fuente reportó**.
 > El **ajuste de la revisión final** (§3.1, §4.4) queda deliberadamente fuera: responde a gestiones
@@ -157,6 +162,11 @@ y validan** el cierre del mes. La automatización no sustituye ese juicio: su fu
 que lo que llega a la mesa de revisión está completo y es correcto, para que la revisión se dedique
 a decidir y no a detectar fallos de transcripción.
 
+Y el mes no se da por bueno cuando se valida, sino cuando se comprueba: **lo que cada persona recibe
+coincide con lo que se calculó para ella**. Cerrar el circuito entre el cálculo y el cobro es parte
+de la situación deseada, no un extra — porque es el único punto donde un error deja de ser una
+hipótesis y pasa a ser dinero mal pagado.
+
 ### 2.4 Enunciado del problema
 
 > *Una sola frase. Si no cabe en una frase, el problema no está lo bastante acotado.*
@@ -178,9 +188,9 @@ auditar y dependiente de una sola persona.**
 |-----|------------------------------|---------------------|
 | **Responsable / Manager** | Cierre de mes: debe reportar la actividad de las personas del complemento salarial que gestiona | Dejar reportado lo que le corresponde, con constancia de haberlo hecho y posibilidad de rectificar |
 | **Secretarias** | Reportan parte de su propia actividad, y también parte de la actividad del profesorado que gestionan | Que quede registrado y se pague correctamente, tanto lo suyo como lo del profesorado |
-| **Gestor de nóminas** | Emite un documento inicial de salario que envía a Responsable de Administración, y produce el cálculo final | Tener los datos completos, consolidados y fiables en la fecha de cierre |
-| **Gerente** | Revisa el conjunto junto con Responsable de Administración; aporta datos de origen propio y **modifica importes ya reportados por otras fuentes** cuando procede | Poder dar el mes por bueno, con los importes ajustados a lo que considera correcto |
-| **Responsable de Administración** | **Coordina el proceso completo del cierre**, en buena parte de forma personal y presencial: persigue lo que falta, resuelve dudas con cada fuente y opera la consolidación de los datos | Que el cierre salga a tiempo y cuadre, sin depender de que cada fuente se acuerde de reportar por su cuenta |
+| **Gestor de nóminas** | Emite un documento inicial de salario que envía a Responsable de Administración y, una vez cerrados los complementos, **recalcula IRPF y el resto de conceptos salariales** y devuelve los **importes netos a transferir** | Tener los datos completos, consolidados y fiables en la fecha de cierre |
+| **Gerente** | Revisa el conjunto junto con Responsable de Administración; **aporta datos de origen propio introduciéndolos directamente en el archivo de cálculo** —sin pasar por ninguna vía de captura— y **modifica importes ya reportados por otras fuentes** cuando procede | Poder dar el mes por bueno, con los importes ajustados a lo que considera correcto |
+| **Responsable de Administración** | **Coordina el proceso completo del cierre**, en buena parte de forma personal y presencial: persigue lo que falta, resuelve dudas con cada fuente y opera la consolidación. Además **verifica** los conceptos que se descuentan (seguro médico, COBEE, anticipos) y, tras el pago, **contrasta lo transferido con lo calculado** | Que el cierre salga a tiempo y cuadre, sin depender de que cada fuente se acuerde de reportar por su cuenta |
 
 **Notas sobre los roles:**
 
@@ -206,7 +216,8 @@ auditar y dependiente de una sola persona.**
 |----------|----------------------|----------------|
 | **Profesorado** | **No** | Su retribución depende íntegramente de datos que reportan otros. Es el colectivo más expuesto a un error: no interviene en la captura ni tiene forma directa de verificarla |
 | **Secretarias** | **Sí** (ver §3.1) | Reportan parte de sus propios datos y su retribución depende del resultado |
-| **Dirección / RRHH** | No | Necesita que el sistema retributivo sea defendible ante una reclamación |
+| **Dirección / RRHH** | No | Necesita que el sistema retributivo sea defendible ante una reclamación, y **poder valorar qué aporta**: tiempo ahorrado, errores evitados, descuadres detectados |
+| **Departamento de Data** | No | Consume la actividad del proceso para analizarla, comparar periodos y detectar variaciones que merezcan explicación |
 | **Quien mantiene el sistema** | Sí | Hoy, una sola persona: cualquier fallo o ausencia recae sobre ella |
 
 > El caso del **profesorado** merece atención: es el único colectivo cuya retribución se determina
@@ -257,15 +268,18 @@ seguiría existiendo si se rehiciera sobre una tecnología completamente distint
 - **Dar el mes por cerrado** con la confianza de que lo revisado está completo.
 - Consultar qué se reportó en un mes pasado.
 - Justificar ante una reclamación por qué alguien cobró lo que cobró.
+- **Comprobar que lo efectivamente pagado coincide con lo calculado.**
+- **Saber cuánto ha costado el cierre de este mes y cómo se compara con los anteriores.**
+- **Poder explicar qué aporta el sistema** a quien no participa en el proceso.
 - Incorporar un concepto retributivo nuevo sin rehacer el proceso.
 
 > Los dos *jobs* en negrita corresponden al **ajuste de la revisión final** (§4.4) y son propios del Gerente y
 > el Responsable de Administración. Se distinguen del segundo de la lista: *corregir* lo propio busca
 > enmendar un error de quien lo reportó; *ajustar* lo ajeno es un acto de decisión sobre el importe.
 
-### 4.4 Captura, consolidación y ajuste
+### 4.4 Captura, consolidación, ajuste y verificación
 
-> *Las tres partes del proceso que es fácil confundir, y que delimitan hasta dónde puede llegar el
+> *Las cuatro partes del proceso que es fácil confundir, y que delimitan hasta dónde puede llegar el
 > sistema.*
 
 **El ajuste no corrige errores de captura:** incorpora información que **nunca entró en el sistema
@@ -278,10 +292,32 @@ dato, sino que ese dato **nunca fue suyo**.
 | **Captura** | Los datos de actividad que cada fuente reporta | Sí | Parcialmente: depende de que cada fuente reporte |
 | **Consolidación** | Reunir esos datos y calcular los importes | Sí | Sí — es donde el sistema aporta más |
 | **Ajuste** | La decisión final sobre el importe, informada por circunstancias externas al sistema | **No, por naturaleza** | **No, ni se pretende** |
+| **Verificación** | Contrastar lo que entra y lo que sale contra una **fuente independiente**: lo que se descuenta contra lo que corresponde, y lo pagado contra lo calculado | Sí | **Sí — y hoy no se hace** |
 
-Esta distinción delimita el alcance del sistema: **puede aspirar a que la captura y la consolidación
-sean completas y fiables; el ajuste es terreno humano y así se quiere.** El importe final es el
-resultado de las tres, y solo las dos primeras son reconstruibles a posteriori.
+Esta distinción delimita el alcance del sistema: **puede aspirar a que la captura, la consolidación
+y la verificación sean completas y fiables; el ajuste es terreno humano y así se quiere.** El importe
+final es el resultado de las cuatro, y todas menos el ajuste son reconstruibles a posteriori.
+
+> **La verificación no estaba en la primera versión de este documento, y es la que más se echa en
+> falta.** No reúne datos ni decide importes: **comprueba**. Y a diferencia del ajuste, es trazable y
+> automatizable — lo que significa que el hueco que deja hoy no es un límite del problema, sino
+> trabajo por hacer.
+>
+> **No es una idea de despacho:** salió como petición expresa en la última reunión de revisión. El
+> primer paso es **pedir a cada proveedor el dato con el que contrastar** —la relación real de
+> asegurados, las ayudas concedidas, el fichero de pagos del banco— para ver cómo vienen y decidir
+> cómo cruzarlos. Sin esa fuente independiente no hay verificación posible: solo se estaría
+> comparando el sistema consigo mismo.
+
+> **Matiz que aporta el mapa del flujo** ([FLUJO.md](../docs/FLUJO.md)): la consolidación **no está
+> automatizada de extremo a extremo**. Los scripts dejan los datos en unos archivos intermedios, y
+> de ahí alguien los **pega a mano** en el archivo donde se calcula. Ese tramo es tan manual y tan
+> poco trazable como lo que había antes — solo que ahora está concentrado en un único salto en lugar
+> de repartido por todo el proceso.
+>
+> Y hay **dos vías de captura que tampoco dejan rastro**: el volcado del Excel de nóminas y los datos
+> que el Gerente introduce directamente en el archivo de cálculo. De ninguna de las dos consta qué
+> entró ni cuándo.
 
 ---
 
@@ -321,6 +357,28 @@ momento y no retrasar el cierre.
 Cuando hemos terminado de revisar y ajustar, quiero cerrar el mes con la certeza de que lo revisado
 estaba completo, para poder darlo por bueno sin la duda de si faltaba algo por llegar.
 
+**JS-08 — Dar la salida del mes**
+Cuando queda fijada la fecha de cierre, quiero que todo el que deba reportar se entere de que el
+proceso ha empezado, para no tener que avisar a cada uno personalmente ni arriesgarme a que alguien
+no se dé por enterado.
+
+**JS-09 — Confiar en lo que se descuenta**
+Cuando reviso el mes, quiero contrastar los importes que se restan —seguro médico, ayudas a comida y
+transporte, anticipos— con lo que realmente corresponde a cada persona, para que un error en ellos no
+se propague a todo lo demás.
+
+**JS-10 — Confirmar que lo pagado es lo calculado**
+Cuando ya se han hecho las transferencias, quiero comprobar que lo que ha salido coincide con lo que
+se calculó, para detectar un pago equivocado antes de que lo detecte la persona afectada.
+
+**JS-11 — Saber si este mes ha sido normal**
+Cuando termino el cierre, quiero ver cómo se compara con los meses anteriores, para detectar a
+tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo pregunte.
+
+> **JS-08, JS-09 y JS-10 salen del mapa del flujo** ([FLUJO.md](../docs/FLUJO.md)) y son las tres situaciones
+> del proceso que hoy **no tienen ningún apoyo**: el arranque, la verificación de lo que se descuenta
+> y la comprobación del pago. Las tres son del Responsable de Administración, el rol peor cubierto.
+
 > **JS-06 y JS-07 corresponden al ajuste y cierre del mes** (§3.1, §4.4) y no existían en la primera
 > versión del documento. Nótese que JS-06 pide **rapidez y autonomía** —resolver sin volver al
 > origen— mientras que JS-02 pide **conservar el rastro**. No son contradictorios porque hablan de
@@ -345,52 +403,62 @@ estaba completo, para poder darlo por bueno sin la duda de si faltaba algo por l
 | RD-04 | Minimizar el **esfuerzo de reconstruir** el origen de un importe pasado | Tiempo en responder a una reclamación | 🔍 sin dato |
 | RD-05 | Minimizar la **dependencia de una persona** concreta para cerrar el mes | ¿Podría otra persona cerrar el mes sin ayuda? | 🔍 sin dato |
 | RD-06 | Minimizar el **esfuerzo de reportar** para quien envía los datos | Minutos por responsable y mes | 🔍 sin dato |
+| RD-07 | Minimizar el **tiempo hasta saber qué fuentes faltan** por reportar | Días desde el inicio del cierre hasta tener la lista de quién falta | 🔍 hoy no se sabe |
+| RD-08 | Minimizar los **descuadres entre lo calculado y lo pagado** | Nº e importe de diferencias detectadas tras la transferencia | 🔍 hoy nadie lo comprueba |
+| RD-09 | Maximizar la **capacidad de comparar** un periodo con otro | ¿Se puede responder "¿este mes es normal?" sin rehacer el análisis a mano? | 🔍 hoy no |
+| RD-10 | Minimizar el **esfuerzo de justificar** qué aporta el sistema | Tiempo en producir el informe de actividad y ahorro | 🔍 hoy no existe |
 
-> 🔍 **Por validar — sigue faltando la línea de base.** Las cifras de operación ya están (abajo),
+> 🔍 **Por validar — sigue faltando la línea de base.** Hay datos de cómo funciona hoy el sistema,
 > pero **no hay dato del "antes"**: cuánto tiempo consumía el cierre manual, cuántos errores
 > aparecían. Sin ese punto de partida se puede describir cómo funciona hoy el sistema, pero no
 > demostrar cuánto ha mejorado. Una estimación tuya ("antes eran unas 3 jornadas, ahora media") ya
 > sirve.
 
-### 6.1 Datos de operación (medidos)
+> **Qué miden y qué no.** Conviene tener presente al leer cualquiera de estos resultados: medir que
+> **el mecanismo de reporte no falla** no es lo mismo que medir que **los importes sean correctos**.
+> Un dato erróneo bien formado se registra sin incidencia alguna. Del mismo modo, las correcciones
+> que alguien envía solo capturan los errores **que alguien detectó y quiso enmendar**: son una
+> medida indirecta, no la tasa de error real.
 
-> *Extraídos de las hojas de registro del sistema el 17 agosto 2026. Son datos de **cómo funciona
-> hoy**, no de la situación previa.*
+### 6.1 Qué habría que medir
 
-**Actividad de reporte de complementos** — periodo **febrero a julio de 2026** (6 meses):
+> *Los resultados deseados de arriba dicen **qué significa haberlo conseguido**. Este apartado dice
+> **qué hay que recoger** para poder afirmarlo. No lleva valores: los valores se generan y se guardan
+> aparte.*
 
-| Métrica | Valor |
-|---------|-------|
-| Registros de complemento acumulados | **1.724** |
-| Envíos (remesas) realizados | **41** |
-| Acciones registradas | **65** — 44 envíos · 7 correcciones · 14 exportaciones |
-| Acciones con resultado de error | **0** |
-| Valores rechazados por no numéricos | **0** |
-| Registros que son corrección | **108 de 1.724 (6,3 %)** |
-| Tipo de corrección | 5 parciales · 2 totales |
-| Secretarias distintas reportadas | **107** |
-| Responsables que han reportado | **4** |
+**Cinco familias.** Las cuatro primeras describen el proceso; la quinta es la que permite defenderlo.
 
-**Cobertura por mes** (registros): feb 261 · mar 276 · abr 290 · may 286 · jun 211 · **jul 400**
+| Familia | Qué recoge | Para qué sirve |
+|---------|------------|----------------|
+| **Volumen** | Cuánta información se ha tratado: registros por concepto y por responsable, **personas cubiertas**, y cuánto dato se genera **por persona** | Dimensionar el trabajo real y ver si crece |
+| **Ejecución** | Qué se lanzó, cuándo, con qué resultado y cuántas incidencias | Saber que el proceso se ha ejecutado, y que ha ido bien |
+| **Cobertura** | Cuántas fuentes reportaron de las esperadas, y quién faltó | **Medir lo que no llegó** — hoy no se mide nada de esto |
+| **Puntualidad** | Cuándo ocurrió cada paso respecto a la fecha acordada | Detectar el retraso mientras se puede corregir |
+| **Valor** | Tiempo dedicado al cierre, errores evitados, **descuadres detectados** entre lo calculado y lo pagado | Responder a *"¿qué nos está aportando esto?"* con datos |
 
-**Uso por concepto:** RESEÑAS 567 · FINANCIACIONES 552 · APTOS 422 · HORAS_PUNTOS 131 ·
-SABADOS_50 47 · SABADOS_60 5
+**Tres periodicidades**, porque no responden a lo mismo:
 
-### 6.2 Qué dicen estas cifras
+| | Qué pregunta responde |
+|---|---|
+| **Mensual** | ¿El cierre de este mes ha ido bien y está completo? |
+| **Trimestral** | ¿Qué está **variando**? Es donde se ven las tendencias que un mes suelto esconde |
+| **Anual** | ¿Cuánto ha movido el sistema en el año y qué ha ahorrado? |
 
-- **Cero errores en 65 acciones.** Ni una sola acción fallida ni un valor rechazado en seis meses.
-  Es una señal buena, pero conviene leerla con cuidado: mide que **el mecanismo de reporte no
-  falla**, no que los importes sean correctos. Un dato erróneo bien formado se registra sin
-  incidencia.
-- **6,3 % de correcciones.** Aproximadamente uno de cada dieciséis registros se corrige. Es la
-  única medida indirecta de tasa de error que existe hoy, y solo captura los errores **que alguien
-  detectó y quiso enmendar**.
-- **Julio se dispara a 400 registros** frente a una media de ~265. Merece una explicación:
-  ¿un mes con más actividad, un concepto nuevo, o una recuperación de datos atrasados?
-- **Solo 4 responsables han reportado**, de 5 dados de alta y 6 que mencionamos en §1. Conviene
-  cuadrar esa diferencia (§10).
-- **SABADOS_60 con 5 registros en seis meses** es prácticamente residual, frente a los 567 de
-  RESEÑAS. Puede indicar un concepto que apenas se aplica.
+**Tres destinatarios distintos**, y conviene no darles el mismo informe:
+
+- **Responsable de Administración** — necesita el detalle **del mes en curso**, para actuar: qué falta, qué falló, qué hay que perseguir.
+- **Departamento de Data** — necesita el dato **en bruto y comparable entre periodos**, para analizarlo por su cuenta.
+- **Gerencia** — necesita el **resumen y la tendencia**: cuánto se mueve, cuánto se ahorra, dónde están los riesgos.
+
+> ⚠️ **Cada indicador tiene que decir qué mide y qué no.** Que el mecanismo de reporte no falle no
+> significa que los importes sean correctos: un dato erróneo bien formado se registra sin incidencia.
+> Un panel en verde puede convivir perfectamente con una nómina mal calculada. Sin esa advertencia al
+> lado, la medición **da una falsa sensación de seguridad** — que es peor que no medir.
+
+> 📊 **Los datos de operación no viven en este documento.** Las cifras de actividad —registros,
+> remesas, cobertura por mes, uso por concepto— se generan y se guardan aparte. Este documento
+> plantea el problema y define qué habría que medir; **los valores medidos van en la medición del
+> proceso** ([Fase 5.D del ROADMAP](../docs/ROADMAP.md)).
 
 ---
 
@@ -406,6 +474,16 @@ SABADOS_50 47 · SABADOS_60 5
 | **Decisión** | Todo se construye sobre Google Workspace, sin infraestructura nueva ([ADR-0001](adr/0001-google-sheets-como-bbdd-central.md)) |
 | **Decisión** | Avance por fases y por colectivos, en lugar de un despliegue único |
 | **De facto** | Desarrollo y mantenimiento a cargo de una sola persona, compatibilizado con otras funciones |
+| **De facto** | **La automatización tiene un techo de aceptación.** Quien opera el cierre maneja datos retributivos muy sensibles y necesita seguir **teniendo el control** de cuándo ocurre cada cosa |
+
+> **Sobre el techo de automatización.** No es una limitación técnica ni una resistencia al cambio:
+> es una consecuencia razonable de lo que está en juego. Un paso que se dispara solo, en un proceso
+> que decide lo que cobra la gente, quita a quien responde de él la posibilidad de mirarlo antes.
+>
+> De ahí una pauta de diseño que conviene respetar en todo lo que se construya: **automatizar el
+> trabajo, no la decisión de hacerlo**. Que el sistema prepare, calcule y avise; que **ella pulse**.
+> Es exactamente el patrón que ya siguen los volcados —analizar, mostrar el informe, y escribir solo
+> si se confirma— y que conviene extender al resto en lugar de inventar otro.
 
 > 🔍 **Por validar:** ¿hay restricciones de cumplimiento (RGPD, convenio colectivo, auditoría
 > laboral) que deban constar explícitamente? No aparecen en ningún documento y, tratándose de datos
@@ -462,11 +540,12 @@ SABADOS_50 47 · SABADOS_60 5
 
 | # | Supuesto | Si resultara falso… |
 |---|----------|---------------------|
-| S-01 | El problema principal es la **consolidación** de datos, no su **captura** | Habría que mirar aguas arriba: quizá el dolor está en que los datos se generan mal desde el origen |
+| S-01 | El problema principal es la **consolidación** de datos, no su **captura** | Habría que mirar aguas arriba: quizá el dolor está en que los datos se generan mal desde el origen. **El mapa del flujo lo pone en duda**: dos de las cinco vías de captura no dejan ningún rastro (§4.4) |
 | S-02 | Los responsables están dispuestos a reportar con método si es cómodo | La adopción sería el problema real, no la automatización |
 | S-03 | Las reglas de cálculo son estables mes a mes | Haría falta un sistema configurable, no automatizado sobre reglas fijas |
 | S-04 | Secretarias y profesores comparten suficiente estructura para un enfoque común | Serían dos problemas distintos que conviene no forzar a converger |
 | S-05 | Existe una parte del importe final que **no es sistematizable**: responde a gestiones puntuales y personales que nacen fuera del sistema (§4.4) | Si en realidad fuera capturable, parte de esos ajustes serían evitables mejorando la captura, y el sistema podría llegar más lejos de lo que hoy se asume |
+| S-06 | El archivo donde se calcula la nómina está **fuera del alcance del sistema**, y los datos llegan a él por medios que el sistema no controla | Desaparecería el único tramo sin auditar de toda la cadena, y el sistema podría llegar bastante más lejos de lo que hoy se asume |
 
 ---
 
@@ -490,7 +569,10 @@ SABADOS_50 47 · SABADOS_60 5
 
 | Pregunta | Respuesta | Recogida en |
 |----------|-----------|-------------|
-| ¿Cuántas personas, responsables y autoescuelas hay implicadas? | ~400 personas · 6 responsables · 55 autoescuelas | §1 |
+| ¿Cuántas personas, responsables y autoescuelas hay implicadas? | ~400 personas · **4 responsables de complemento** · 55 autoescuelas | §1 |
+| ¿Por qué no cuadraban los responsables dados de alta con los que reportan? | El quinto de alta es una **cuenta de pruebas** de quien mantiene el sistema | §3.1 |
+| ¿Dónde se calcula realmente la nómina? | En un archivo aparte, **Gastos de Personal**, al que llegan **pegados a mano** los datos que los scripts consolidan | [FLUJO.md](../docs/FLUJO.md) |
+| ¿Qué ocurre entre el cálculo y el pago? | Los complementos vuelven al archivo de nómina, el Gestor recalcula IRPF y demás y devuelve los **netos a transferir** | [FLUJO.md](../docs/FLUJO.md) |
 | ¿Quién reporta la actividad del profesorado? | Las secretarias que lo gestionan reportan parte; el resto llega por el Gerente u otras vías. El profesorado **no** reporta su propia actividad | §3.1, §3.2 |
 | ¿El Gerente puede modificar datos reportados por otros? | Sí, en la etapa de revisión final | §3.1 |
 | ¿Queda constancia de esas modificaciones? | No, y es una **decisión deliberada** | §2.2, §8 |
