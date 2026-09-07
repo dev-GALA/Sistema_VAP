@@ -3,8 +3,246 @@
 Todos los cambios relevantes de **Sistema VAP** se documentan en este archivo.
 
 El formato sigue la convención de [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
-Las decisiones de arquitectura que respaldan estos cambios están en [`docs/adr/`](docs_dev/adr/README_ADR.md);
-el diseño del sistema, en [`docs/SSD.md`](docs_dev/SSD.md); las fases, en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Las decisiones de arquitectura que respaldan estos cambios están en [`docs_solutions/docs_design/adr/`](docs_solutions/docs_design/adr/README_ADR.md);
+el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/docs_design/SSD.md); el estado de cada requisito, en [`requisitos_funcionales.md`](docs_discovery/requisitos_funcionales.md).
+
+---
+
+## [2026-09-07] · Las tres fuentes de contraste, y la regla de los datos personales
+
+**El último paso del sistema empieza a tener forma.** Han llegado los tres documentos con los que
+contrastar lo que el VAP calcula —relación de asegurados de **ADESLAS**, consumos de **COBEE** y
+transferencias emitidas del **banco**— y se ha abierto en lectura
+`VINCULACIÓN GASTOS PERSONAL 2026` para comprobar si el cruce por DNI tiene los dos extremos.
+
+**Los tiene.** La columna `DNI` existe en Vinculación y las tres fuentes ya tienen columna propia.
+
+> **Ningún dato personal ha entrado en el repositorio, y no debe entrar.** Lo que se documenta aquí
+> es el **formato** de cada fuente: cabeceras, reglas de fusión, recuentos y porcentajes. Nunca una
+> fila real.
+
+### Añadido
+
+- **[CLAUDE.md](CLAUDE.md) · segunda regla: los datos personales nunca entran en el repositorio.**
+  DNI/NIE, IBAN, email personal, fecha de nacimiento e importes nominativos —de empleados **y de sus
+  familiares**— quedan fuera del control de versiones, también como ejemplo dentro de un `.md`.
+  Git no olvida: borrar del árbol no saca del historial, así que la regla se aplica **antes** de
+  escribir.
+
+- **Tres fichas de duda nuevas**, que se leen juntas:
+
+  | Ficha | Qué recoge |
+  |---|---|
+  | [DUDA-0004](docs_work/dudas/0004-formato-de-las-tres-fuentes-de-contraste.md) | El **formato** de ADESLAS, COBEE y banco |
+  | [DUDA-0005](docs_work/dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md) | Cómo **identificar a la persona** en el fichero del banco, y a qué riesgo obliga |
+  | [DUDA-0006](docs_work/dudas/0006-que-contienen-las-columnas-de-contraste-de-vinculacion.md) | Qué contienen hoy las **columnas de contraste** de Vinculación |
+
+- **Sprint 1 · Contrastar el VAP con fuentes externas**, en
+  [`retomar_trabajos.md`](docs_work/retomar_trabajos.md), con **OB-35** (los tres lectores
+  normalizadores) y **OB-36** (resolver la identificación en el fichero del banco).
+
+### Averiguado
+
+- **El mapa de columnas de Vinculación.** La cabecera está en la **fila 8**, no en la 1: encima hay
+  tablas de parámetros y tarifas. `DNI` en la **D**, `ADESLAS` en la **G**, `COBEE COMIDA` en la
+  **H**, `COBEE TRANSPORTE` en la **I**; el libro va de la **A a la CN**, coherente con el rango
+  `AC..CN` que ya describía [FLUJO.md](docs_work/flujo_doc/FLUJO.md). El `DNI` viene en el mismo
+  formato que ADESLAS y COBEE: **el cruce no necesita normalizar**.
+
+- **ADESLAS trae una fila por asegurado, no por empleado.** Se fusiona por `Certif.`, que es el DNI
+  del titular sin letra ni cero inicial — **pero `Certif.` agrupa, no identifica**: los NIE pierden
+  también la letra inicial y hay un certificado que es el número de póliza. El DNI se toma del
+  `NIF` de la fila `TITULAR`.
+
+- **COBEE es la fuente más limpia**: una fila por trabajador y columna `DNI` propia.
+
+- **El banco no permite cruzar por DNI**: solo nombre e IBAN, y el nombre llega sin eñes, con las
+  partículas al final y truncado a 28 caracteres.
+
+### Pendiente de arreglar en origen
+
+Dos de los tres ficheros vienen mal servidos, y **no se arregla programando**:
+
+- **El del banco no es la remesa.** Declara 208 pagos y trae 10 filas.
+- **El de COBEE llega con la codificación rota y sin saltos de línea.**
+
+Y en Vinculación, las columnas `ADESLAS`, `COBEE COMIDA` y `COBEE TRANSPORTE` **hoy no contienen
+importes** — hay incluso nombres de empresa escritos en las de COBEE. Es lo que bloquea OB-12.
+
+### Cambiado
+
+- **Renumerados los sprints** al entrar el nuevo por arriba: 1→2, 2→3, 3→4, 4→5, 5→6. Los `OB-xx`
+  **no se renumeran** — identifican, no ordenan. **OB-11** y **OB-12** se mudan al Sprint 1, y el
+  antiguo sprint de verificación pasa a llamarse **Sprint 6 · Lo que hay que pedir y preguntar**.
+- **OB-01** pasa a 🟡 *a medias*: los tres documentos han llegado, pero dos vienen incompletos.
+- Repuestas las citas rotas por la renumeración en
+  [`requisitos_funcionales.md`](docs_discovery/requisitos_funcionales.md) y
+  [`requisitos_no_funcionales.md`](docs_discovery/requisitos_no_funcionales.md).
+
+### Corregido — auditoría de dos pasadas
+
+Repetida antes de cerrar, según la regla del [CLAUDE.md](CLAUDE.md). **Estructura: sin hallazgos**
+—41 documentos, cero enlaces rotos, cero anclas rotas, índices completos, nomenclatura correcta y
+numeración de `OB`, `RF`, `RNF` y `DT` sin huecos ni duplicados—. En **coherencia** aparecieron cinco:
+
+- **El Sprint 2 se declaraba 🔴 pendiente en su titular y 🟡 en curso en la tabla resumen.** Ahora
+  🟡 en los dos sitios, y los siete titulares de sprint llevan su estado: antes solo lo llevaban tres.
+- **El [README](README.md) anunciaba `ADR-0001 … ADR-0014`** cuando hay **dieciséis**.
+- **`docs_work/migration_data/` no figuraba en el árbol del README**, existiendo desde el 7 de
+  septiembre.
+- **El [SSD](docs_solutions/docs_design/SSD.md) llamaba `requisitos.md`** —cuatro veces— a un archivo
+  que se partió en dos en OB-33. Los enlaces apuntaban bien; el nombre, no.
+- **OB-32 afirmaba que el script de cruce no consta «ni en el CHANGELOG»**, y desde hoy sí consta.
+
+Y uno que **no se subsana aquí**, anotado como próximo paso en **OB-02**: [FLUJO.md](docs_work/flujo_doc/FLUJO.md)
+sigue marcando el bloque 4 como 🔍 *sin verificar* y da `Hoja 1` como destino, pero el libro tiene
+**varias pestañas** con la misma estructura. Cuál es la buena se decide con la Responsable de
+Administración, no desde aquí — así que la marca 🔍 se queda hasta entonces.
+
+---
+
+## [2026-09-07] · Cruce de la BBDD de personas con SAGE
+
+**Migración de datos, no cambio de sistema.** Se cruza la BBDD de personas del sistema
+(`VAP_BBDD_Personas`) con el export de empleados de SAGE para **asignar el DNI**, que hasta hoy no
+figuraba en ninguna de las dos hojas, y de paso revisar el `Id_Sage` y la empresa de cada persona.
+
+**Nada se ha escrito en producción.** `VAP_BBDD_Personas` queda intacto: el resultado vive en un
+libro aparte, en la misma carpeta de Drive.
+
+### Añadido
+
+- **`docs_work/migration_data/VAP_Script_Cruce_BBDD_Personas_SAGE.js`** — el motor del cruce, en una
+  carpeta nueva `docs_work/migration_data/` para el código de migración de datos, que no es parte
+  del sistema en ejecución y no debe mezclarse con `docs_solutions/src/`.
+
+  Escrito como Apps Script ejecutable desde el propio Spreadsheet, con toda la configuración en
+  constantes al principio del archivo ([CLAUDE.md](CLAUDE.md), principio SOLID-D): identificadores
+  de hojas, tabla de empresas, colores, umbrales y patrones son datos, no lógica. Genera cuatro
+  hojas y no modifica ninguna existente.
+
+- **Libro de resultados en Drive**, en `D. Data Sistema VAP` junto al original:
+  [`VAP_BBDD_Personas_CRUCE`](https://drive.google.com/file/d/1Qq4hI4GKz-YJ8rDL9Tk02umhSFIvc-tD/view)
+  (formato `.xlsx`, se abre y edita en Google Sheets). Cuatro hojas:
+
+  | Hoja | Filas | Contenido |
+  |---|---|---|
+  | `VAP_Secretarias_CRUCE` | 111 | Copia con DNI y datos de SAGE. **108 con DNI** |
+  | `VAP_Profesores_CRUCE` | 294 | Ídem. **289 con DNI** |
+  | `VAP_Staff` | 293 | Personal de alta en SAGE que no es secretaria ni profesor |
+  | `VAP_Cruce_Incidencias` | 596 | Todo lo que no cuadra, con su tipo y el dato que difiere |
+
+  **397 de las 405 filas de la BBDD quedan con DNI (98%).** Las 8 restantes no están en SAGE.
+
+- **Hoja `VAP_Staff`** (nombre provisional): 293 filas y 269 personas de alta en SAGE que no
+  aparecían en ninguna de las dos hojas — gerencia, administración, responsables de complementos,
+  limpieza— más los colaboradores de la serie ≥1000. Con la misma estructura de columnas que las
+  otras dos, para que encaje sin retoques si algún día alimenta al sistema.
+
+### Corregido en los datos
+
+Lo detectado por el cruce. **Corregido en las hojas copia, no en producción**:
+
+- **La empresa `JOSE` no existe en SAGE.** Sus 11 filas eran todas erróneas: cinco personas reales
+  que en SAGE son `GALA 283`, `GALA 1094`, `VALDEARROYOS 255`, `CERVANTES 644` y `VALDEARROYOS 260`;
+  cuatro que no están en SAGE; y dos filas de limpieza que no son nómina. De aquí salían **12 de las
+  20 discrepancias** de empresa e `Id_Sage`.
+- **Colisión de identificador resuelta**: `JOSE_10` designaba a dos personas distintas en las dos
+  hojas. Al corregir la empresa desde SAGE, la colisión desaparece.
+- **`INTERCASTILLA`**: `ALONSO ARROYO, JUAN` es en realidad `GALA 1`. Las otras dos filas de esa
+  empresa no están en SAGE.
+- **Armonización de empresas**: `VALDEARROYOS, S.L.` → `VALDEARROYOS`, `SERVICIOS EMPRESARIALES
+  CERVANTES` → `CERVANTES`. La columna `Empresa` de las copias lleva desplegable de validación.
+- **7 grupos de filas duplicadas** y **1 persona presente en las dos hojas**, marcados por color y
+  con las filas del duplicado contiguas para poder verlas de un vistazo. **Pendientes de decisión.**
+
+### Aprendido sobre SAGE
+
+Dos hallazgos que condicionan cualquier trabajo futuro con este export:
+
+- **SAGE trunca el nombre de pila a 10 caracteres.** 367 de los 1.430 registros miden exactamente
+  10: `MARIA TERESA` se guarda como `MARIA TERE`, `MIGUEL ÁNGEL` como `MIGUEL ANG`. Por eso el
+  nombre de las copias **sale de la BBDD y no de SAGE** —con las abreviaturas desplegadas, `Mª` →
+  `MARIA`— y el de SAGE se conserva aparte en `Nombre_SAGE`. Configurable en `CFG.NOMBRE_DESDE`.
+- **La serie de códigos ≥1000 no es plantilla**: son proveedores y colaboradores (notarías,
+  registros mercantiles, profesionales). 159 registros del export.
+
+### Cobertura del censo
+
+De las **1.152 personas** del export de SAGE, las tres hojas cubren **657**. Quedan 495 fuera y
+**todas están de baja: ninguna persona activa se queda sin cubrir**, que es la comprobación de que
+el cruce está completo. De esas 495, 281 causaron baja en los últimos 5 años y 236 antes.
+
+### Cómo se validó
+
+El emparejado no es trivial: además de la truncación, las partículas viajan de sitio entre los dos
+sistemas (`LEÓN TORIBIO, NURIA DE` en la BBDD es `LEON DE TORIBIO, NURIA` en SAGE). Se compara por
+conjunto de tokens sin partículas, con tolerancia a prefijo y a errata de un carácter. Dos pruebas
+antes de dar el resultado por bueno:
+
+- **50 casos difíciles** tomados de la BBDD real: **47 casan**. Los 3 restantes, correctamente — no
+  están en SAGE.
+- **Leave-one-out sobre las 1.152 personas**: se retira a cada una del censo y se comprueba si su
+  nombre casa erróneamente con otra. **16 colisiones, ninguna un fallo del algoritmo**: 6 son la
+  misma persona con dos documentos (NIE → DNI) y el resto homónimos reales que el desempate por
+  nivel de coincidencia resuelve.
+
+### Pendiente de decisión
+
+- **`FERNÁNDEZ NEGRETE, MARINA`** (`CERVANTES 632`) figura en las dos hojas: ¿doble rol real o error?
+- **Los 7 grupos de duplicados**: fusionar, quedarse con la fila más reciente, o dejarlos marcados.
+- **`OCARIZ GUIJARRO, SUSANA ANDREA`** en la BBDD contra `OCARIZ GUAJARDO, SUSANA AN` en SAGE:
+  casan por empresa e `Id_Sage`, pero el apellido no es el mismo.
+- Si las hojas del libro de cruce deben acabar sustituyendo a las de producción — y qué hacer
+  entonces con `ID_Secre`/`ID_Profesor`, que son la clave con la que las respuestas históricas de
+  los formularios se vinculan a cada persona.
+
+---
+
+## [2026-09-07]
+
+Reorganización de las carpetas del repositorio: la documentación pasa a ordenarse por **la pregunta
+a la que responde** —el problema, la solución, el trabajo— en lugar de por si es "de proceso" o "de
+desarrollo". Ningún contenido se ha modificado: son movimientos de carpeta y la actualización de
+todas las referencias cruzadas.
+
+### Cambiado
+
+- **`requisitos.md` partido en dos**, con la trazabilidad explícita que fija ahora `CLAUDE.md`:
+  [`requisitos_funcionales.md`](docs_discovery/requisitos_funcionales.md) (71 RF, cada uno ligado a
+  sus historias) y [`requisitos_no_funcionales.md`](docs_discovery/requisitos_no_funcionales.md)
+  (17 RNF, cada uno ligado a un RF o **justificando por qué existe sin él**: siete lo hacen).
+- **`ROADMAP.md` eliminado.** Sus 93 puntos ya vivían en los requisitos —que llevan el estado de cada
+  uno— o en la deuda técnica: mantenerlos también en el ROADMAP duplicaba el estado en dos sitios, y
+  dos sitios que dicen lo mismo acaban diciendo cosas distintas. Los **seis puntos sin trazabilidad**
+  pasaron a [`items_v3.md`](docs_work/items_v3.md).
+- **La matriz de trazabilidad, al SSD** ([§12](docs_solutions/docs_design/SSD.md)): la cadena
+  `problem → HU → RF/RNF → ADR` y dónde se declara cada eslabón.
+- **`CLAUDE.md`** incorpora KISS, DRY, YAGNI, Clean Code y Clean Architecture junto a SOLID; los
+  estándares **arc42** (SSD) y **MADR** (ADR); la cadena de trazabilidad; y la **auditoría de dos
+  pasadas**.
+- **Estructura de carpetas**, en cuatro movimientos:
+
+  | Antes | Ahora | Qué contiene |
+  |---|---|---|
+  | `docs_dev/problem.md`, `historias_usuarios.md`, `requisitos.md` | `docs_discovery/` | El problema: qué hace falta y para quién |
+  | `docs_dev/SSD.md`, `docs_dev/adr/` | `docs_solutions/docs_design/` | El diseño: cómo está construido y por qué |
+  | `code_dev/` | `docs_solutions/src/` | El código de los proyectos de Apps Script |
+  | `docs/` | `docs_work/` | El proceso y el trabajo por delante |
+
+  El cambio de fondo es que **`docs_dev/` se parte en dos**: mezclaba el problema (`problem.md`,
+  historias, requisitos) con la solución (SSD, ADR), que son dos preguntas distintas y se revisan en
+  momentos distintos. Y el código deja de vivir aparte: pasa a colgar de `docs_solutions/` junto al
+  diseño que lo justifica.
+- **149 referencias cruzadas actualizadas** en 16 archivos. Además de las rutas evidentes, la
+  división de `docs_dev/` rompió una clase de enlace que no se veía venir: los que apuntaban al
+  **mismo directorio** (`requisitos_funcionales.md` → `SSD.md`, `problem.md` → `adr/`) y que ahora cruzan de
+  `docs_discovery/` a `docs_solutions/`.
+- **`README.md`**: árbol del repositorio y mapa de la documentación reescritos a tres carpetas. De
+  paso queda corregido que `backup_old_js/` cuelga del código (hoy `docs_solutions/src/`) y no de la
+  raíz, como decía el árbol.
+- **`CLAUDE.md`**: la sección de documentación de referencia pasa de dos bloques a tres, y añade
+  `docs_discovery/requisitos.md` y `docs_solutions/src/`, que no figuraban.
 
 ---
 
@@ -15,7 +253,7 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
 
 ### Añadido
 
-- **Volcado de Horas Extras bajo demanda** ([ADR-0013](docs_dev/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)).
+- **Volcado de Horas Extras bajo demanda** ([ADR-0013](docs_solutions/docs_design/adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)).
   Nueva acción de menú `VAP_Acciones → "Volcar Horas Extras del mes..."` en el Spreadsheet de
   respuestas, para que la Responsable de Administración pueda lanzarlo cuando lo necesite:
   - **Filtrado por periodo**: solo se exportan las respuestas cuyo `MES` (columna C) coincide con el
@@ -30,10 +268,10 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   - **Copia a `Anteriores`** de las filas exportadas, sellada con periodo, fecha y `Run ID`.
 - **Nuevo archivo `VAP_index_Dialogo_Volcado_Horas_Extras.html`** (template GAS `DialogoVolcado`):
   el diálogo del volcado. El proyecto GAS pasa a tener dos archivos.
-- **Volcado de Actividad de Profesores bajo demanda** ([ADR-0014](docs_dev/adr/0014-volcado-actividad-profesores-por-periodo.md)),
+- **Volcado de Actividad de Profesores bajo demanda** ([ADR-0014](docs_solutions/docs_design/adr/0014-volcado-actividad-profesores-por-periodo.md)),
   con el mismo patrón que horas extras y las adaptaciones que exige el caso:
   - **Se conserva íntegra la acumulación campo a campo** de
-    [ADR-0009](docs_dev/adr/0009-acumular-respuestas-por-mes-y-anio.md): por cada una de las 64 columnas
+    [ADR-0009](docs_solutions/docs_design/adr/0009-acumular-respuestas-por-mes-y-anio.md): por cada una de las 64 columnas
     gana la última celda **no vacía**; el vacío no borra lo ya reportado; el `0` sí cuenta. Es lo que
     permite que **varias secretarias reporten partes distintas** del mismo profesor — en el histórico
     hay **122 pares (profesor, mes) con más de un reporte**.
@@ -57,11 +295,11 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   fila sin nombre, sin marca temporal, valor no numérico, marca temporal fuera de mes, envíos
   múltiples) y `ERROR` (nombre duplicado en destino, acceso, bloqueo, tiempo excedido), estos
   últimos con tipo y solución sugerida. Extiende a este script el patrón de
-  [ADR-0012](docs_dev/adr/0012-auditoria-centralizada-logs-y-errores.md).
+  [ADR-0012](docs_solutions/docs_design/adr/0012-auditoria-centralizada-logs-y-errores.md).
 - **Bloqueo por ambigüedad**: si una secretaria aparece más de una vez en la hoja de destino, su
   fila **no se escribe** y se registra el error. Antes se escribía a ciegas en la primera
   coincidencia.
-- **`docs/problem.md`** — *Problem Statement & Jobs To Be Done*: el problema que resuelve el sistema,
+- **`docs_discovery/problem.md`** — *Problem Statement & Jobs To Be Done*: el problema que resuelve el sistema,
   con independencia de cómo esté construido. Combina los marcos de Ulwick (enunciado del *job* y
   *desired outcomes*) y Klement/Intercom (*job stories*). Incluye el histórico del proceso, los cinco
   roles ejecutores, la distinción entre captura, consolidación y ajuste, restricciones,
@@ -75,20 +313,20 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
 - **SSD §7.4** — estructura del formulario de profesores (72 cabeceras), flujo del volcado,
   acumulación campo a campo, comprobación de destino limpio e incidencias propias.
 - **SSD §9** — riesgos **R-09 … R-17** procedentes de la revisión del código y de los datos.
-- **`docs/FLUJO.md`** — mapa del flujo de datos y usuarios, **del momento cero al cálculo final de
+- **`docs_work/FLUJO.md`** — mapa del flujo de datos y usuarios, **del momento cero al cálculo final de
   nóminas**. Nueve diagramas Mermaid y el recorrido explicado: quién reporta qué, dónde aterriza,
   qué script lo consolida y a qué hoja va. Cada nodo va **codificado por color** según lo que se ha
   podido verificar: verde comprobado, amarillo paso manual, discontinuo sin confirmar, rojo sin
   trazabilidad. Deja **8 zonas oscuras señaladas** en su §9, y advierte de que el calendario del mes
   (§10) es todavía una inferencia.
-- **`docs/dudas/`** — carpeta para las cuestiones detectadas y **sin resolver**, con plantilla e
+- **`docs_work/dudas/`** — carpeta para las cuestiones detectadas y **sin resolver**, con plantilla e
   índice. Separa tres cosas que se confunden: una **duda** (falta información para decidir), una
-  **decisión** (ya tomada, en `adr/`) y una **tarea** (ya se sabe qué hacer, en el ROADMAP).
-- **[DUDA-0001](docs/dudas/0001-tres-libros-destino-de-los-volcados.md)** — los volcados escriben en
+  **decisión** (ya tomada, en `adr/`) y una **tarea** (ya se sabe qué hacer, en `retomar_trabajos.md`).
+- **[DUDA-0001](docs_work/dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md)** — los volcados escriben en
   **tres libros distintos**: horas extras y actividad en `1qK3…o8kc`, las nóminas en los libros de
   neto y bruto. Los rangos de columnas **no se solapan** (7-20 frente a 29-92), así que cabrían en
   la misma hoja. No consta cuál de los tres alimenta el cálculo final.
-- **[`docs/dudas/deuda-tecnica.md`](docs/dudas/deuda-tecnica.md)** — inventario de **17 entradas**
+- **[`docs_work/dudas/deuda-tecnica.md`](docs_work/dudas/deuda-tecnica.md)** — inventario de **17 entradas**
   detectadas revisando el código y los datos, clasificadas por prioridad y esfuerzo. Nada impide que
   el sistema funcione hoy: son cosas que funcionan por casualidad, que se romperán al crecer, o que
   nadie sabe explicar.
@@ -126,11 +364,11 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
     datos, 3.B-3.D los comprueban.
   - **Documentación y deuda técnica** pasa a ser la **Fase 4**, con 4.A desgranada en 17 puntos
     agrupados por bloque (el problema, el SSD verificado, decisiones y dudas, el repositorio).
-- **Código reorganizado bajo `code_dev/`**, con una carpeta por proyecto de Apps Script. Antes los
+- **Código reorganizado bajo `docs_solutions/src/`**, con una carpeta por proyecto de Apps Script. Antes los
   scripts colgaban de la raíz del repositorio.
 - **Índices renombrados** a `README_ADR.md` y `README_dudas.md`, para no tener varios `README.md`
   indistinguibles en el editor. Actualizados los enlaces en los 8 documentos que los referenciaban.
-- **`docs/problem.md`**: eliminados el **mapa del *job*** (§4.4) y las **fuerzas del progreso** (§6),
+- **`docs_discovery/problem.md`**: eliminados el **mapa del *job*** (§4.4) y las **fuerzas del progreso** (§6),
   por no aportar valor al caso. Se conserva la distinción **captura / consolidación / ajuste**, que
   delimita el alcance del sistema y de la que dependen el anti-objetivo de §8 y el supuesto S-05.
   Secciones renumeradas y referencias cruzadas corregidas.
@@ -144,7 +382,7 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
 ### Detectado
 
 Inventario completo, con prioridad y esfuerzo, en
-**[`docs/dudas/deuda-tecnica.md`](docs/dudas/deuda-tecnica.md)** (17 entradas). Lo más relevante:
+**[`docs_work/dudas/deuda-tecnica.md`](docs_work/dudas/deuda-tecnica.md)** (17 entradas). Lo más relevante:
 
 **En el código**
 
@@ -190,7 +428,7 @@ Inventario completo, con prioridad y esfuerzo, en
 **En el proceso**
 
 - **Los volcados escriben en tres libros distintos** y no consta cuál alimenta el cálculo final
-  ([DUDA-0001](docs/dudas/0001-tres-libros-destino-de-los-volcados.md)).
+  ([DUDA-0001](docs_work/dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md)).
 - **La premisa "cada mes se parte de hoja limpia" no la garantiza ningún automatismo** (R-17): los
   volcados comprueban y avisan, pero no lo impiden.
 - **El repositorio y los proyectos GAS se sincronizan copiando y pegando a mano** (DT-12 · R-13).
@@ -213,23 +451,23 @@ Reorganización de la documentación y nueva portada/lanzador de complementos de
   recurso `rec-004` de GALA Hub; los enlaces directos siguen funcionando por separado.
 - **`doGet` del backend**: caso aditivo `?page=portal` que sirve el template `Portal` (las rutas
   `Index` por defecto y `?page=consultas` siguen intactas).
-- **Carpeta `docs/`** con la documentación de referencia:
-  - **`docs/SSD.md`** — *Software Specification & Design Document*: documento único que cubre
+- **Documentación de referencia** (entonces bajo `docs/`; hoy repartida como se indica):
+  - **`docs_solutions/docs_design/SSD.md`** — *Software Specification & Design Document*: documento único que cubre
     especificación (antecedentes, objetivos, requisitos) y diseño (arquitectura, recursos,
     modelo de datos, componentes/scripts, flujos, riesgos y glosario).
-  - **`docs/adr/`** — decisiones de arquitectura, **una por archivo** (`ADR-0001` … `ADR-0012`,
+  - **`docs_solutions/docs_design/adr/`** — decisiones de arquitectura, **una por archivo** (`ADR-0001` … `ADR-0012`,
     equivalentes a las antiguas `DT-01` … `DT-12`), con índice (`README.md`) y plantilla
     (`0000-plantilla.md`).
-  - **`docs/ROADMAP.md`** — fases del proyecto y estado de avance, más un backlog de mejoras
+  - **`docs_work/ROADMAP.md`** — fases del proyecto y estado de avance, más un backlog de mejoras
     propuestas.
 
 ### Cambiado
 
-- **Eliminado `ADR.md`** de la raíz: su contenido se ha repartido entre `docs/SSD.md` (diseño,
-  riesgos, glosario), `docs/adr/` (decisiones) y `docs/ROADMAP.md` (fases). El registro de
+- **Eliminado `ADR.md`** de la raíz: su contenido se ha repartido entre `docs_solutions/docs_design/SSD.md` (diseño,
+  riesgos, glosario), `docs_solutions/docs_design/adr/` (decisiones) y el ROADMAP de entonces (fases). El registro de
   trabajo por sesiones del antiguo ADR se consolida en este `CHANGELOG`.
 - **`README.md`**: actualizados el árbol del repositorio y todas las referencias para apuntar a
-  `docs/` (antes apuntaban a `ADR.md` / `DT-NN`).
+  las carpetas de documentación (antes apuntaban a `ADR.md` / `DT-NN`).
 
 ---
 
@@ -390,7 +628,7 @@ formulario de profesores y rediseño del volcado del registro de actividad para 
 ### Notas
 - Los IDs de spreadsheets, formularios y carpetas de Drive están **hardcodeados** en cada
   script (habitual en Apps Script); tenerlo en cuenta si el repositorio se hace público.
-- Mejoras futuras propuestas para el registro de actividad (ver `docs/SSD.md` / `docs/adr/`):
+- Mejoras futuras propuestas para el registro de actividad (ver `docs_solutions/docs_design/SSD.md` / `docs_solutions/docs_design/adr/`):
   destino con una fila por `(profesor, mes)` para histórico mensual, validación explícita de
   que el mes elegido coincide con el año de la marca temporal, y hoja de auditoría de cambios.
 

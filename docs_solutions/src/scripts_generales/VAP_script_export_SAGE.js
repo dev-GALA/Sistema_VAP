@@ -7,9 +7,8 @@
  * Este script agrupa varias acciones accesibles desde un
  * menú propio (VAP_Acciones) en el Google Sheet:
  *
- *   1) "Calculo Salario Base"  -> calcularSalarioBaseBruto()
- *   2) "Export Neto"           -> exportNeto()
- *   3) "Export Bruto"          -> exportBruto()
+ *   1) "Export Neto"           -> exportNeto()
+ *   2) "Export Bruto"          -> exportBruto()
  *
  * AUDITORÍA CENTRALIZADA (en este mismo libro):
  *   - Hoja "logs":     una fila por cada acción ejecutada.
@@ -17,42 +16,29 @@
  *   Ambas se correlacionan con el detalle fila-a-fila
  *   (LOG NETOS / LOG BRUTOS de los destinos) por "Run ID".
  *
- * ── ACCIÓN 1: Calcular Salario Base bruto ─────────
- *   salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO|
- *                        + |COBE_Transporte| + |COBE_Alimentacion|
- *   Se escribe en la columna S de "bbdd_export_sage_laboral".
- *
- * ── ACCIONES 2 y 3: Export Neto / Bruto ───────────
+ * ── ACCIONES 1 y 2: Export Neto / Bruto ───────────
  *   Vuelcan datos de personal desde "bbdd_export_sage_laboral"
  *   (este mismo libro) a la hoja de Vinculación de gastos de
  *   personal correspondiente, emparejando por
  *   EMPRESA (col E) + Nº EMPLEADO (col F) del destino.
  *
- *   IMPORTANTE: ejecuta "Calculo Salario Base" ANTES de los
- *   export, porque la columna "Salario Base" del destino se
- *   alimenta del salario_base_bruto que calcula la acción 1.
- *
  *   Comportamiento: SOBRESCRIBE (refresca cada vez). Solo
  *   escribe los campos que el origen trae con valor y que
  *   realmente cambian respecto al destino. Deja un LOG de
  *   antes/después en la propia hoja destino.
+ *
+ * ── HISTÓRICO ─────────────────────────────────────
+ *   Hasta 2026-09-07 existía una acción "Calculo Salario
+ *   Base" que calculaba salario_base_bruto en la columna S.
+ *   Se eliminó: el dato ya viene de SAGE y la fórmula no era
+ *   correcta. Ver ADR-0015.
  ****************************************************/
 
 /** === CONFIGURACIÓN GENERAL (origen / SAGE) === */
 const SHEET_NAME = 'bbdd_export_sage_laboral';
 const HEADER_ROW = 1; // fila de cabeceras (datos a partir de HEADER_ROW + 1)
 
-// Cabeceras de origen (se localizan POR NOMBRE en la fila HEADER_ROW)
-const COL_TOTAL_BRUTO       = 'TOTAL_BRUTO';
-const COL_SEGURO_MEDICO     = 'SEGURO_MEDICO';
-const COL_COBE_TRANSPORTE   = 'COBE_Transporte';
-const COL_COBE_ALIMENTACION = 'COBE_Alimentacion';
-
-// Columna de RESULTADO de la acción 1: posición fija S (= columna 19)
-const RESULT_COL    = 19;                    // S
-const RESULT_HEADER = 'salario_base_bruto';
-
-/** === CONFIGURACIÓN VINCULACIÓN (acciones 2 y 3) === */
+/** === CONFIGURACIÓN VINCULACIÓN === */
 
 // Cabeceras de CLAVE en el origen (bbdd_export_sage_laboral)
 const VINC_SRC_HEADER_EMPRESA = 'Empresa';
@@ -74,7 +60,7 @@ const VINC_FIELDS = [
   { srcHeader: 'SEGURO_MEDICO',      dstCol: 7,  label: 'ADESLAS' },
   { srcHeader: 'COBE_Alimentacion',  dstCol: 8,  label: 'COBEE COMIDA' },
   { srcHeader: 'COBE_Transporte',    dstCol: 9,  label: 'COBEE TRANSPORTE' },
-  { srcHeader: 'salario_base_bruto', dstCol: 12, label: 'Salario Base' },
+  { srcHeader: 'Líquido_a_percibir', dstCol: 12, label: 'Salario Base' },   // antes: salario_base_bruto (col. S). Ver ADR-0015
   { srcHeader: 'SS_EMP',             dstCol: 16, label: 'SS Empresa' },
   { srcHeader: 'SS_TRABAH',          dstCol: 17, label: 'SS trabajador' },
   { srcHeader: 'IRPF',               dstCol: 18, label: 'IRPF' },
@@ -109,8 +95,6 @@ const APP_ERR_HEADERS = [
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('VAP_Acciones')
-    .addItem('Calculo Salario Base', 'calcularSalarioBaseBruto')
-    .addSeparator()
     .addItem('Export Neto', 'exportNeto')
     .addItem('Export Bruto', 'exportBruto')
     .addToUi();
@@ -121,10 +105,6 @@ function onOpen() {
  * Cada uno delega en ejecutarAccion_, que registra la
  * ejecución en "logs" y los fallos en "errores".
  ****************************************************/
-function calcularSalarioBaseBruto() {
-  ejecutarAccion_('Calculo Salario Base', calcularSalarioBaseBruto_);
-}
-
 function exportNeto() {
   ejecutarAccion_('Export Neto', function (runId) {
     return volcarVinculacion_(VINC_NETO_TARGET_ID, 'LOG NETOS', 'NETO', runId);
@@ -166,87 +146,7 @@ function ejecutarAccion_(nombreAccion, fn) {
 }
 
 /****************************************************
- * ACCIÓN 1: CALCULAR SALARIO BASE BRUTO
- * salario_base_bruto = TOTAL_BRUTO + |SEGURO_MEDICO|
- *                      + |COBE_Transporte| + |COBE_Alimentacion|
- * Devuelve un resumen (string). Lanza Error si algo falla.
- ****************************************************/
-function calcularSalarioBaseBruto_(runId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) throw new Error(`No existe la pestaña "${SHEET_NAME}".`);
-
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-  if (lastRow <= HEADER_ROW) {
-    return 'No hay filas de datos que calcular.';
-  }
-
-  // 1) Índice de cabeceras: nombre normalizado -> nº de columna (1-based)
-  const headers = sheet.getRange(HEADER_ROW, 1, 1, lastCol).getValues()[0];
-  const headerIndex = {};
-  headers.forEach((h, i) => {
-    const key = normalizarCabecera_(h);
-    if (key && !(key in headerIndex)) headerIndex[key] = i + 1; // 1ª aparición gana
-  });
-
-  const colBruto      = headerIndex[normalizarCabecera_(COL_TOTAL_BRUTO)];
-  const colSeguro     = headerIndex[normalizarCabecera_(COL_SEGURO_MEDICO)];
-  const colCobeTransp = headerIndex[normalizarCabecera_(COL_COBE_TRANSPORTE)];
-  const colCobeAlim   = headerIndex[normalizarCabecera_(COL_COBE_ALIMENTACION)];
-
-  const faltan = [];
-  if (!colBruto)      faltan.push(COL_TOTAL_BRUTO);
-  if (!colSeguro)     faltan.push(COL_SEGURO_MEDICO);
-  if (!colCobeTransp) faltan.push(COL_COBE_TRANSPORTE);
-  if (!colCobeAlim)   faltan.push(COL_COBE_ALIMENTACION);
-  if (faltan.length) {
-    throw new Error(`No se encuentran estas cabeceras en la fila ${HEADER_ROW}: ${faltan.join(', ')}`);
-  }
-
-  // 2) Asegurar que la hoja tiene al menos hasta la columna S y poner cabecera
-  if (sheet.getMaxColumns() < RESULT_COL) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), RESULT_COL - sheet.getMaxColumns());
-  }
-  sheet.getRange(HEADER_ROW, RESULT_COL).setValue(RESULT_HEADER);
-
-  // 3) Leer datos y calcular
-  const startRow = HEADER_ROW + 1;
-  const numRows  = lastRow - HEADER_ROW;
-  const data = sheet.getRange(startRow, 1, numRows, lastCol).getValues();
-
-  const out = [];
-  let calculadas = 0;
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
-    const vBruto       = aNumero_(row[colBruto      - 1]);
-    const vSeguro      = aNumero_(row[colSeguro     - 1]);
-    const vCobeTransp  = aNumero_(row[colCobeTransp - 1]);
-    const vCobeAlim    = aNumero_(row[colCobeAlim   - 1]);
-
-    // Si las cuatro columnas están vacías => fila sin datos: no se escribe nada.
-    if (vBruto === null && vSeguro === null && vCobeTransp === null && vCobeAlim === null) {
-      out.push(['']);
-      continue;
-    }
-
-    const total = (vBruto || 0)
-                + Math.abs(vSeguro || 0)
-                + Math.abs(vCobeTransp || 0)
-                + Math.abs(vCobeAlim || 0);
-    out.push([total]);
-    calculadas++;
-  }
-
-  // 4) Volcar resultados en bloque (columna S)
-  sheet.getRange(startRow, RESULT_COL, out.length, 1).setValues(out);
-
-  Logger.log(`"${RESULT_HEADER}" calculado en ${calculadas} fila(s).`);
-  return `"${RESULT_HEADER}" calculado en ${calculadas} fila(s).`;
-}
-
-/****************************************************
- * ACCIONES 2 y 3: lógica común de volcado a Vinculación.
+ * ACCIONES 1 y 2: lógica común de volcado a Vinculación.
  * Devuelve un resumen (string). Lanza Error si algo falla.
  * @param {string} targetSpreadsheetId  ID del libro destino.
  * @param {string} logSheetName         Pestaña de LOG detallado en el destino.

@@ -2,10 +2,16 @@
 
 | | |
 |---|---|
-| **Estado** | 🔴 Abierta |
+| **Estado** | 🟢 **Resuelta** — 7 septiembre 2026 |
 | **Detectada** | 18 agosto 2026 |
-| **Bloquea** | Dar por correcta la fórmula del salario base · saber si los importes que llegan a Vinculación tienen el signo que deben |
-| **Quién puede responder** | Gestor de nóminas · Responsable de Administración |
+| **Resuelta por** | [Reunión 10](../reuniones/070926_10_revision_vap.md) → [ADR-0015](../../docs_solutions/docs_design/adr/0015-eliminar-calculo-salario-base-del-script-sage.md) |
+| **Bloqueaba** | Dar por correcta la fórmula del salario base · saber si los importes que llegan a Vinculación tienen el signo que deben |
+| **Quién podía responder** | Gestor de nóminas · Responsable de Administración |
+
+> ⚠️ **Se resuelve por eliminación, no por respuesta.** La fórmula del salario base deja de existir,
+> así que la pregunta sobre el `Math.abs()` se queda sin objeto. Lo que **no** responde esta ficha es
+> con qué signo llegan de SAGE los tres importes que **siguen viajando a Vinculación**. Ver
+> *[Lo que esta ficha no resuelve](#lo-que-esta-ficha-no-resuelve)* al final.
 
 ---
 
@@ -117,8 +123,69 @@ tiene forma de saberlo.
 
 ## Respuesta
 
-> *(pendiente)*
+**No se ha averiguado con qué signo llegan.** La duda se cierra porque **desaparece la mitad que la
+motivaba**: en la [Reunión 10](../reuniones/070926_10_revision_vap.md) se decidió que el Sistema VAP
+deje de calcular el salario base.
+
+Los dos hechos que lo motivan responden, de rebote, a la sospecha que abría esta ficha:
+
+| | |
+|---|---|
+| **El dato ya venía de origen** | SAGE trae el salario base en la **columna M**. El script calculaba algo que el sistema de nóminas ya daba |
+| **La fórmula no era correcta** | Confirmado en la reunión. Con lo que el `Math.abs()` no era un parche que funcionara: formaba parte de un cálculo que no debía hacerse |
+
+Y aclara la pregunta 4 de esta ficha —*¿es intencionado que `G`/`H`/`I` lleven el signo original
+mientras `L` lleva el valor absoluto?*— con un **no**: no era una decisión de diseño, era el efecto
+de un cálculo que sobraba.
+
+Queda además a la vista algo que la ficha no llegó a plantear: la acción escribía la columna **S**
+por posición fija, cabecera incluida, **sobrescribiendo lo que hubiera**. Como el salario base bueno
+viene en la M, lo que ha viajado a `L · Salario Base` de los dos libros de Vinculación —y de ahí a
+*Gastos de Personal*— ha sido el **valor calculado con la fórmula incorrecta**.
 
 ## Decisión y acciones derivadas
 
-> *(pendiente — si acaba en un cambio de diseño, crear un ADR y enlazarlo aquí)*
+**[ADR-0015 · Eliminar el cálculo del salario base del script SAGE](../../docs_solutions/docs_design/adr/0015-eliminar-calculo-salario-base-del-script-sage.md)**
+
+Acciones que se derivan, ninguna hecha todavía:
+
+- [ ] Eliminar del script la acción `Calculo Salario Base` y todo lo que solo ella usa
+- [ ] **Repuntar `VINC_FIELDS` a la cabecera de la columna M** — sin esto, Export Neto y Export Bruto
+      abortan al no encontrar `salario_base_bruto`
+- [ ] Vaciar a mano la columna S de `bbdd_export_sage_laboral`, que queda muerta con datos viejos
+- [ ] Actualizar [SSD §7.5](../../docs_solutions/docs_design/SSD.md) y [FLUJO §6](../flujo_doc/FLUJO.md) cuando
+      el código esté cambiado, no antes
+- [ ] 🔍 **Sin decidir:** si hay que revisar meses ya cerrados, dado lo que ha estado llegando a nómina
+
+> 🔍 **Falta un dato para poder ejecutar la primera acción:** cómo se llama la **cabecera de la
+> columna M** en `bbdd_export_sage_laboral`. El script localiza el origen por nombre y no por letra,
+> y el inventario de columnas del origen no está escrito en ninguna parte.
+
+---
+
+## Lo que esta ficha no resuelve
+
+Esta duda cubría **dos cosas distintas** que compartían los mismos tres importes. Solo muere una.
+
+| | Qué era | Después de ADR-0015 |
+|---|---|---|
+| **El cálculo** | `SEGURO_MEDICO`, `COBE_Alimentacion` y `COBE_Transporte` se **sumaban** al bruto en valor absoluto | 🟢 **Desaparece.** Ya no se suman en ningún sitio |
+| **El volcado** | Los mismos tres importes se **copian** a `G · ADESLAS`, `H · COBEE COMIDA` e `I · COBEE TRANSPORTE` tal cual llegan | 🔴 **Sigue igual.** Es otra parte del script, y no se toca |
+
+De las cinco preguntas de arriba, tres siguen sin respuesta y **todas afectan al volcado, no al
+cálculo**: con qué signo llegan hoy (1), si ese importe representa un coste que suma o un descuento
+que resta (3), y si el signo puede corregirse en origen (5).
+
+**Por qué sigue importando.** Si el seguro médico de una persona llega de SAGE como `-120`, ese
+`-120` se copia a la columna `G` de Vinculación y de ahí pasa a *Gastos de Personal*. Si allí la
+columna ADESLAS **se resta**, esa persona acaba con 120 € descontados dos veces. Si llega como `120`,
+no pasa nada. Hoy nadie sabe cuál de las dos cosas ocurre.
+
+Sigue en pie, por tanto, el punto que esta ficha llamaba *"el que cierra el círculo"*: **comprobar en
+*Gastos de Personal* si esas tres columnas se suman o se restan**. Es pregunta para el Gestor de
+nóminas — el mismo al que hay que preguntarle lo del
+[Bloque D del guion anterior](../reuniones/2026-09-07-revision-del-proceso.md).
+
+> Estas tres preguntas se quedan **dentro de una ficha marcada como resuelta**, que es donde nadie
+> vuelve a mirar. Si se quiere que sigan a la vista, el sitio es una ficha propia en esta misma
+> carpeta.

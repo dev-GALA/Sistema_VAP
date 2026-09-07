@@ -2,17 +2,18 @@
 
 | | |
 |---|---|
-| **Estado** | 🔴 Abierta |
+| **Estado** | 🟢 **Resuelta** — 7 septiembre 2026 |
 | **Detectada** | 17 agosto 2026 |
-| **Bloquea** | Unificar el destino de los volcados · posible agujero en el cálculo final |
-| **Quién puede responder** | Responsable de Administración · Gestor de nóminas |
+| **Resuelta por** | [Reunión 10](../reuniones/070926_10_revision_vap.md) → [ADR-0016](../../docs_solutions/docs_design/adr/0016-un-unico-libro-de-vinculacion.md) |
+| **Bloqueaba** | Unificar el destino de los volcados · posible agujero en el cálculo final |
+| **Quién podía responder** | Responsable de Administración · Gestor de nóminas |
 
 ---
 
 ## El hallazgo
 
 Los volcados del sistema **no confluyen en una sola hoja**, como sugiere la documentación
-([SSD §6.3](../../docs_dev/SSD.md), *"hoja final donde confluyen los volcados"*), sino que escriben en **tres
+([SSD §6.3](../../docs_solutions/docs_design/SSD.md), *"hoja final donde confluyen los volcados"*), sino que escriben en **tres
 libros de Google Sheets diferentes**:
 
 | Qué se vuelca | Script | Libro destino (ID) | Columnas |
@@ -94,8 +95,56 @@ Los rangos no colisionan con los 8 campos de nómina, así que técnicamente enc
 
 ## Respuesta
 
-> *(pendiente)*
+**No había un paso de consolidación oculto: el reparto en tres libros era accidental, y se va a
+deshacer.** Estas son las respuestas a las cuatro preguntas de arriba.
+
+**1 · ¿De qué libro sale la nómina final?** De ninguno de los tres. Sale de **`Gastos de Personal
+2026`**, un Excel que está **fuera** del sistema y al que los datos llegan **a mano**. No se vincula
+a nada: es el punto final de almacenamiento de los datos ya calculados.
+
+**2 · ¿Existe un paso de copia entre libros?** Sí, y es **manual**. Es el trasvase a `Gastos de
+Personal 2026`, que seguirá siendo manual por ahora. Enlaza con
+[DUDA-0003](0003-momentos-de-copia-y-pega-del-proceso.md) y con el riesgo `R-19` del
+[SSD](../../docs_solutions/docs_design/SSD.md#9-riesgos-y-limitaciones).
+
+**3 · ¿Por qué neto y bruto son dos libros separados?** La pregunta **deja de tener destinatario**:
+los dos libros se eliminan y se sustituyen por uno solo. Pero no se ha explicado *por qué* estaban
+separados, y eso todavía importa — ver las acciones derivadas.
+
+**4 · ¿Cuál es el nombre real de cada libro?**
+
+| Nombre | ID | Papel |
+|---|---|---|
+| `export sage laboral` | `19edOEgwdT-Ab-0nEWRn4nrtN6IxxRc4CYu1XW4u0454` | Origen. Se mantiene |
+| `Vinculacion gastos personal 2026 netos` | `1HDwgihfz91atsLE99Qu0k3kTyBKpo3Iu3SaUtVGMPTs` | **Se elimina** |
+| `Vinculación gastos personal 2026 brutos` | `1eTVPws0NVRMIlXgZYsUZANdfMyFYQtDlEEK5ujFt04A` | **Se elimina** |
+| `Vinculación gastos personal 2026 completo` | *(pendiente)* | **Destino único** de todos los volcados |
+| `Gastos de Personal 2026` | *(pendiente)* | Almacenamiento final. Trasvase manual, sin vincular |
+
+> 🔍 **Un libro sin reconciliar.** El libro `1qK3JeBdJV6nHMnFYZGgsRAC0t3rfvig17c5E0iYo8kc` —donde
+> escriben **horas extras** (`AE`, `AH`) y **actividad de profesores** (`AC..CN`)— no aparece en esa
+> lista. O **es** el "completo", o es un sexto libro. De cuál sea depende que la migración toque
+> **dos** scripts o **cuatro**. Ver acción **A3**.
 
 ## Decisión y acciones derivadas
 
-> *(pendiente)*
+**[ADR-0016 · Un único libro de Vinculación como destino de todos los volcados](../../docs_solutions/docs_design/adr/0016-un-unico-libro-de-vinculacion.md)**
+
+Nada de esto está hecho. El seguimiento vive en
+[el registro de la reunión 10](../reuniones/070926_10_revision_vap.md).
+
+- [ ] **A1 · Conseguir el ID** de `Vinculación gastos personal 2026 completo`
+- [ ] **A2 · Conseguir el ID** de `Gastos de Personal 2026` *(informativo: no se vincula)*
+- [ ] **A3 · Identificar `1qK3…o8kc`**: ¿es el "completo" o es otro libro?
+- [ ] **A4 · Resolver si sobra una acción de export.** *Export Neto* y *Export Bruto* vuelcan los
+      **mismos 8 campos con los mismos valores**. Con un destino único escribirían lo mismo en el
+      mismo sitio: o sobra una, o la diferencia está en columnas que el script no toca y hay que
+      escribirla antes de unificar
+- [ ] **A5 · Repuntar `TARGET_SPREADSHEET_ID`** en los scripts que corresponda, una vez resueltos A1
+      y A3. ⚠️ **Verificar antes de cambiar:** apuntar al libro equivocado manda la actividad de
+      ~400 personas donde no debe
+- [ ] **A6 · Conservar los dos libros eliminados** hasta cerrar el ejercicio: son el histórico
+
+> Las dos comprobaciones que esta ficha pedía —si el nombre está en la columna `C` y si `AC..CN`
+> están libres en el libro de netos— **dejan de hacer falta**: ya no se trata de decidir si unificar
+> es viable, sino de ejecutar la unificación ya decidida.

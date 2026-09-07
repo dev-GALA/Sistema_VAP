@@ -11,7 +11,7 @@
 
 ## El hallazgo
 
-El mapa del flujo ([FLUJO.md](../FLUJO.md)) deja ver que el proceso mensual tiene **al menos cuatro
+El mapa del flujo ([FLUJO.md](../flujo_doc/FLUJO.md)) deja ver que el proceso mensual tiene **al menos cuatro
 momentos en los que alguien mueve datos a mano**, y ninguno de los cuatro deja constancia de qué se
 movió, cuándo ni quién lo hizo:
 
@@ -54,7 +54,7 @@ tiene dos ventajas sobre automatizarlo:
 - **Deja rastro sin quitar el control.** Queda registrado qué se movió y cuándo, pero la decisión de
   cuándo hacerlo sigue siendo suya.
 - **Es el patrón que ya conoce**, así que no hay que aprender nada nuevo
-  ([problem.md §7](../../docs_dev/problem.md)).
+  ([problem.md §7](../../docs_discovery/problem.md)).
 
 > Merece la pena plantearlo así al presentarlo: el objetivo no es quitarle pasos de las manos, sino
 > **que quede constancia de los que ya hace** — y de paso avisar si algo se hace fuera de orden.

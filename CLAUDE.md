@@ -27,6 +27,34 @@ Ante la duda, pregunta. Prefiero una pregunta de más que un cambio que no he pe
 
 ---
 
+## Segunda regla: los datos personales nunca entran en el repositorio
+
+Los ficheros de **ADESLAS, COBEE, los bancos y SAGE**, y cualquier export con **DNI/NIE, IBAN,
+email personal, fecha de nacimiento o importes de nómina nominativos** —de empleados **o de sus
+familiares**— **no entran en el repositorio bajo ningún concepto**. Ni versionados, ni
+«temporalmente», ni pegados como ejemplo dentro de un `.md`.
+
+Git no olvida: borrar un archivo del árbol **no lo saca del historial**. Por eso esta regla se
+aplica antes de escribir, no después.
+
+**Qué significa en la práctica:**
+
+| | |
+|---|---|
+| **En documentación y ADR** | Describe el **formato**, no los datos: cabeceras, tipos y, si hace falta un ejemplo, **inventado**. Nunca una fila real copiada |
+| **En código y comentarios** | Nada de DNIs de ejemplo sacados de un fichero real. Los identificadores de hojas y libros sí pueden ir: no son datos personales |
+| **En ficheros de trabajo** | Viven **fuera del repositorio**, o dentro de una carpeta ignorada por git y declarada en `.gitignore` |
+| **Al analizar un fichero real** | Léelo desde su ruta y **no lo copies aquí dentro**. Los agregados y los porcentajes sí se pueden documentar; las filas, no |
+
+**Si encuentras datos personales ya versionados, no los borres por tu cuenta:** avísame. Sacarlos
+del árbol no basta y hay que decidir qué se hace con el historial.
+
+> Esto no es celo excesivo. **El riesgo real no es el almacén, es la superficie de compartición**:
+> nadie filtra una nómina a propósito, se filtra con un clic en el sitio equivocado. La forma de
+> que ese clic no importe es que no haya nada legible que filtrar.
+
+---
+
 ## El proyecto
 
 **Sistema VAP** (Valoración de Actividad Productiva) — sistema interno de **GALA Formación** que
@@ -38,20 +66,25 @@ la lógica, webapps GAS propias para reporte y consulta.
 
 Documentación de referencia:
 
-**`docs/` — el proceso y el trabajo por delante** (lo que se revisa con quien opera el sistema):
+**`docs_discovery/` — el problema** (qué hace falta y para quién, antes de hablar de soluciones):
 
-- [docs/FLUJO.md](docs/FLUJO.md) — el mapa del proceso mensual, del dato a la nómina
-- [docs/retomar_trabajos.md](docs/retomar_trabajos.md) — qué toca hacer ahora, agrupado en sprints
-- [docs/ROADMAP.md](docs/ROADMAP.md) — fases y estado
-- [docs/dudas/](docs/dudas/README_dudas.md) — cuestiones sin resolver y deuda técnica
-- [docs/reuniones/](docs/reuniones/README_reuniones.md) — guion y acta de cada reunión
+- [docs_discovery/problem.md](docs_discovery/problem.md) — el problema y los *Jobs To Be Done*
+- [docs_discovery/historias_usuarios.md](docs_discovery/historias_usuarios.md) — historias de usuario
+- [docs_discovery/requisitos_funcionales.md](docs_discovery/requisitos_funcionales.md) — qué debe hacer el sistema (RF)
+- [docs_discovery/requisitos_no_funcionales.md](docs_discovery/requisitos_no_funcionales.md) — bajo qué condiciones (RNF)
 
-**`docs_dev/` — el problema y el diseño**:
+**`docs_solutions/` — la solución** (cómo está construido, y con qué código):
 
-- [docs_dev/problem.md](docs_dev/problem.md) — el problema y los *Jobs To Be Done*
-- [docs_dev/historias_usuarios.md](docs_dev/historias_usuarios.md) — historias de usuario
-- [docs_dev/SSD.md](docs_dev/SSD.md) — especificación y diseño
-- [docs_dev/adr/](docs_dev/adr/README_ADR.md) — decisiones de arquitectura
+- [docs_solutions/docs_design/SSD.md](docs_solutions/docs_design/SSD.md) — especificación y diseño
+- [docs_solutions/docs_design/adr/](docs_solutions/docs_design/adr/README_ADR.md) — decisiones de arquitectura
+- [docs_solutions/src/](docs_solutions/src/) — el código, una carpeta por proyecto de Apps Script
+
+**`docs_work/` — el proceso y el trabajo por delante** (lo que se revisa con quien opera el sistema):
+
+- [docs_work/FLUJO.md](docs_work/flujo_doc/FLUJO.md) — el mapa del proceso mensual, del dato a la nómina
+- [docs_work/retomar_trabajos.md](docs_work/retomar_trabajos.md) — qué toca hacer ahora, agrupado en sprints
+- [docs_work/dudas/](docs_work/dudas/README_dudas.md) — cuestiones sin resolver y deuda técnica
+- [docs_work/reuniones/](docs_work/reuniones/README_reuniones.md) — guion y acta de cada reunión
 
 Y [README.md](README.md) — mapa del repositorio · [CHANGELOG.md](CHANGELOG.md) — registro de cambios
 
@@ -59,7 +92,7 @@ Y [README.md](README.md) — mapa del repositorio · [CHANGELOG.md](CHANGELOG.md
 
 ## Cómo se organiza el trabajo
 
-El trabajo avanza por **sprints**, definidos en [docs/retomar_trabajos.md](docs/retomar_trabajos.md). Tres reglas
+El trabajo avanza por **sprints**, definidos en [docs_work/retomar_trabajos.md](docs_work/retomar_trabajos.md). Tres reglas
 que hay que respetar sin que haga falta recordarlas:
 
 1. **El sprint nuevo entra por arriba.** Cuando se decide abordar algo, se registra como sprint
@@ -67,13 +100,14 @@ que hay que respetar sin que haga falta recordarlas:
    sucesivamente. Los identificadores de los objetivos (`OB-xx`) **no se renumeran**: identifican, no
    ordenan. El orden lo da el sprint.
 
-2. **Lo que se cierra se marca en el ROADMAP.** Cada vez que un objetivo se completa, hay que
-   reflejarlo en [docs/ROADMAP.md](docs/ROADMAP.md): marcar el punto de la fase correspondiente,
-   actualizar los contadores del resumen y, si procede, el estado de la fase. El ROADMAP debe poder
-   leerse solo y estar al día.
+2. **Lo que se cierra se marca en el requisito, no en una lista aparte.** El estado de cada RF y
+   RNF vive en [`requisitos_funcionales.md`](docs_discovery/requisitos_funcionales.md) y
+   [`requisitos_no_funcionales.md`](docs_discovery/requisitos_no_funcionales.md), y **es el único
+   sitio donde se lleva**. No hay ROADMAP: se eliminó porque duplicaba ese estado en dos lugares, y
+   dos lugares que dicen lo mismo acaban diciendo cosas distintas.
 
 3. **Un objetivo cerrado deja rastro de qué salió de él.** Normalmente una respuesta a una duda, un
-   ADR nuevo, o un punto del ROADMAP que ya se puede empezar.
+   ADR nuevo, o un requisito que pasa de 🔴 a ✅.
 
 Un sprint se cierra **por objetivo cumplido, no por fecha**: el desarrollo lo lleva una sola persona
 compatibilizándolo con otras funciones.
@@ -98,7 +132,23 @@ Todo lo que se prioriza —historias, requisitos, objetivos— usa **MoSCoW**:
 nada lo es. *Won't* se escribe explícitamente — un "no" registrado evita volver a discutirlo cada
 tres meses.
 
-### Diseño: SOLID, adaptado a lo que este código es
+### Diseño: SOLID, KISS, DRY, YAGNI, Clean Code y Clean Architecture
+
+Seis principios, y no todos pesan igual aquí. Estos cuatro son los que **más muerden** en un
+proyecto de Apps Script procedural que mueve nóminas:
+
+| | Qué exige aquí |
+|---|---|
+| **DRY** · no te repitas | La misma función copiada en dos scripts se corrige en uno y se olvida en el otro. Y como los dos mueven nóminas, **el olvido se paga en dinero** |
+| **KISS** · simple | La solución más simple que resuelva el caso real. Un `if` legible gana a una abstracción elegante que nadie más va a mantener |
+| **YAGNI** · no lo vas a necesitar | No se construye para un futuro hipotético. Si hace falta, se añade entonces |
+| **Clean Code** | Nombres que dicen lo que hacen, funciones cortas, sin comentarios que expliquen lo que el código debería decir solo |
+
+**Clean Architecture** se aplica por su espíritu: separar **qué se decide** de **cómo se guarda**.
+En la práctica, aquí significa que la lógica de negocio no debe estar pegada a `SpreadsheetApp`: los
+IDs, nombres de hoja y posiciones de columna van en configuración, y la lógica los recibe.
+
+#### SOLID, adaptado a lo que este código es
 
 El código es **Google Apps Script procedural**, no orientado a objetos, así que SOLID se aplica por
 su espíritu y no por su letra. Dos de los cinco principios son los que de verdad muerden aquí:
@@ -114,7 +164,57 @@ Los otros tres se aplican en lo que tienen de traducible: **O** — ampliar debe
 datos (un concepto nuevo, una columna en el mapeo), no editando la lógica que los recorre. **L** e
 **I** apenas tienen equivalente sin herencia ni interfaces, y forzarlos aquí sería teatro.
 
-**Y una regla que no está en SOLID pero pesa más que ninguna en este proyecto: no duplicar.** Cuando
+**Y la regla que más pesa en este proyecto, que es DRY llevado al caso concreto: no duplicar.** Cuando
 la misma función vive copiada en dos scripts, se corrige en uno y se olvida en el otro — y como los
 dos mueven nóminas, el olvido se paga en dinero. Antes de copiar una función a otro proyecto, hay
 que preguntarse si no debería ser una librería compartida.
+
+---
+
+## Estándares que sigue la documentación
+
+| Documento | Estándar | Qué implica |
+|---|---|---|
+| [SSD.md](docs_solutions/docs_design/SSD.md) | **arc42** | La especificación y el diseño siguen la estructura de arc42, y ahí vive la **matriz de trazabilidad completa** |
+| [adr/](docs_solutions/docs_design/adr/README_ADR.md) | **MADR** | Cada decisión, en formato MADR, **declarando con qué RF y RNF se relaciona** |
+
+### La cadena de trazabilidad
+
+Nada existe suelto. Cada pieza dice de dónde viene:
+
+```
+problem.md  ──►  historias_usuarios.md  ──►  requisitos_funcionales.md  ──►  ADR
+                                                       │                     ▲
+                                                       ▼                     │
+                                          requisitos_no_funcionales.md  ─────┘
+```
+
+- **Cada HU** se relaciona con `problem.md`.
+- **Cada RF** se relaciona con una o varias HU.
+- **Cada RNF** se relaciona con un RF si hay relación directa; si no la hay, **explica por qué
+  existe**. Un RNF sin justificación es un requisito que nadie pidió.
+- **Cada ADR** declara, dentro del propio ADR, con qué **RF y/o RNF** se relaciona.
+- **El SSD** recoge la relación completa, para poder comprobar de un vistazo que todo está trazado.
+
+> **Lo que no tiene trazabilidad no se planifica**: es un item de una versión futura, y vive en
+> [`items_v3.md`](docs_work/items_v3.md). Solo se construye lo que se puede rastrear hasta el
+> problema que lo justifica.
+
+---
+
+## La auditoría de dos pasadas
+
+Cuando se pida **revisar el repositorio**, se hacen **dos pasadas completas**, no una:
+
+| | Qué busca |
+|---|---|
+| **Pasada 1 · Estructura** | Enlaces rotos, archivos huérfanos, referencias a rutas que ya no existen, duplicación de código, IDs sin documentar, convenciones de nombre incumplidas, índices incompletos |
+| **Pasada 2 · Coherencia** | Documentos que afirman lo que el código ya no hace, contradicciones entre documentos, trazabilidad rota, decisiones sin requisito, numeraciones desincronizadas |
+
+**El informe se entrega en la conversación**, no en un archivo. Y **los hallazgos se registran como
+primeros pasos** en [`retomar_trabajos.md`](docs_work/retomar_trabajos.md), siguiendo la regla de que
+el sprint nuevo entra por arriba.
+
+> **Por qué dos y no una.** La primera pasada encuentra lo que está roto; la segunda, lo que está
+> mentiroso. Lo segundo es más peligroso: un enlace roto se ve, una documentación que describe un
+> sistema que ya no existe se cree.

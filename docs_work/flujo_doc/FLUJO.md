@@ -9,12 +9,12 @@ el cierre.
 | **Versión** | 0.2 — BORRADOR, en revisión punto por punto |
 | **Fecha** | 18 agosto 2026 |
 | **Estado** | Reconstruido a partir del código y de los Sheets accesibles, revisado con el responsable del sistema |
-| **Responde a** | [Deuda técnica · DT-16](dudas/deuda-tecnica.md#dt-16--falta-el-mapa-del-flujo-de-datos-y-usuarios) |
+| **Responde a** | [Deuda técnica · DT-16](../dudas/deuda-tecnica.md#dt-16--falta-el-mapa-del-flujo-de-datos-y-usuarios) |
 
 > ⚠️ **Este documento tiene zonas oscuras y están señaladas.** Lo verificado procede de leer el
 > código y los Spreadsheets reales. Lo que aparece con borde discontinuo o marcado como 🔍 es
 > **inferencia o desconocido**, y necesita confirmación. Las que tienen ficha propia viven en
-> [`docs/dudas/`](dudas/README_dudas.md).
+> [`docs_work/dudas/`](../dudas/README_dudas.md).
 
 ---
 
@@ -129,13 +129,13 @@ Tres cosas que este diagrama deja ver y conviene no pasar por alto:
 - **La segunda mitad del recorrido no tiene automatización.** Del paso 5 al 11 —cálculo, ajustes,
   vuelta a SAGE, recálculo, transferencia, verificación y cierre— todo es manual o **está por
   construir**. Los pasos 6 y 10 corresponden a las fases 3.B, 3.C y 3.D del
-  [ROADMAP](ROADMAP.md).
+  [requisitos](../../docs_discovery/requisitos_funcionales.md).
 
 > 🔍 **El bloque 4 está sin verificar.** Los tres archivos de vinculación son los que aparecen
 > **en el código**, identificados solo por su ID. No está confirmado que sean los que realmente se
 > usan, ni que sean solo tres: es posible que existan **varios Excel distintos** en juego. Hay que
 > **revisar el bloque entero con la Responsable de Administración** antes de dar el mapa por bueno.
-> Ver [DUDA-0001](dudas/0001-tres-libros-destino-de-los-volcados.md).
+> Ver [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md).
 
 ---
 
@@ -183,7 +183,7 @@ flowchart TB
 > más de los que reportan: es la **cuenta de quien mantiene el sistema**, que entra a hacer pruebas
 > de funcionamiento. No es un responsable de negocio y no reporta complementos reales.
 >
-> Esto explica la diferencia que quedó sin cuadrar en [DT-10](dudas/deuda-tecnica.md) —*los dados de
+> Esto explica la diferencia que quedó sin cuadrar en [DT-10](../dudas/deuda-tecnica.md) —*los dados de
 > alta no coinciden con los que tienen envíos*— y hay que tenerlo presente al medir cobertura: **la
 > cuenta de pruebas no cuenta en el denominador**.
 
@@ -335,7 +335,7 @@ calcule el **IRPF y el resto de conceptos salariales**.
 > porque **nace fuera de él** — gestiones puntuales, acuerdos y circunstancias personales.
 >
 > 🟥 **No deja constancia de quién lo hizo, cuándo ni por qué, y es una decisión deliberada**
-> ([anti-objetivo en problem.md §8](../docs_dev/problem.md#8-fuera-de-alcance-y-anti-objetivos)). Consecuencia:
+> ([anti-objetivo en problem.md §8](../../docs_discovery/problem.md#8-fuera-de-alcance-y-anti-objetivos)). Consecuencia:
 > el importe final de un concepto **puede no coincidir** con el que reportó su fuente, y esa
 > diferencia no es reconstruible después.
 
@@ -385,7 +385,7 @@ transferido corresponde con lo calculado**.
 **Cuatro de los nueve pasos están por construir**, y son justo los que dan control sobre el
 proceso: saber que ha empezado, saber quién falta, saber si los descuentos son correctos y saber si
 lo pagado cuadra. Los pasos 2, 2.1 y 3 son el objeto del **panel de la Responsable de
-Administración**; el 4.1 y el 6, de las fases 3.B, 3.C y 3.D del [ROADMAP](ROADMAP.md).
+Administración**; el 4.1 y el 6, de [RF-31…RF-35](../../docs_discovery/requisitos_funcionales.md).
 
 > ⚠️ **Dos numeraciones conviviendo.** Este apartado numera **pasos de trabajo** (0 a 6); el
 > diagrama de [§1](#1-vista-general) numera **bloques del mapa de datos** (1 a 11). No coinciden:
@@ -430,7 +430,7 @@ flowchart TB
 | **5 · Datos del Gerente** | Gerente | 🟨 **Directo sobre el archivo de cálculo** | 🔍 Sin determinar | No |
 
 > 🔍 **La vía 5 y el archivo en el que aterriza se siguen en
-> [DUDA-0001](dudas/0001-tres-libros-destino-de-los-volcados.md)**, que tras la revisión del 18 de
+> [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md)**, que tras la revisión del 18 de
 > agosto de 2026 pregunta **cuáles son realmente los archivos de destino y cuántos son**.
 
 ---
@@ -507,7 +507,7 @@ flowchart TB
 
 La fórmula, lo que hace exactamente el script y la duda sobre el **signo** con que llegan de SAGE el
 seguro médico y COBEE están documentados en
-**[DUDA-0002](dudas/0002-signo-de-seguro-medico-y-cobee-en-sage.md)**.
+**[DUDA-0002](../dudas/0002-RESUELTA-signo-de-seguro-medico-y-cobee-en-sage.md)**.
 
 > Mientras esa duda siga abierta, este apartado no afirma nada sobre la fórmula: **la ficha de la
 > duda es la referencia**.
@@ -627,6 +627,8 @@ empezar, y qué ocurre si una fuente no reporta a tiempo.
 | `VAP_Carga_Datos_Mensuales` | `1mYXU…Vu5NY` | `Data`, `Logs`, `Errores` | Complementos reportados por los responsables |
 | Respuestas `EXTRA SECRETARIAS 2026` | `1fW2b…X5m0w` | `Respuestas de formulario`, `Anteriores` | Horas extras de secretarias |
 | Respuestas `REGISTRO DE ACTIVIDAD DE PROFESORES 26` | `1qRUy…XVhMk` | `Respuestas de formulario 1`, `Hoja 1` (histórico) | Actividad del profesorado |
+| Formulario `EXTRA SECRETARIAS 2026` | `1qIDd…TtFbyI` | — | El formulario, no sus respuestas. Su desplegable lo reescribe el script de sincronización |
+| Formulario `REGISTRO DE ACTIVIDAD DE PROFESORES 26` | `1Ys_f…2Xbd5U` | — | Ídem, para el profesorado |
 | `VAP_Export_Sage` | `19edO…u0454` | `bbdd_export_sage_laboral`, `vinculo_columnas`, `logs`, `errores` | Datos de nómina exportados de SAGE |
 | `VINCULACIÓN GASTOS PERSONAL` | `1qK3J…iYo8kc` | `Hoja 1` | Recibe `AE`, `AH` y `AC..CN` (horas extras y actividad) |
 | Vinculación **NETO** 🔍 | `1HDwg…VGMPTs` | `Hoja 1`, `LOG NETOS` | Recibe los 8 campos de nómina |
@@ -636,7 +638,13 @@ empezar, y qué ocurre si una fuente no reporta a tiempo.
 > 🔍 **Las tres filas de vinculación salen del código, no de una comprobación.** Son los IDs que
 > los scripts tienen escritos; nadie ha verificado qué archivo hay detrás de cada uno, cómo se
 > llama, ni si son los únicos en juego. **Pendiente de revisar con la Responsable de
-> Administración** — ver [DUDA-0001](dudas/0001-tres-libros-destino-de-los-volcados.md).
+> Administración** — ver [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md).
+
+> **Un recurso heredado que ya no está en uso:** `1bUt5…SK7Fog`, que era el origen (`Informe`) de los
+> antiguos scripts de volcado de neto y bruto. Esos scripts se fusionaron en el de SAGE
+> ([ADR-0011](../../docs_solutions/docs_design/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md))
+> y hoy solo aparece en `docs_solutions/src/backup_old_js/`, que no se ejecuta. Se anota para que
+> nadie lo encuentre en el código y crea que sigue vivo.
 
 **Premisa del proceso:** cada mes se parte de una **hoja de Vinculación limpia**. De ahí que los
 volcados puedan escribir solo los campos con valor sin mezclar meses — y que ambos comprueben, antes
@@ -651,5 +659,5 @@ ningún otro sitio**. Los diagramas están en Mermaid, que GitHub renderiza y qu
 texto plano — se pueden revisar en un diff, a diferencia de una imagen.
 
 Las cuestiones sin resolver **no se listan aquí**: cada una tiene su ficha en
-[`docs/dudas/`](dudas/README_dudas.md). Cuando una se resuelve, se anota allí la respuesta y aquí
+[`docs_work/dudas/`](../dudas/README_dudas.md). Cuando una se resuelve, se anota allí la respuesta y aquí
 se sustituye el borde discontinuo por el trazo continuo, quitando la marca de duda.

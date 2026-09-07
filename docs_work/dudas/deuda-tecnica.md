@@ -46,7 +46,7 @@ cambiar algo) · 🟢 baja (higiene)
 
 ### DT-01 · `toNumber_` corrompe decimales con punto
 
-**Dónde:** `code_dev/scripts_generales/VAP_script_export_SAGE.js`
+**Dónde:** `docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js`
 
 ```js
 const normalized = s.replace(/\./g, '').replace(',', '.');
@@ -84,7 +84,7 @@ separar las columnas.
 
 ### DT-16 · Falta el mapa del flujo de datos y usuarios
 
-> 🟢 **Resuelto en v0.1 — 17 agosto 2026.** Creado [`docs/FLUJO.md`](../FLUJO.md) con 9 diagramas
+> 🟢 **Resuelto en v0.1 — 17 agosto 2026.** Creado [`docs_work/FLUJO.md`](../flujo_doc/FLUJO.md) con 9 diagramas
 > Mermaid y el recorrido completo del proceso. **Quedan 8 zonas oscuras señaladas** en su §9, y el
 > calendario del mes (§10) es todavía una inferencia. Se mantiene esta ficha hasta que el documento
 > esté revisado y sin zonas oscuras.
@@ -94,7 +94,7 @@ reporta hasta que se calcula la nómina. La información está repartida entre e
 `problem.md` y varios Sheets, y **nadie puede ver el conjunto de una vez**.
 
 Es la deuda con más impacto de esta lista: sin ese mapa, cada decisión sobre el sistema se toma
-mirando una pieza aislada. [DUDA-0001](0001-tres-libros-destino-de-los-volcados.md) —tres libros
+mirando una pieza aislada. [DUDA-0001](0001-RESUELTA-tres-libros-destino-de-los-volcados.md) —tres libros
 destino y nadie sabe cuál alimenta el cálculo— es exactamente el tipo de problema que un mapa
 habría hecho evidente hace meses.
 
@@ -110,7 +110,7 @@ cálculo final de nóminas**, cubriendo a la vez:
 - **Las fronteras del sistema** — qué entra en el Sistema VAP y qué queda fuera (el ajuste final, el
   cálculo en SAGE, la transferencia bancaria).
 
-**Formato sugerido:** un `docs/FLUJO.md` con el recorrido explicado en texto más uno o varios
+**Formato sugerido:** un `docs_work/FLUJO.md` con el recorrido explicado en texto más uno o varios
 diagramas. Sirve Mermaid, que se renderiza en GitHub y se versiona como texto plano — a diferencia
 de una imagen, se puede revisar en un diff.
 
@@ -215,7 +215,7 @@ misma función que decide si el dato se guarda.
 | `escribirLog_` | 2 |
 | `formatearFecha_` | 2 |
 
-Los dos volcados son **gemelos por decisión** ([ADR-0008](../../docs_dev/adr/0008-reutilizar-patron-de-sincronizacion.md)):
+Los dos volcados son **gemelos por decisión** ([ADR-0008](../../docs_solutions/docs_design/adr/0008-reutilizar-patron-de-sincronizacion.md)):
 reutilizar el patrón fue deliberado y acertado. Lo que no se decidió es que la reutilización fuera
 **copiando el código**.
 
@@ -232,7 +232,7 @@ copiada, una corrección se aplica donde uno se acuerda.
 actividad. Cambiar de libro destino exige **acordarse de tocar los dos**.
 
 Es trivial de arreglar y está marcado en rojo por una razón: es el mecanismo concreto por el que
-[DUDA-0001](0001-tres-libros-destino-de-los-volcados.md) se vuelve peligrosa. Si al resolverla hay
+[DUDA-0001](0001-RESUELTA-tres-libros-destino-de-los-volcados.md) se vuelve peligrosa. Si al resolverla hay
 que reapuntar los volcados y solo se cambia uno, **la mitad de la actividad de la plantilla acaba en
 un libro y la otra mitad en otro** — y ningún aviso lo delata, porque los dos escriben sin error.
 
@@ -353,7 +353,7 @@ de `Logs`, esa función escribe mal y las otras no.
 
 ### DT-15 · El backend de complementos no tiene extensión
 
-**Dónde:** `code_dev/VAP_script_secretarias/VAP_Complementos Secretarias/VAP_Export_Complementos_Mensuales_Secretarias`
+**Dónde:** `docs_solutions/src/VAP_script_secretarias/VAP_Complementos Secretarias/VAP_Export_Complementos_Mensuales_Secretarias`
 
 1.133 líneas de JavaScript **sin extensión `.js`**: sin resaltado de sintaxis, sin `node --check`,
 sin lint. Es el archivo más grande del repositorio y el único que no se puede verificar.

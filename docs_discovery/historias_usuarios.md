@@ -4,8 +4,8 @@
 |---|---|
 | **Versión** | 0.4 — BORRADOR · confrontado con SSD y ADR |
 | **Fecha** | 18 agosto 2026 |
-| **Se deriva de** | [problem.md](problem.md) · [../docs/FLUJO.md](../docs/FLUJO.md) · [../docs/dudas/](../docs/dudas/README_dudas.md) |
-| **Responde a** | [Sprint 1 · OB-15](../docs/retomar_trabajos.md) |
+| **Se deriva de** | [problem.md](problem.md) · [../docs_work/FLUJO.md](../docs_work/flujo_doc/FLUJO.md) · [../docs_work/dudas/](../docs_work/dudas/README_dudas.md) |
+| **Responde a** | [Sprint 0 · OB-15](../docs_work/retomar_trabajos.md) |
 
 ---
 
@@ -17,9 +17,9 @@ hecho**. Es el puente entre el problema y la construcción:
 | | Responde a |
 |---|---|
 | [`problem.md`](problem.md) | ¿Qué problema hay y para quién? *(estable durante años)* |
-| [`../docs/FLUJO.md`](../docs/FLUJO.md) | ¿Cómo funciona hoy el proceso, paso a paso? |
+| [`../docs_work/FLUJO.md`](../docs_work/flujo_doc/FLUJO.md) | ¿Cómo funciona hoy el proceso, paso a paso? |
 | **`historias_usuarios.md`** *(este)* | **¿Qué tiene que hacer el sistema, y cómo se comprueba?** |
-| [`SSD.md`](SSD.md) | ¿Cómo está construido? |
+| [`SSD.md`](../docs_solutions/docs_design/SSD.md) | ¿Cómo está construido? |
 
 ### Job story ≠ historia de usuario
 
@@ -76,7 +76,7 @@ Antes de empezar a construir una historia, debe cumplir las cinco condiciones:
       despliega solo.
 - [ ] La documentación afectada está actualizada: este documento, los requisitos y, si hubo una
       decisión de diseño, su ADR.
-- [ ] El punto correspondiente del ROADMAP está marcado.
+- [ ] El estado del requisito correspondiente está actualizado.
 
 > **La cuarta condición de "terminada" es la que más se salta**, y es la que hace que un sistema
 > documentado deje de estarlo en tres meses.
@@ -305,7 +305,7 @@ el importe final.
 > 🔍 **Es la única vía de captura de la que no se sabe qué contiene.** No pasa por ninguna
 > validación, no queda registrada y no se conoce ni qué datos son ni sobre qué personas. Antes de
 > escribir criterios de aceptación de verdad hay que responder a la
-> [zona oscura de FLUJO §4](../docs/FLUJO.md).
+> [zona oscura de FLUJO §4](../docs_work/flujo_doc/FLUJO.md).
 
 ### HU-13 · Declarar que este mes no tengo nada
 
@@ -412,7 +412,7 @@ otra sobre el mismo profesor.
 - **Dado** que ejecuto el cálculo, **entonces** se escribe el resultado para todas las filas con
   datos.
 
-> 🔍 **Con una duda abierta encima:** [DUDA-0002](../docs/dudas/0002-signo-de-seguro-medico-y-cobee-en-sage.md)
+> 🔍 **Con una duda abierta encima:** [DUDA-0002](../docs_work/dudas/0002-RESUELTA-signo-de-seguro-medico-y-cobee-en-sage.md)
 > — el signo con que llegan los conceptos que entran en la fórmula.
 
 ### HU-17 · Volcar los datos de nómina
@@ -464,7 +464,7 @@ copiar y pegar invisible.
 
 | Estado | Prioridad | Origen |
 |---|---|---|
-| 🔴 Pendiente | 🔺 Imprescindible | FLUJO §1 · [DUDA-0003](../docs/dudas/0003-momentos-de-copia-y-pega-del-proceso.md) |
+| 🔴 Pendiente | 🔺 Imprescindible | FLUJO §1 · [DUDA-0003](../docs_work/dudas/0003-momentos-de-copia-y-pega-del-proceso.md) |
 
 - **Dado** que lanzo la acción, **entonces** veo qué se va a mover **antes** de que se escriba nada.
 - **Dado** que confirmo, **entonces** se escribe y queda registrado qué se movió, cuándo y quién lo
@@ -501,7 +501,7 @@ cuándo y qué cambió, **para** poder reconstruir después lo que pasó.
 > diferencia de los volcados, nadie está delante cuando ocurren.
 >
 > A esto se suman los **movimientos manuales** de [HU-19](#hu-19--mover-los-datos-al-cálculo-dejando-constancia)
-> y [DUDA-0003](../docs/dudas/0003-momentos-de-copia-y-pega-del-proceso.md), que tampoco dejan
+> y [DUDA-0003](../docs_work/dudas/0003-momentos-de-copia-y-pega-del-proceso.md), que tampoco dejan
 > constancia. Sumando ambas cosas, la trazabilidad cubre **lo que se lanza a mano desde un menú**, no
 > el proceso entero.
 
@@ -864,7 +864,7 @@ construyeron primero justamente por eso. Medido sobre **lo pendiente**, que es l
 el reparto queda dentro de la regla de [CLAUDE.md](../CLAUDE.md).
 
 Dicho eso, la prioridad indica **cuánto duele que falte**; **cuándo se hace** lo decide esta tabla: **en qué sprint entra cada historia pendiente**, según
-[`retomar_trabajos.md`](../docs/retomar_trabajos.md).
+[`retomar_trabajos.md`](../docs_work/retomar_trabajos.md).
 
 | Sprint | Historias | Objetivos |
 |--------|-----------|-----------|
@@ -873,9 +873,9 @@ Dicho eso, la prioridad indica **cuánto duele que falte**; **cuándo se hace** 
 | **3** · Verificación de datos | HU-23, HU-24, HU-25 | OB-01 … OB-06, OB-11, OB-12 |
 | **Sin sprint asignado** | HU-11, HU-12, HU-13, HU-22, HU-31, HU-32, HU-41 | — |
 
-**El Sprint 2 existe por estas tres historias.** HU-18, HU-19 y HU-20 no construyen nada nuevo:
+**El Sprint 3 existe por estas tres historias.** HU-18, HU-19 y HU-20 no construyen nada nuevo:
 arreglan que el sistema no deje rastro de lo que hace y que pueda escribir encima de datos buenos.
-Van **antes** de dar por terminada la webapp, porque el panel y los informes del Sprint 1 deducen su
+Van **antes** de dar por terminada la webapp, porque el panel y los informes del Sprint 2 deducen su
 información de ese rastro: hacerlos sobre un registro con agujeros sería construir sobre arena.
 
 > ⚠️ **Siete historias pendientes siguen sin sprint**, y no es lo mismo unas que otras:
@@ -898,7 +898,7 @@ información de ese rastro: hacerlos sobre un registro con agujeros sería const
 | HU-19 · Traslado con constancia | Saber cuáles son los archivos de destino (DUDA-0001) |
 
 > **HU-20 aparece dos veces como bloqueante**, y es el de los procesos que hoy no dejan rastro: es la
-> historia con más cosas colgando de ella. Por eso encabeza el **Sprint 2**.
+> historia con más cosas colgando de ella. Por eso encabeza el **Sprint 3**.
 
 ## Historias que no se van a escribir
 

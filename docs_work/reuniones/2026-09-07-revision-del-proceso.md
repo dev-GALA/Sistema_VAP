@@ -65,8 +65,8 @@ Anotar sobre el papel. Los puntos donde más probable es que aparezca una correc
 | | |
 |---|---|
 | **Bloquea** | El cálculo final, el panel de seguimiento y la automatización del traslado |
-| **Ficha** | [DUDA-0001](../dudas/0001-tres-libros-destino-de-los-volcados.md) |
-| **Se anota en** | [`FLUJO.md`](../FLUJO.md) §5 y §9 |
+| **Ficha** | [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md) |
+| **Se anota en** | [`FLUJO.md`](../flujo_doc/FLUJO.md) §5 y §9 |
 
 - ¿Cómo se llama exactamente el archivo y dónde está?
 - ¿**Puede darme acceso de lectura hoy mismo?** ← *esto es una acción, no una pregunta: hacerlo en la
@@ -79,7 +79,7 @@ Anotar sobre el papel. Los puntos donde más probable es que aparezca una correc
 | | |
 |---|---|
 | **Bloquea** | Cerrar la Fase 3.A · saber si los datos están yendo donde deben |
-| **Ficha** | [DUDA-0001](../dudas/0001-tres-libros-destino-de-los-volcados.md) |
+| **Ficha** | [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md) |
 
 Tenemos tres archivos identificados **solo por un código**, sacados del código de los scripts. Nadie
 ha comprobado qué archivo hay detrás de cada uno.
@@ -126,7 +126,7 @@ Y para cerrar el bloque, la propuesta:
 | | |
 |---|---|
 | **Bloquea** | Todo el Sprint 5: sin fechas no hay avisos ni forma de detectar un retraso |
-| **Se anota en** | [`FLUJO.md`](../FLUJO.md) §8 |
+| **Se anota en** | [`FLUJO.md`](../flujo_doc/FLUJO.md) §8 |
 
 Lo que tenemos escrito hoy **es una suposición**. Hacen falta las fechas reales:
 
@@ -152,7 +152,7 @@ Y dos que importan tanto como las fechas:
 
 | | |
 |---|---|
-| **Ficha** | [DUDA-0002](../dudas/0002-signo-de-seguro-medico-y-cobee-en-sage.md) |
+| **Ficha** | [DUDA-0002](../dudas/0002-RESUELTA-signo-de-seguro-medico-y-cobee-en-sage.md) |
 
 - ¿Con qué signo salen de SAGE el **seguro médico** y **COBEE**: en positivo o en negativo?
 - ¿Ese signo es el correcto, o es un fallo del export que arrastramos?
@@ -223,7 +223,7 @@ Repasar en voz alta:
 
 ## Preguntas de reserva
 
-Si sobra tiempo, y en este orden. Son de [`problem.md`](../../docs_dev/problem.md) §10 y llevan
+Si sobra tiempo, y en este orden. Son de [`problem.md`](../../docs_discovery/problem.md) §10 y llevan
 abiertas desde el principio:
 
 1. **¿Cuánto tiempo consumía el cierre antes del sistema, y cuánto ahora?** Una estimación vale
@@ -254,11 +254,11 @@ que no se pueden resolver sin ella delante.
 ## Después
 
 - [ ] Anotar las respuestas **en este mismo documento**, debajo de cada pregunta.
-- [ ] Actualizar [`FLUJO.md`](../FLUJO.md): quitar las marcas 🔍 que hayan quedado resueltas.
-- [ ] Cerrar o actualizar las fichas [DUDA-0001](../dudas/0001-tres-libros-destino-de-los-volcados.md),
-      [DUDA-0002](../dudas/0002-signo-de-seguro-medico-y-cobee-en-sage.md) y
+- [ ] Actualizar [`FLUJO.md`](../flujo_doc/FLUJO.md): quitar las marcas 🔍 que hayan quedado resueltas.
+- [ ] Cerrar o actualizar las fichas [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md),
+      [DUDA-0002](../dudas/0002-RESUELTA-signo-de-seguro-medico-y-cobee-en-sage.md) y
       [DUDA-0003](../dudas/0003-momentos-de-copia-y-pega-del-proceso.md).
 - [ ] Cerrar en [`retomar_trabajos.md`](../retomar_trabajos.md) los objetivos **OB-02 … OB-06** que
-      hayan quedado resueltos, y marcarlo en el [`ROADMAP`](../ROADMAP.md).
+      hayan quedado resueltos, y actualizar el estado de los requisitos afectados.
 - [ ] Si alguna respuesta cambia una decisión de diseño, **escribir un ADR** — no editar uno
       existente.

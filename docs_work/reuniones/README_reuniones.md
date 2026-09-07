@@ -10,6 +10,10 @@ AAAA-MM-DD-tema-breve.md
 
 La fecha delante para que el orden del listado sea el cronológico sin tener que abrir nada.
 
+> ⚠️ **Hay un archivo fuera de esta convención**: `070926_10_revision_vap.md` (`DDMMAA_nº_tema`).
+> Se creó así a propósito, pero rompe la ordenación cronológica del listado. Mientras convivan los
+> dos formatos, el índice de abajo es la única forma fiable de saber el orden.
+
 Cada archivo nace como **guion** —antes de la reunión— y se convierte en **acta** después, añadiendo
 las respuestas en el mismo sitio donde estaba la pregunta. No se crean dos archivos: **el guion y el
 acta son el mismo documento en dos momentos**, y así se ve de un vistazo qué se preguntó y qué se
@@ -28,14 +32,15 @@ contestó.
 ## Después de la reunión
 
 1. Anotar las respuestas en el propio guion.
-2. Llevarlas a su documento: [`FLUJO.md`](../FLUJO.md), las fichas de
-   [`dudas/`](../dudas/README_dudas.md), [`problem.md`](../../docs_dev/problem.md) o los
-   [requisitos](../../docs_dev/requisitos.md).
+2. Llevarlas a su documento: [`FLUJO.md`](../flujo_doc/FLUJO.md), las fichas de
+   [`dudas/`](../dudas/README_dudas.md), [`problem.md`](../../docs_discovery/problem.md) o los
+   [requisitos](../../docs_discovery/requisitos_funcionales.md).
 3. Cerrar en [`retomar_trabajos.md`](../retomar_trabajos.md) los objetivos que la reunión resuelva, y
-   marcarlo en el [`ROADMAP`](../ROADMAP.md).
+   actualizar el estado de los requisitos afectados.
 
 ## Índice
 
 | Fecha | Reunión | Estado |
 |-------|---------|--------|
 | [2026-09-07](2026-09-07-revision-del-proceso.md) | Revisión del proceso con la Responsable de Administración | 🔵 Guion preparado |
+| [2026-09-07](070926_10_revision_vap.md) | **Reunión 10** — revisión VAP: lo que el guion anterior no llegó a abordar | 🟡 Acta en curso |
