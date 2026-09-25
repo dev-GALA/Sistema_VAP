@@ -1,7 +1,7 @@
 # SSD — Sistema VAP (Valoración de Actividad Productiva)
 **Software Specification & Design Document**
 **Versión:** 2.0
-**Fecha última actualización:** 11 junio 2026
+**Fecha última actualización:** 25 septiembre 2026
 
 > Documento único que cubre **especificación** (qué debe hacer el sistema) y **diseño**
 > (cómo está construido). Las **decisiones de arquitectura** se registran aparte, una por
@@ -141,7 +141,7 @@ VAP
 | Hoja | Propósito | Columnas (en orden) | Filas |
 |------|-----------|---------------------|-------|
 | `VAP_Secretarias` | Listado de secretarias con estado activo/inactivo | `Empresa`, `Id_Sage`, `ID_Secre`, `Nombre_Secretaria`, `Alta`, `Fecha Alta`, `Fecha Baja` | 110 · **106 de alta** |
-| `VAP_Profesores` | Listado de profesores | `Empresa`, `Id_Sage`, `ID_Profesor`, `Nombre`, `Tipología_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` | 293 · **280 de alta** |
+| `VAP_Profesores` | Listado de profesores | `Empresa`, `Id_Sage`, `ID_Profesor`, `Nombre`, `DNI`, `Tipologia_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` *(columnas verificadas el 25 sep 2026; ver 6.1.0)* | 293 · **280 de alta** |
 | `VAP_Complementos_Secretarias` | Catálogo de complementos salariales | `ID_Concepto`, `Concepto`, `Tipo_Valor`, `Activo` | 7 |
 | `VAP_Responsables` | Listado de responsables (managers) | `ID_Respon`, `Nombre `, `Email`, `Activa` | 5 |
 | `VAP_Responsables_Complementos` | Relación responsable ↔ complementos asignados | `ID_Respon`, `ID_Concepto`, `Activa` | 6 |
@@ -165,10 +165,40 @@ no se eliminan filas.
 - **`Empresa`** toma **9 valores distintos** en secretarias y **10** en profesores. No se corresponde
   con las autoescuelas de la red (55): apunta a la **sociedad mercantil** de la que depende cada
   persona, no al centro donde trabaja. Es la clave que usa el volcado SAGE junto a `Id_Sage`.
-- **`Tipología_Profesor`** solo toma los valores **`1`** (122 profesores) y **`2`** (171). Son
+- **`Tipologia_Profesor`** *(la cabecera real va sin tilde)* solo toma los valores **`1`** (122 profesores) y **`2`** (171). Son
   códigos numéricos **cuyo significado no está documentado en ninguna parte** ni se usa hoy en
   ningún script. 🔍 *Pendiente de aclarar qué distingue una tipología de otra: si condiciona la
   retribución, es un dato relevante para el cálculo.*
+
+#### 6.1.0 Reglas de entrada de `VAP_Profesores`
+
+Desde el **25 de septiembre de 2026** la hoja tiene tres reglas que impiden los errores de escritura
+más frecuentes. Viven **en la hoja**, no en el código: los scripts no han cambiado.
+
+| Columna | Regla | Por qué |
+|---------|-------|---------|
+| `Empresa` (A) | **Desplegable** con las empresas válidas, aplicado a `A2:A` y con *Rechazar los datos introducidos* | La empresa forma parte del ID: una errata o un espacio de más genera un ID distinto |
+| `ID_Profesor` (C) | **Calculado**: `ARRAYFORMULA` en `C2` que compone `Empresa_Id_Sage`. Si falta la empresa o el `Id_Sage`, deja el ID **vacío** | El ID se escribía a mano. Con el ID vacío la persona no aparece en el formulario: un `Id_Sage` olvidado se nota en lugar de colarse un ID a medias |
+| `Alta` (G) | **Casilla de verificación** en `G2:G`, con *Rechazar los datos introducidos* y sin valores personalizados | El script exige el valor verdadero (`=== true`). Un texto "TRUE" pegado se ve igual y **excluía a la persona del formulario sin avisar** |
+
+La fórmula de `C2` es:
+
+```
+=ARRAYFORMULA(SI((A2:A="")+(B2:B="");"";ESPACIOS(A2:A)&"_"&ESPACIOS(B2:B)))
+```
+
+> ⚠️ **Tres cosas que hay que saber al mantener la hoja:**
+>
+> 1. **No se escribe nada en `C3` ni más abajo.** Cualquier valor escrito ahí impide que la fórmula
+>    se expanda y la columna entera pasa a `#REF!`.
+> 2. **Se pega con Ctrl+Mayús+V** (solo valores). Pegar celdas completas desde otro libro arrastra
+>    su formato y puede borrar la validación de esas celdas.
+> 3. **Si un profesor cambia de empresa, no se edita su fila:** se le da de baja y se crea una
+>    nueva. Cambiar la empresa cambia su ID, y sus respuestas anteriores se quedarían con el viejo
+>    (ver R-21).
+>
+> `VAP_Secretarias` **todavía no tiene estas reglas**: es parte de
+> [OB-38](../../docs_work/retomar_trabajos.md).
 
 **Columnas clave usadas por el backend de complementos** (constantes `COL_*` del `Code.gs`):
 
@@ -585,6 +615,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-18 | **Los procesos que se ejecutan solos no dejan rastro consultable.** Los dos scripts de sincronización de formularios escriben únicamente en el registro interno de la plataforma, que se borra | Alto | Pendiente: [RF-47](../../docs_discovery/requisitos_funcionales.md). Son justo los que deciden **quién aparece en los formularios**, y nadie está delante cuando fallan |
 | R-19 | **Los movimientos de datos entre libros se hacen copiando y pegando**, y ninguno deja constancia de qué se movió ni cuándo | Alto | Pendiente: [RF-25](../../docs_discovery/requisitos_funcionales.md), [DUDA-0003](../../docs_work/dudas/0003-momentos-de-copia-y-pega-del-proceso.md). Rompe la cadena de trazabilidad justo en el punto donde el dato sale del sistema |
 | R-20 | **El archivo donde se calcula la nómina está fuera del sistema**: no consta su estructura y no se controla lo que entra en él | Alto | Pendiente: [DUDA-0001](../../docs_work/dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md). Es el supuesto S-06 de [`problem.md`](../../docs_discovery/problem.md) |
+| R-21 | **El `ID_Profesor` se deriva de la empresa y del `Id_Sage`.** Si se edita la empresa de un profesor, su ID cambia y sus respuestas anteriores quedan con el antiguo | Medio | Procedimiento: al cambiar de empresa, baja y fila nueva, nunca editar la existente ([§6.1.0](#610-reglas-de-entrada-de-vap_profesores)) |
 | R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [RNF-08](../../docs_discovery/requisitos_no_funcionales.md) |
 
 ## 10. Glosario
@@ -596,7 +627,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | Complemento salarial | Concepto variable que se suma al salario base mensual |
 | Responsable / Manager | Persona autorizada a reportar un complemento concreto |
 | `ID_Secre` | Identificador único de cada secretaria en la BBDD |
-| `ID_Profesor` | Identificador único de cada profesor en la BBDD |
+| `ID_Profesor` | Identificador único de cada profesor en la BBDD. Se calcula en la hoja como `Empresa_Id_Sage` (ver 6.1.0) |
 | `Batch_ID` | Identificador único de un envío de complementos |
 | `Run ID` | Identificador que correlaciona una ejecución del script SAGE entre `logs`/`errores`/LOG |
 | Webapp | Aplicación web generada con Google Apps Script |
@@ -604,7 +635,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 
 ## 11. Referencias
 
-- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0012)
+- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0016)
 - **Requisitos y su estado:** [`requisitos_funcionales.md`](../../docs_discovery/requisitos_funcionales.md) · [`requisitos_no_funcionales.md`](../../docs_discovery/requisitos_no_funcionales.md)
 - **Trabajo en curso:** [`retomar_trabajos.md`](../../docs_work/retomar_trabajos.md)
 - **Cambios cronológicos:** [`../../CHANGELOG.md`](../../CHANGELOG.md)
@@ -666,6 +697,7 @@ Los riesgos de [`SSD.md` §9](SSD.md#9-riesgos-y-limitaciones) y el requisito qu
 | R-18 | Los procesos automáticos no dejan rastro | RF-47 | 🔴 No |
 | R-19 | Los movimientos entre libros no dejan constancia | RF-25 | 🔴 No |
 | R-20 | El archivo de cálculo está fuera del sistema | — | Duda abierta |
+| R-21 | El ID del profesor cambia si cambia su empresa | RF-04 | 🟡 Cubierto por procedimiento, no por el sistema |
 
 > **Tres riesgos no tenían requisito y ahora lo tienen** (RF-70, RF-71, RNF-15). Y **tres riesgos
 > nuevos** salieron de esta confrontación y se han añadido al SSD: R-18, R-19 y R-20 — los tres de

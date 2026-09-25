@@ -289,7 +289,7 @@ sería rechazado con *"Manager válido, pero sin conceptos activos asignados"*.
 
 ### DT-11 · `Tipología_Profesor` sin significado conocido
 
-**Dónde:** `VAP_Profesores`, columna E
+**Dónde:** `VAP_Profesores`, columna F (cabecera real: `Tipologia_Profesor`, sin tilde). Era la E hasta que se añadió la columna `DNI`
 
 Solo toma dos valores: **`1`** (122 profesores) y **`2`** (171). No está documentado en ninguna parte
 qué distingue una tipología de otra, y **ningún script la usa**.

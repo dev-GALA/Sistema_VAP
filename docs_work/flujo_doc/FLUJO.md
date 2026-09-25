@@ -261,6 +261,18 @@ de secretarias y profesores.
 > Con una excepción: los datos que el **Gerente** introduce directamente en *Gastos de Personal* no
 > pasan por este control.
 
+**Dar de alta a un profesor** (desde el 25 sep 2026, `VAP_Profesores` protege tres columnas):
+
+- **`Empresa`** se **elige del desplegable**. No se puede escribir a mano.
+- **`ID_Profesor` no se escribe**: se calcula solo como `Empresa_Id_Sage`. Si sale vacío, falta la
+  empresa o el `Id_Sage`, y la persona **no aparecerá en el formulario** hasta completarlos.
+- **`Alta`** es una **casilla**: marcada, está de alta; desmarcada, de baja.
+- Para pegar datos, **Ctrl+Mayús+V** (solo valores).
+- **Si un profesor cambia de empresa, no se edita su fila:** se le da de baja y se crea una nueva.
+
+El detalle está en [SSD §6.1.0](../../docs_solutions/docs_design/SSD.md#610-reglas-de-entrada-de-vap_profesores).
+`VAP_Secretarias` todavía no tiene estas reglas.
+
 ### Paso 2 · Lanzar el proceso y avisar a las fuentes — 🟦 por construir
 
 La Responsable de Administración **activa el lanzamiento del cierre**, y eso hace que a

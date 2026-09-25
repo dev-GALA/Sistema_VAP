@@ -8,6 +8,50 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 
 ---
 
+## [2026-09-25] · Reglas de entrada en `VAP_Profesores`, y revisión del commit v2.3
+
+**Varios profesores no aparecían en el formulario.** Su columna `Alta` contenía el **texto** "TRUE"
+en lugar del valor verdadero: en pantalla se ven igual, pero el script de sincronización compara con
+`=== true` y los descartaba sin avisar. No era un fallo del código, sino de la entrada de datos. Por
+eso se ha corregido en la hoja, y los scripts no cambian.
+
+### Cambiado · en la hoja `VAP_Profesores` (fuera del repositorio)
+
+- **`Alta`** pasa a ser **casilla de verificación** en `G2:G`, rechazando cualquier otro valor.
+- **`ID_Profesor`** deja de escribirse a mano: lo **calcula una fórmula** en `C2` como
+  `Empresa_Id_Sage`, y lo deja vacío si falta alguno de los dos.
+- **`Empresa`** se elige de un **desplegable** en `A2:A`, rechazando lo que no esté en la lista.
+
+Documentado en [SSD §6.1.0](docs_solutions/docs_design/SSD.md#610-reglas-de-entrada-de-vap_profesores)
+y, para quien mantiene la hoja, en el paso 1 de [FLUJO.md](docs_work/flujo_doc/FLUJO.md).
+
+### Añadido
+
+- **Riesgo R-21** en el [SSD](docs_solutions/docs_design/SSD.md): como el ID se deriva de la
+  empresa, **editar la empresa de un profesor cambia su ID** y desvincula sus respuestas anteriores.
+  Se cubre por procedimiento: baja y fila nueva.
+- **OB-37** en [`retomar_trabajos.md`](docs_work/retomar_trabajos.md): el repositorio **no tiene
+  `.gitignore`**, y `.claude/settings.local.json` está versionado.
+- **OB-38**: blindar las hojas de personal. Hecho en `VAP_Profesores`; falta `VAP_Secretarias` y
+  que los scripts **avisen** de un `Alta` mal escrito en lugar de descartarlo en silencio.
+
+### Revisado
+
+- **Revisión del commit v2.3.** Sin datos personales en el diff, 0 enlaces rotos y todos los `.js`
+  pasan `node --check`. Lo que encontró se ha anotado en OB-31 (las ADR 0015 y 0016 no están en la
+  matriz de trazabilidad del SSD, y la plantilla de ADR no tiene sección de requisitos), en OB-32
+  (la cabecera del script de cruce anuncia tres hojas y crea cuatro) y en OB-37.
+
+### Corregido
+
+- **SSD:** la estructura de `VAP_Profesores` ahora incluye la columna `DNI`, y la cabecera
+  `Tipologia_Profesor` aparece sin tilde, como está en la hoja. La referencia a los ADR llega hasta
+  la 0016, no hasta la 0012. La fecha de actualización se había quedado en junio.
+- **[DT-11](docs_work/dudas/deuda-tecnica.md):** `Tipologia_Profesor` está en la columna **F**, no en
+  la E.
+
+---
+
 ## [2026-09-07] · Las tres fuentes de contraste, y la regla de los datos personales
 
 **El último paso del sistema empieza a tener forma.** Han llegado los tres documentos con los que

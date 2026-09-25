@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.7 |
-| **Fecha** | 7 septiembre 2026 |
+| **Versión** | 0.8 |
+| **Fecha** | 25 septiembre 2026 |
 | **Se apoya en** | [FLUJO.md](flujo_doc/FLUJO.md) · [dudas/](dudas/README_dudas.md) |
 
 ---
@@ -56,10 +56,10 @@ sin más: este documento reparte el trabajo en **objetivos pequeños y cerrables
 |--------|---------------------|-----------|--------|
 | **0 · Historias y requisitos** | Poner por escrito qué tiene que hacer el sistema y para quién | OB-15, OB-16 | 🟢 **Cerrado** |
 | **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36 | 🟡 **En curso** — las tres fuentes ya analizadas |
-| **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34 | 🟡 **En curso** — OB-29 y OB-33 cerrados |
+| **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37 | 🟡 **En curso** — OB-29 y OB-33 cerrados |
 | **3 · Reorganizar el repositorio** | Ordenar la documentación por la pregunta a la que responde | OB-28 | 🟢 **Cerrado** |
 | **4 · La webapp de coordinación** | Que el cierre se lance, se siga y se mida desde una pantalla | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14 | 🟡 **En curso** |
-| **5 · Saldar la deuda** | Que todo deje rastro, y limpiar las 20 entradas de deuda técnica | OB-17 … OB-19, OB-23 … OB-27 | 🔴 Pendiente |
+| **5 · Saldar la deuda** | Que todo deje rastro, y limpiar las 20 entradas de deuda técnica | OB-17 … OB-19, OB-23 … OB-27, OB-38 | 🟡 **En curso** — OB-38 a medias |
 | **6 · Lo que hay que pedir y preguntar** | Lo que no depende de nosotros: documentos de terceros y respuestas del negocio | OB-01 … OB-06 | 🟡 **En curso** — los tres documentos ya han llegado |
 
 **Estados:** 🔴 pendiente · 🟡 en curso · 🟢 cerrado · ⚪ bloqueado
@@ -339,6 +339,17 @@ que el código ya no tiene: `README.md`, `SSD.md` §7.5, `FLUJO.md` (12 puntos, 
 **Cuatro ADR sin requisito** —0013, 0014, 0015 y 0016—, y el índice afirma lo contrario. Además, los
 16 ADR hay que **rehacerlos en formato MADR** y que cada uno declare con qué RF y RNF se relaciona.
 
+> **Confirmado en la revisión del commit v2.3 (25 sep 2026):**
+>
+> - La tabla de [SSD §12](../docs_solutions/docs_design/SSD.md#12-trazabilidad-completa) termina
+>   en la 0014 y sigue diciendo *«Los 14 ADR aceptados tienen requisito»*. Ya hay **16 aceptados**:
+>   faltan la 0015 y la 0016.
+> - Ninguna de las dos declara sus RF/RNF. La 0016 no cita ninguno, y la 0015 solo cita RF-31…35
+>   para decir que *no* son de esa decisión.
+> - El origen está en la plantilla: [`0000-plantilla.md`](../docs_solutions/docs_design/adr/0000-plantilla.md)
+>   **no tiene sección de requisitos relacionados**, y por eso ningún ADR la tiene. Hay que
+>   corregir la plantilla primero, y después los ADR.
+
 ### OB-32 · Documentar el script de cruce y colocarlo donde toca — 🔵
 
 | | |
@@ -353,6 +364,9 @@ README solo figura la carpeta, no el script.
 > desde [DUDA-0005](dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md) como el motor de
 > cruce por nombre que hay que **reutilizar y no duplicar**. Eso refuerza el objetivo en lugar de
 > vaciarlo: si va a usarse otra vez, con más razón tiene que vivir donde vive el código.
+
+Al moverlo, corregir también su cabecera: dice *«Crea tres hojas»* y luego enumera **cuatro**
+(falta contar `VAP_Staff`).
 
 ### OB-33 · Partir `requisitos.md` en RF y RNF, con su trazabilidad — 🔵 🟢 **Cerrado**
 
@@ -382,6 +396,33 @@ técnica; mantenerlos también allí duplicaba el estado en dos sitios. Los **se
 pasaron a [`items_v3.md`](items_v3.md).
 
 🔴 **Queda reestructurar el SSD según arc42.**
+
+### OB-37 · Crear el `.gitignore` y sacar la configuración local del repositorio — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [CLAUDE.md, segunda regla](../CLAUDE.md) |
+| **Depende de** | Nada |
+| **Prioridad** | 🔺 Must |
+
+Sale de la revisión del commit v2.3 (25 sep 2026). **El repositorio no tiene `.gitignore`**, y la
+segunda regla pide que los ficheros de trabajo vivan en una carpeta ignorada y **declarada en
+`.gitignore`**. Hoy no hay ninguna.
+
+El riesgo está en [`migration_data/`](migration_data/): por el nombre, es fácil que alguien deje
+ahí un export de SAGE (el script de cruce busca `Empleados_<fecha>.csv`), y un `git add .` lo
+subiría. **Hoy no hay datos personales versionados**: se comprobó en todo el diff del commit.
+
+Dos cosas:
+
+- **Crear el `.gitignore`** con una carpeta de datos de trabajo ignorada y, por si acaso, las
+  extensiones de export (`*.csv`, `*.xlsx`, `*.xls`, `*.ods`). Hay que decidir si `migration_data/`
+  sigue guardando código (ver OB-32) o pasa a ser solo para datos.
+- **Dejar de versionar `.claude/settings.local.json`.** Es la configuración de permisos de una
+  máquina concreta. Hoy no contiene nada sensible, pero no pinta nada en el repositorio.
+
+**Se cierra cuando** existe el `.gitignore`, un CSV de prueba en la carpeta de trabajo no aparece
+en `git status`, y `settings.local.json` ya no está versionado.
 
 ---
 
@@ -583,7 +624,7 @@ resumen y la tendencia.
 
 ---
 
-# Sprint 5 · Saldar la deuda — 🔴 Pendiente
+# Sprint 5 · Saldar la deuda — 🟡 En curso
 
 > **Objetivo del sprint:** que **todo lo que ocurre en el sistema deje rastro**, que nada escriba
 > encima de datos buenos sin avisar, y liquidar las **20 entradas** del inventario de
@@ -736,6 +777,47 @@ divergir sin que nadie lo note. Evaluar `clasp`.
 > mismo.
 
 **Se cierra cuando** existe una forma comprobable de saber si repositorio y producción coinciden.
+
+### OB-38 · Blindar las hojas de personal contra errores de entrada — 🔵 🟡 **A medias**
+
+| | |
+|---|---|
+| **Responde a** | [RF-01, RF-02](../docs_discovery/requisitos_funcionales.md) |
+| **Depende de** | Nada · la parte de código conviene hacerla junto con DT-19 (OB-24), porque toca código duplicado |
+| **Prioridad** | 🔸 Should |
+
+**Lo que pasó (25 sep 2026):** varias filas de `VAP_Profesores` no aparecían en el formulario. Su
+columna `Alta` contenía el **texto** "TRUE" y no el valor verdadero. En pantalla se ven igual, pero
+el script compara con `=== true` y **las descartaba sin avisar**. Nadie lo supo hasta que alguien
+echó en falta un nombre.
+
+**Lo hecho** 🟩 — `VAP_Profesores` tiene desde ese día tres reglas en la hoja, sin tocar código
+(detalle en [SSD §6.1.0](../docs_solutions/docs_design/SSD.md#610-reglas-de-entrada-de-vap_profesores)):
+
+| Columna | Regla |
+|---------|-------|
+| `Empresa` | Desplegable en `A2:A`, rechaza lo que no esté en la lista |
+| `ID_Profesor` | Calculado en `C2` como `Empresa_Id_Sage`; vacío si falta alguno de los dos |
+| `Alta` | Casilla en `G2:G`, rechaza lo que no sea verdadero o falso |
+
+**Lo que falta** 🔍:
+
+1. **Las mismas reglas en `VAP_Secretarias`.** Antes de calcular `ID_Secre` con fórmula, comprobar
+   que los IDs actuales siguen la regla `Empresa_Id_Sage`: el ID viaja a las respuestas, y cambiar
+   uno desvincula su histórico.
+2. **Proteger `C2:C` de `VAP_Profesores`** (*Datos → Proteger hojas e intervalos*, con advertencia).
+   Escribir a mano en esa columna rompe la fórmula entera.
+3. **La red en el código:** que `obtenerProfesoresActivosUnicos_()` y su gemela de secretarias
+   **registren** cada fila con `ID` y `Nombre` cuyo `Alta` no sea ni verdadero ni falso, indicando
+   la fila. **No hay que aceptar el texto "TRUE" sin más**: eso escondería el error en vez de
+   mostrarlo. La misma función está copiada en
+   [`VAP_Script_Actualizacion_Automatica_Profesores.js`](../docs_solutions/src/VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.js)
+   y en
+   [`VAP_Script_Actualizacion_Automatica_Secretarias.js`](../docs_solutions/src/VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script_Actualizacion_Automatica_Secretarias.js):
+   **el cambio va en las dos**, o se corrige una y se olvida la otra ([CLAUDE.md](../CLAUDE.md), DRY).
+
+**Se cierra cuando** las dos hojas tienen las tres reglas, y una fila con `Alta` en texto aparece en
+el registro de ejecución de los dos scripts.
 
 ---
 
