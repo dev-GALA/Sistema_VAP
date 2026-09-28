@@ -60,7 +60,7 @@ const VINC_FIELDS = [
   { srcHeader: 'SEGURO_MEDICO',      dstCol: 7,  label: 'ADESLAS' },
   { srcHeader: 'COBE_Alimentacion',  dstCol: 8,  label: 'COBEE COMIDA' },
   { srcHeader: 'COBE_Transporte',    dstCol: 9,  label: 'COBEE TRANSPORTE' },
-  { srcHeader: 'Líquido_a_percibir', dstCol: 12, label: 'Salario Base' },   // antes: salario_base_bruto (col. S). Ver ADR-0015
+  { srcHeader: 'TOTAL_BRUTO',        dstCol: 12, label: 'Salario Base' },   // antes: salario_base_bruto (col. S). Ver ADR-0015
   { srcHeader: 'SS_EMP',             dstCol: 16, label: 'SS Empresa' },
   { srcHeader: 'SS_TRABAH',          dstCol: 17, label: 'SS trabajador' },
   { srcHeader: 'IRPF',               dstCol: 18, label: 'IRPF' },
@@ -387,48 +387,7 @@ function alertSafe_(msg) {
 }
 
 /****************************************************
- * HELPERS - SAGE (acción 1)
- ****************************************************/
-
-/**
- * Normaliza una cabecera para comparar de forma robusta:
- * trim, colapsa espacios, mayúsculas y sin tildes/diacríticos.
- */
-function normalizarCabecera_(h) {
-  return String(h || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toUpperCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '');
-}
-
-/**
- * Convierte un valor de celda a número (formato es-ES).
- * Devuelve null si está vacío o no es interpretable.
- */
-function aNumero_(v) {
-  if (v === null || v === undefined) return null;
-  if (typeof v === 'number') return isNaN(v) ? null : v;
-
-  let s = String(v).trim();
-  if (s === '') return null;
-
-  s = s.replace(/[€\s]/g, '');
-
-  const tieneComa  = s.indexOf(',') > -1;
-  const tienePunto = s.indexOf('.') > -1;
-  if (tieneComa && tienePunto) {
-    s = s.replace(/\./g, '').replace(',', '.'); // punto=miles, coma=decimal
-  } else if (tieneComa) {
-    s = s.replace(',', '.');
-  }
-
-  const n = Number(s);
-  return isNaN(n) ? null : n;
-}
-
-/****************************************************
- * HELPERS - VINCULACIÓN (acciones 2 y 3)
+ * HELPERS - VINCULACIÓN (acciones 1 y 2)
  ****************************************************/
 
 function getOrCreateLogSheet_(ss, name, headers) {

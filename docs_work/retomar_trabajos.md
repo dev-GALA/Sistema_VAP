@@ -56,7 +56,7 @@ sin más: este documento reparte el trabajo en **objetivos pequeños y cerrables
 |--------|---------------------|-----------|--------|
 | **0 · Historias y requisitos** | Poner por escrito qué tiene que hacer el sistema y para quién | OB-15, OB-16 | 🟢 **Cerrado** |
 | **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36 | 🟡 **En curso** — las tres fuentes ya analizadas |
-| **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37 | 🟡 **En curso** — OB-29 y OB-33 cerrados |
+| **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37, OB-39 | 🟡 **En curso** — OB-29 y OB-33 cerrados |
 | **3 · Reorganizar el repositorio** | Ordenar la documentación por la pregunta a la que responde | OB-28 | 🟢 **Cerrado** |
 | **4 · La webapp de coordinación** | Que el cierre se lance, se siga y se mida desde una pantalla | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14 | 🟡 **En curso** |
 | **5 · Saldar la deuda** | Que todo deje rastro, y limpiar las 20 entradas de deuda técnica | OB-17 … OB-19, OB-23 … OB-27, OB-38 | 🟡 **En curso** — OB-38 a medias |
@@ -423,6 +423,35 @@ Dos cosas:
 
 **Se cierra cuando** existe el `.gitignore`, un CSV de prueba en la carpeta de trabajo no aparece
 en `git status`, y `settings.local.json` ya no está versionado.
+
+### OB-39 · Decidir de dónde sale el salario base y alinear el ADR-0015 — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [ADR-0015](../docs_solutions/docs_design/adr/0015-eliminar-calculo-salario-base-del-script-sage.md) |
+| **Depende de** | Nada |
+| **Prioridad** | 🔺 Must |
+
+**Lo que pasó (28 sep 2026):** en `VINC_FIELDS` de
+[`VAP_script_export_SAGE.js`](../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js),
+`L · Salario Base` apuntaba a `Líquido_a_percibir`, **el neto**, que ya va a `T · Nomina NETO`. Salario
+base y nómina neta recibían el mismo importe. Se ha repuntado a **`TOTAL_BRUTO`** (columna F del
+origen).
+
+**El código y el ADR ya no dicen lo mismo.** El ADR-0015 decidió que el salario base se toma de la
+**columna M** de SAGE; el código lo toma ahora de `TOTAL_BRUTO`. Hay que mirar con calma:
+
+1. **Cuál es el dato correcto**, `TOTAL_BRUTO` o la cabecera de la columna M, y por qué.
+2. **Registrarlo sin editar el 0015:** si queda `TOTAL_BRUTO`, un ADR nuevo que lo supere en ese punto;
+   si queda la M, repuntar el código.
+
+> **Producción sigue con la versión antigua.** El 28 sep el menú de Apps Script aún mostraba
+> *Calculo Salario Base*: el repositorio y lo que se ejecuta no coinciden (DT-12, OB-27). Hasta
+> desplegar, el salario base que llega a Vinculación es el calculado con la fórmula que el ADR-0015
+> da por incorrecta.
+
+**Se cierra cuando** está decidido el origen del salario base, el código lo refleja, hay un ADR que lo
+registra y la versión está desplegada.
 
 ---
 
