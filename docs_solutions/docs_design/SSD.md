@@ -321,7 +321,7 @@ exportación mensual y los emails.
 | `vap_submitBatch(payload)` | Reporte | Guarda envío/corrección en `Data`; genera `Batch_ID`, escribe en `Logs`, envía emails |
 | `vap_listCorrectionTargets(q)` | Reporte | Lista los `Batch_ID` previos corregibles por responsable/mes/año/concepto |
 | `vap_consultaBootstrap(email)` | Consulta | Valida responsable y devuelve los períodos (año/mes) con envíos |
-| `vap_consultaBatches(q)` | Consulta | Devuelve los últimos 5 envíos del período con detalle por secretaria |
+| `vap_consultaBatches(q)` | Consulta | Devuelve todos los envíos del período con detalle por secretaria |
 | `vap_generarExcelMensual()` | Menú Sheet | Genera el Excel mensual fusionado (ID + Nombre + columna por concepto) en Drive |
 | `onOpen()` | Sheet | Añade el menú "Sistema VAP → Generar Excel mensual" |
 
@@ -565,7 +565,7 @@ Menú **"VAP_Acciones"** con 3 acciones, ampliable por partes
 
 1. La manager abre la **webapp de consulta** (desde el email o `?page=consultas`).
 2. Valida email → `vap_consultaBootstrap` devuelve los períodos con envíos.
-3. Elige año/mes → `vap_consultaBatches` devuelve los últimos 5 envíos con detalle.
+3. Elige año/mes → `vap_consultaBatches` devuelve todos los envíos del período con detalle; si hay más de un concepto, se puede filtrar por concepto.
 
 ### 8.3 Portal / lanzador (acceso desde GALA Hub)
 
