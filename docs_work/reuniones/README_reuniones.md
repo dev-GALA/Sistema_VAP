@@ -35,7 +35,7 @@ contestó.
 2. Llevarlas a su documento: [`FLUJO.md`](../flujo_doc/FLUJO.md), las fichas de
    [`dudas/`](../dudas/README_dudas.md), [`problem.md`](../../docs_discovery/problem.md) o los
    [requisitos](../../docs_discovery/requisitos_funcionales.md).
-3. Cerrar en [`retomar_trabajos.md`](../retomar_trabajos.md) los objetivos que la reunión resuelva, y
+3. Cerrar en [`proximos_pasos.md`](../proximos_pasos.md) los objetivos que la reunión resuelva, y
    actualizar el estado de los requisitos afectados.
 
 ## Índice

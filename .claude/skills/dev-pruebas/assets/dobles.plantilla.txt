@@ -1,0 +1,33 @@
+// tests/dobles.js — dobles en memoria de los puertos: permiten probar sin Google ni red.
+
+/** Tabla en memoria con la misma interfaz que el adaptador de hojas (fila 1 = cabecera). */
+export function tabla() {
+  let filas = [];
+  const sinFila = (o) => {
+    const copia = Object.assign({}, o);
+    delete copia._fila;
+    return copia;
+  };
+  return {
+    todas: () => filas.map((f, i) => Object.assign({}, f, { _fila: i + 2 })),
+    anadir(objetos) {
+      [].concat(objetos).forEach((o) => filas.push(sinFila(o)));
+    },
+    actualizar(numeroFila, cambios) {
+      Object.assign(filas[numeroFila - 2], sinFila(cambios));
+    },
+    borrarFilas(numeros) {
+      const quitar = new Set(numeros);
+      filas = filas.filter((_f, i) => !quitar.has(i + 2));
+    },
+    reemplazarTodas(objetos) {
+      filas = objetos.map(sinFila);
+    },
+    vaciar() {
+      filas = [];
+    },
+  };
+}
+
+/** Reloj fijo: el dominio recibe la hora como parámetro, nunca la lee. */
+export const relojFijo = (iso) => () => new Date(iso);

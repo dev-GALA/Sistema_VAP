@@ -3,6 +3,7 @@
 - **Estado:** Aceptada
 - **Fecha:** 2026-05-25
 - **Equivalencia:** DT-09
+- **Requisitos:** RF-11, RF-20
 
 ## Contexto
 

@@ -1,0 +1,21 @@
+# Datos de trabajo: exports de SAGE, bancos, ADESLAS, COBEE... NUNCA al repositorio (CLAUDE.md, segunda regla)
+docs_work/migration_data/*
+!docs_work/migration_data/.gitkeep
+!docs_work/migration_data/README.md
+
+# Exports tabulares, estén donde estén
+*.csv
+*.xlsx
+*.xls
+*.ods
+
+# Configuración local de cada máquina
+.claude/settings.local.json
+
+# Dependencias y salidas locales
+node_modules/
+__pycache__/
+
+test-results/
+playwright-report/
+.vitest/

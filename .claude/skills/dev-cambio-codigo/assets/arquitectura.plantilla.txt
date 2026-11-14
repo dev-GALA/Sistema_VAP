@@ -1,0 +1,241 @@
+// Pruebas de arquitectura: vigilan que el código siga las reglas del CLAUDE.md sin depender de que
+// alguien se acuerde. Leen el código fuente de `src/`; no ejecutan nada. RNF-13.
+//
+// Regla de dependencias (Clean Architecture): las dependencias apuntan hacia dentro.
+//   dominio  → solo otros módulos de dominio, y sin servicios de Google.
+//   app      → dominio y otros casos de uso; los servicios de Google le llegan inyectados.
+//   infra    → adaptadores; solo `infra-principal` (el punto de entrada) conoce los casos de uso.
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const SRC = join(import.meta.dirname, '..', 'src');
+const CAPAS = ['dominio', 'app', 'infra', 'datos', 'ui'];
+const SERVICIOS_DE_GOOGLE =
+  /\b(SpreadsheetApp|PropertiesService|UrlFetchApp|DriveApp|MailApp|LockService|ScriptApp|HtmlService|CacheService|Session|Utilities|ContentService)\b/;
+
+/**
+ * Excepciones conocidas a la regla de dependencias. Cada una es deuda técnica reconocida, no un
+ * permiso: si desaparece de verdad, la prueba «las excepciones siguen siendo necesarias» obliga a
+ * quitarla de aquí.
+ */
+const EXCEPCIONES = {
+  app: {
+    // Funciones puras que construyen el HTML de los correos, pero que viven en la capa de
+    // infraestructura y varios casos de uso llaman directamente. Moverlas a `app-` o inyectarlas
+    // requiere una decisión (arquitectura.md §11).
+    PlantillasCorreo: ['app-consulta.gs', 'app-mantenimiento.gs', 'app-registro.gs'],
+    // El traductor de la respuesta de eInforma (capa anticorrupción) lo llama el caso de uso en lugar
+    // de resolverlo el adaptador del proveedor, que es el que ya se inyecta.
+    TraductorEInforma: ['app-consulta.gs'],
+  },
+};
+
+const archivos = readdirSync(SRC);
+const leer = (nombre) => readFileSync(join(SRC, nombre), 'utf8');
+const capaDe = (nombre) => CAPAS.find((c) => nombre.startsWith(`${c}-`)) || null;
+const delaCapa = (capa) => archivos.filter((f) => f.endsWith('.gs') && capaDe(f) === capa);
+
+/**
+ * El código sin comentarios ni texto: así una palabra dentro de un mensaje o de un comentario no
+ * cuenta como dependencia. Conserva las expresiones de las plantillas (`${...}`) y salta las
+ * expresiones regulares, que pueden llevar comillas.
+ */
+function soloCodigo(fuente) {
+  let salida = '';
+  let i = 0;
+  let enPlantilla = false;
+  const llaves = [];
+  let anterior = '';
+  const n = fuente.length;
+  const inicioDeExpresion = (c) => c === '' || '(,=:[!&|?{};+-*%<>~^'.includes(c);
+  while (i < n) {
+    const c = fuente[i];
+    const d = fuente[i + 1];
+    if (enPlantilla) {
+      if (c === '\\') i += 2;
+      else if (c === '`') {
+        enPlantilla = false;
+        i += 1;
+      } else if (c === '$' && d === '{') {
+        enPlantilla = false;
+        llaves.push(1);
+        salida += ' ';
+        i += 2;
+      } else i += 1;
+    } else if (c === '/' && d === '/') {
+      while (i < n && fuente[i] !== '\n') i += 1;
+    } else if (c === '/' && d === '*') {
+      const fin = fuente.indexOf('*/', i + 2);
+      i = fin === -1 ? n : fin + 2;
+    } else if (c === "'" || c === '"') {
+      i += 1;
+      while (i < n && fuente[i] !== c) i += fuente[i] === '\\' ? 2 : 1;
+      i += 1;
+      salida += '""';
+      anterior = '"';
+    } else if (c === '`') {
+      enPlantilla = true;
+      i += 1;
+      salida += '""';
+      anterior = '"';
+    } else if (c === '/' && inicioDeExpresion(anterior)) {
+      i += 1;
+      let enClase = false;
+      while (i < n && (fuente[i] !== '/' || enClase)) {
+        if (fuente[i] === '\\') i += 1;
+        else if (fuente[i] === '[') enClase = true;
+        else if (fuente[i] === ']') enClase = false;
+        i += 1;
+      }
+      i += 1;
+      salida += '/r/';
+      anterior = '/';
+    } else {
+      if (llaves.length && c === '{') llaves[llaves.length - 1] += 1;
+      if (llaves.length && c === '}') {
+        llaves[llaves.length - 1] -= 1;
+        if (llaves[llaves.length - 1] === 0) {
+          llaves.pop();
+          enPlantilla = true;
+          i += 1;
+          continue;
+        }
+      }
+      salida += c;
+      if (!/\s/.test(c)) anterior = c;
+      i += 1;
+    }
+  }
+  return salida;
+}
+
+/** Módulos que define cada capa: `const Nombre = (() => {` o `const Nombre = {`. */
+function modulosPorCapa() {
+  const modulos = {};
+  for (const archivo of archivos.filter((f) => f.endsWith('.gs'))) {
+    for (const m of leer(archivo).matchAll(/^const (\w+) = (?:\(\(\) =>|\{)/gm)) {
+      modulos[m[1]] = capaDe(archivo);
+    }
+  }
+  return modulos;
+}
+
+const MODULOS = modulosPorCapa();
+
+/** Módulos de capas no permitidas que cita un archivo, descontando las excepciones conocidas. */
+function dependenciasProhibidas(archivo, permitidas) {
+  const codigo = soloCodigo(leer(archivo));
+  const capa = capaDe(archivo);
+  return Object.keys(MODULOS)
+    .filter(
+      (nombre) =>
+        !permitidas.includes(MODULOS[nombre]) && new RegExp(`\\b${nombre}\\b`).test(codigo),
+    )
+    .filter((nombre) => !(EXCEPCIONES[capa]?.[nombre] || []).includes(archivo));
+}
+
+describe('RNF-13 Arquitectura: convenciones de src/', () => {
+  it('cada archivo pertenece a una capa por su prefijo (dominio, app, infra, datos o ui)', () => {
+    const fuera = archivos.filter((f) => f !== 'appsscript.json' && !capaDe(f));
+    expect(fuera).toEqual([]);
+  });
+
+  it('las capas de código esperadas existen y tienen módulos', () => {
+    for (const capa of ['dominio', 'app', 'infra'])
+      expect(delaCapa(capa).length).toBeGreaterThan(0);
+  });
+
+  it('cada .gs se exporta a Node para poder probarlo, salvo infra-principal, que es el punto de entrada', () => {
+    const sinExportar = archivos
+      .filter((f) => f.endsWith('.gs'))
+      .filter((f) => !/if \(typeof module !== 'undefined'\) module\.exports/.test(leer(f)));
+    expect(sinExportar).toEqual(['infra-principal.gs']);
+  });
+});
+
+describe('RNF-13 Arquitectura: regla de dependencias', () => {
+  it('el dominio es puro: no usa ningún servicio de Google', () => {
+    const usan = delaCapa('dominio').filter((f) => SERVICIOS_DE_GOOGLE.test(soloCodigo(leer(f))));
+    expect(usan).toEqual([]);
+  });
+
+  it('el dominio solo depende de otros módulos de dominio', () => {
+    for (const archivo of delaCapa('dominio')) {
+      expect(dependenciasProhibidas(archivo, ['dominio']), archivo).toEqual([]);
+    }
+  });
+
+  it('el dominio no usa el reloj ni el azar reales: la hora llega como parámetro', () => {
+    const usan = delaCapa('dominio').filter((f) =>
+      /\bnew Date\(\)|\bDate\.now\(|\bMath\.random\(/.test(soloCodigo(leer(f))),
+    );
+    expect(usan).toEqual([]);
+  });
+
+  it('los casos de uso no usan servicios de Google: les llegan inyectados', () => {
+    const usan = delaCapa('app').filter((f) => SERVICIOS_DE_GOOGLE.test(soloCodigo(leer(f))));
+    expect(usan).toEqual([]);
+  });
+
+  it('los casos de uso solo dependen de dominio y de otros casos de uso, salvo las excepciones conocidas', () => {
+    for (const archivo of delaCapa('app')) {
+      expect(dependenciasProhibidas(archivo, ['dominio', 'app']), archivo).toEqual([]);
+    }
+  });
+
+  it('las excepciones siguen siendo necesarias: si la deuda se paga, hay que quitarla de la lista', () => {
+    for (const [capa, porModulo] of Object.entries(EXCEPCIONES)) {
+      for (const [modulo, usuarios] of Object.entries(porModulo)) {
+        for (const archivo of usuarios) {
+          expect(capaDe(archivo)).toBe(capa);
+          expect(soloCodigo(leer(archivo)), `${archivo} ya no usa ${modulo}`).toMatch(
+            new RegExp(`\\b${modulo}\\b`),
+          );
+        }
+      }
+    }
+  });
+
+  it('la infraestructura no conoce los casos de uso, salvo el punto de entrada que los monta', () => {
+    for (const archivo of delaCapa('infra').filter((f) => f !== 'infra-principal.gs')) {
+      expect(dependenciasProhibidas(archivo, ['dominio', 'infra', 'datos']), archivo).toEqual([]);
+    }
+  });
+});
+
+describe('RNF-13 Arquitectura: sintaxis compatible con Apps Script (ES2019)', () => {
+  // No está verificada la versión de V8 de Apps Script: se evita lo posterior a ES2019.
+  const POSTERIOR_A_ES2019 = [
+    [/\?\?/, 'operador ??'],
+    [/\?\.(?=[\w([])/, 'encadenamiento opcional ?.'],
+    [/\bObject\.hasOwn\(/, 'Object.hasOwn'],
+    [/\.replaceAll\(/, 'replaceAll'],
+    [/\.at\(\s*-?\d/, 'Array.prototype.at'],
+  ];
+
+  const guion = (html) => {
+    const bloque = html.match(/<script>([\s\S]*?)<\/script>/);
+    return bloque ? bloque[1] : '';
+  };
+  const fuentes = [
+    ...archivos.filter((f) => f.endsWith('.gs')).map((f) => [f, soloCodigo(leer(f))]),
+    ...archivos.filter((f) => f.endsWith('.html')).map((f) => [f, soloCodigo(guion(leer(f)))]),
+  ];
+
+  it.each(POSTERIOR_A_ES2019)('ningún archivo usa %s (%s)', (patron) => {
+    const usan = fuentes.filter(([, codigo]) => patron.test(codigo)).map(([nombre]) => nombre);
+    expect(usan).toEqual([]);
+  });
+});
+
+describe('RNF-13 Arquitectura: las propias pruebas de arquitectura', () => {
+  it('el lector de código ignora comentarios, textos y expresiones regulares, y conserva las plantillas', () => {
+    const codigo = soloCodigo(
+      "const a = 'Hojas'; // Servicios\n/* Libro */ const b = x.replace(/\"/g, ''); const c = `$" +
+        '{Esquema.x} Hojas`;',
+    );
+    expect(codigo).not.toMatch(/Hojas|Servicios|Libro/);
+    expect(codigo).toMatch(/Esquema/);
+  });
+});

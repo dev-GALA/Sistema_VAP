@@ -8,6 +8,33 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 
 ---
 
+## [2026-11-14] · Nombre de `proximos_pasos.md`, skills, LICENSE y `.gitignore`
+
+### Cambiado
+- `docs_work/retomar_trabajos.md` pasa a llamarse **`docs_work/proximos_pasos.md`**, igual que en el resto de repos de dev.
+- `docs_work/migration_data/` pasa a ser carpeta **solo de datos, ignorada por git**; el script de cruce se mudó a `docs_solutions/src/scripts_generales/` (OB-32, a medias).
+- `CLAUDE.md`: sección «Normas globales y skills de desarrollo».
+
+### Añadido
+- **`LICENSE`** propietaria, a imagen de la de BUCA, con la cláusula de datos personales y de nómina.
+- **`.claude/skills/`** con las skills de desarrollo (incluida `dev-licencia`).
+- **`.gitignore`** (OB-37 cerrado): carpeta de datos, exports tabulares y configuración local.
+
+- **ADR:** línea `Requisitos:` en la plantilla y en los 16 ADR (OB-31, a medias); notas del índice sobre ADR-0011 y RF-21; SSD §12 con 16 filas.
+- **SSD §7.6** y fila en el README para el script de cruce (OB-32 cerrado).
+
+- **Extensión `.gs`** en todo el código de Apps Script (6 `.js` y el backend de complementos, que no tenía extensión), para pasarlo al proyecto tal cual. `backup_old_js/` se queda en `.js`: son copias históricas que no se despliegan. Node no acepta `--check` sobre `.gs`: se usa `node --check < fichero.gs`.
+
+- **`scripts/verificar_trazabilidad.py`** y sus 11 pruebas (`unittest`): comprueba JS → HU → RF, RNF → RF/J-nn, que cada ADR declare requisitos y figure en el índice y en SSD §12, que ningún ID citado esté sin definir y que no haya enlaces rotos. Primera ejecución: **0 errores, 18 avisos**.
+- **Pruebas de todo el código de `src/`** (14 nov 2026): `tests/` con Vitest (28 ficheros, **1.652 pasan + 41 defectos documentados**) y Playwright (**193**), sobre los 7 `.gs` y los 5 HTML. Los `.gs` **no se modifican**: se cargan en una caja de Node con dobles de Google (`tests/soporte/`). Generadas con cuatro agentes en paralelo y verificadas ejecutando toda la suite. Salen **~50 defectos** que **no se han corregido**; están en `docs_work/proximos_pasos.md` (DEF-01 … DEF-31).
+- **`docs_work/docs_cruce/fuentes_de_contraste.md`**: formato de ADESLAS, COBEE y banco y cómo se cruzan con el libro (familiares de ADESLAS por certificado, no por DNI). Sin datos personales.
+- **Skill `dev-pruebas`** (global y en `.claude/skills/`): niveles, FIRST, pruebas de Apps Script en Node, blindaje y plantillas.
+
+### Eliminado
+- `.claude/settings.local.json` deja de estar versionado (sigue en el disco local).
+
+---
+
 ## [2026-09-25] · Reglas de entrada en `VAP_Profesores`, y revisión del commit v2.3
 
 **Varios profesores no aparecían en el formulario.** Su columna `Alta` contenía el **texto** "TRUE"
@@ -30,7 +57,7 @@ y, para quien mantiene la hoja, en el paso 1 de [FLUJO.md](docs_work/flujo_doc/F
 - **Riesgo R-21** en el [SSD](docs_solutions/docs_design/SSD.md): como el ID se deriva de la
   empresa, **editar la empresa de un profesor cambia su ID** y desvincula sus respuestas anteriores.
   Se cubre por procedimiento: baja y fila nueva.
-- **OB-37** en [`retomar_trabajos.md`](docs_work/retomar_trabajos.md): el repositorio **no tiene
+- **OB-37** en [`proximos_pasos.md`](docs_work/proximos_pasos.md): el repositorio **no tiene
   `.gitignore`**, y `.claude/settings.local.json` está versionado.
 - **OB-38**: blindar las hojas de personal. Hecho en `VAP_Profesores`; falta `VAP_Secretarias` y
   que los scripts **avisen** de un `Alta` mal escrito en lugar de descartarlo en silencio.
@@ -82,7 +109,7 @@ transferencias emitidas del **banco**— y se ha abierto en lectura
   | [DUDA-0006](docs_work/dudas/0006-que-contienen-las-columnas-de-contraste-de-vinculacion.md) | Qué contienen hoy las **columnas de contraste** de Vinculación |
 
 - **Sprint 1 · Contrastar el VAP con fuentes externas**, en
-  [`retomar_trabajos.md`](docs_work/retomar_trabajos.md), con **OB-35** (los tres lectores
+  [`proximos_pasos.md`](docs_work/proximos_pasos.md), con **OB-35** (los tres lectores
   normalizadores) y **OB-36** (resolver la identificación en el fichero del banco).
 
 ### Averiguado
@@ -365,7 +392,7 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   (§10) es todavía una inferencia.
 - **`docs_work/dudas/`** — carpeta para las cuestiones detectadas y **sin resolver**, con plantilla e
   índice. Separa tres cosas que se confunden: una **duda** (falta información para decidir), una
-  **decisión** (ya tomada, en `adr/`) y una **tarea** (ya se sabe qué hacer, en `retomar_trabajos.md`).
+  **decisión** (ya tomada, en `adr/`) y una **tarea** (ya se sabe qué hacer, en `proximos_pasos.md`).
 - **[DUDA-0001](docs_work/dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md)** — los volcados escriben en
   **tres libros distintos**: horas extras y actividad en `1qK3…o8kc`, las nóminas en los libros de
   neto y bruto. Los rangos de columnas **no se solapan** (7-20 frente a 29-92), así que cabrían en

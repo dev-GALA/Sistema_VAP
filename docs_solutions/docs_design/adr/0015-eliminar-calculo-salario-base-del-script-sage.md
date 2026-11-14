@@ -4,10 +4,11 @@
 - **Fecha:** 2026-09-07
 - **Decisores:** [Reunión 10](../../../docs_work/reuniones/070926_10_revision_vap.md) — 7 septiembre 2026
 - **Equivalencia:** —
+- **Requisitos:** RF-21 *(afectado: ver nota en el índice)*, RF-22, RNF-02
 
 ## Contexto
 
-`VAP_script_export_SAGE.js` tenía tres acciones en su menú `VAP_Acciones`. La primera,
+`VAP_script_export_SAGE.gs` tenía tres acciones en su menú `VAP_Acciones`. La primera,
 **Calculo Salario Base**, reconstruía el bruto antes de descuentos con esta fórmula:
 
 ```

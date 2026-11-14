@@ -7,7 +7,7 @@ Por eso viven aquí y no entre el trabajo planificado. Lo que sí está trazado 
 [`requisitos_funcionales.md`](../docs_discovery/requisitos_funcionales.md) y
 [`requisitos_no_funcionales.md`](../docs_discovery/requisitos_no_funcionales.md) —que llevan el
 estado de cada uno— y se organiza en sprints en
-[`retomar_trabajos.md`](retomar_trabajos.md).
+[`proximos_pasos.md`](proximos_pasos.md).
 
 > **Cómo sale un item de aquí.** Cuando una idea encuentra su origen —un *job story* de
 > `problem.md`, una historia de usuario— se escribe como **RF o RNF** con su trazabilidad, y deja de

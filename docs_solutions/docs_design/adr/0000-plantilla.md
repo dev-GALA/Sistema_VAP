@@ -4,6 +4,7 @@
 - **Fecha:** AAAA-MM-DD
 - **Decisores:** <quién>
 - **Equivalencia:** DT-NN (numeración antigua, si aplica)
+- **Requisitos:** RF-NN, RNF-NN (los que materializan esta decisión; **al menos uno**)
 
 ## Contexto
 

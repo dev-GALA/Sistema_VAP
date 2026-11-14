@@ -13,7 +13,7 @@
 
 | | |
 |---|---|
-| **`VAP_script_export_SAGE.js`** | **Modificado.** De 602 a 502 líneas. El menú pasa de **3 acciones a 2**; la acción `Calculo Salario Base` y todo lo suyo, eliminado. `node --check` correcto |
+| **`VAP_script_export_SAGE.gs`** | **Modificado.** De 602 a 502 líneas. El menú pasa de **3 acciones a 2**; la acción `Calculo Salario Base` y todo lo suyo, eliminado. `node --check` correcto |
 | **El salario base** | Ya no se calcula. `VINC_FIELDS` lo lee de la cabecera **`Líquido_a_percibir`** (columna M), donde antes leía `salario_base_bruto` (columna S) |
 | **En producción** | ⏸ **NO, y a propósito.** Nada de esta tanda se despliega hasta estar seguros — ver *[Cómo trabajamos](#cómo-trabajamos-en-esta-tanda)* |
 
@@ -76,7 +76,7 @@ producción**, lo que convierte al repo en un banco de pruebas seguro.
 
 | | |
 |---|---|
-| **Decisión** | Quitar la acción `Calculo Salario Base` de `VAP_script_export_SAGE.js`. El script pasa de tres acciones a dos |
+| **Decisión** | Quitar la acción `Calculo Salario Base` de `VAP_script_export_SAGE.gs`. El script pasa de tres acciones a dos |
 | **Motivo** | Dos, y cualquiera de los dos basta: **el dato ya viene de origen** —SAGE lo trae en la **columna M**— y **la fórmula no era correcta** |
 | **Afecta a** | [DUDA-0002](../dudas/0002-RESUELTA-signo-de-seguro-medico-y-cobee-en-sage.md) · [SSD §7.5](../../docs_solutions/docs_design/SSD.md) · [FLUJO §6](../flujo_doc/FLUJO.md) · ADR nuevo |
 
@@ -92,7 +92,7 @@ cuatro constantes de cabecera que solo ella usa (`COL_TOTAL_BRUTO`, `COL_SEGURO_
 `salario_base_bruto`, que es la que escribía la acción eliminada. Si se borra la acción sin repuntar
 esa entrada, `volcarVinculacion_` lanza un error al no encontrar la cabecera y **Export Neto y Export
 Bruto dejan de escribir nada** — no es que se salten el campo, es que abortan
-([VAP_script_export_SAGE.js:296-300](../../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js)).
+([VAP_script_export_SAGE.gs:296-300](../../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.gs)).
 
 > 🔍 **Pendiente:** cómo se llama la **cabecera de la columna M** en `bbdd_export_sage_laboral`. El
 > script localiza el origen por nombre, no por letra, así que sin ese nombre no se puede hacer el
@@ -188,14 +188,14 @@ lo que hay que **preguntar**. Se leen de arriba abajo cuando toque hacer cada co
 
 | # | Qué | Dónde | De | Estado |
 |---|-----|-------|----|--------|
-| C1 | Eliminar la acción `Calculo Salario Base`: ítem de menú, `calcularSalarioBaseBruto` / `calcularSalarioBaseBruto_`, las 4 constantes `COL_*` que solo ella usa y `RESULT_COL` / `RESULT_HEADER` | [`VAP_script_export_SAGE.js`](../../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js) | D1 | 🟢 |
+| C1 | Eliminar la acción `Calculo Salario Base`: ítem de menú, `calcularSalarioBaseBruto` / `calcularSalarioBaseBruto_`, las 4 constantes `COL_*` que solo ella usa y `RESULT_COL` / `RESULT_HEADER` | [`VAP_script_export_SAGE.gs`](../../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.gs) | D1 | 🟢 |
 | C2 | Repuntar `VINC_FIELDS` a la cabecera de la columna M: `Líquido_a_percibir` | Ídem, línea 63 | D1 | 🟢 |
 | C3 | Actualizar la cabecera del archivo: el menú pasa de 3 acciones a 2, y desaparece la nota de "ejecutar Calculo Salario Base ANTES". Añadido un apartado **HISTÓRICO** con el porqué | Ídem, líneas 1-36 | D1 | 🟢 |
 | C4 | Vaciar a mano la columna **S** de `bbdd_export_sage_laboral`, que queda muerta con cabecera y datos viejos | El Sheet, no el código | D1 | ⏸ Va con **C5** |
 | C5 | **Desplegar**: copiar y pegar el archivo en el proyecto Apps Script de `VAP_Export_Sage`. Producción sigue con las 3 acciones hasta que se haga | Proyecto GAS | D1 | ⏸ **Al final, con visto bueno** |
 | C6 | Dos funciones quedan **sin uso** tras la limpieza: `aNumero_` y `normalizarCabecera_`. Solo las llamaba la acción eliminada. No molestan, pero sobran | Ídem | D1 | 🔴 A decidir |
-| C7 | Repuntar `TARGET_SPREADSHEET_ID` al libro **completo** en los scripts que corresponda. ⚠️ **Verificar antes de cambiar:** apuntar al libro equivocado manda la actividad de ~400 personas donde no debe | Volcados de horas extras y profesores · `VAP_script_export_SAGE.js` | D2 | ⚪ Bloqueado por **P6** y **P8** |
-| C8 | Unificar o no las acciones *Export Neto* / *Export Bruto*, según se resuelva **P9** | [`VAP_script_export_SAGE.js`](../../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js) | D2 | ⚪ Bloqueado por **P9** |
+| C7 | Repuntar `TARGET_SPREADSHEET_ID` al libro **completo** en los scripts que corresponda. ⚠️ **Verificar antes de cambiar:** apuntar al libro equivocado manda la actividad de ~400 personas donde no debe | Volcados de horas extras y profesores · `VAP_script_export_SAGE.gs` | D2 | ⚪ Bloqueado por **P6** y **P8** |
+| C8 | Unificar o no las acciones *Export Neto* / *Export Bruto*, según se resuelva **P9** | [`VAP_script_export_SAGE.gs`](../../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.gs) | D2 | ⚪ Bloqueado por **P9** |
 | C9 | Conservar los libros de netos y brutos hasta cerrar el ejercicio — **no borrarlos** al migrar | Drive | D2 | ⏸ Va con el despliegue |
 
 ### B · Documentación

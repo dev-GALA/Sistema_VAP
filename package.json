@@ -1,0 +1,19 @@
+{
+  "name": "sistema-vap",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sistema VAP: solo herramientas de prueba. El código corre en Google Apps Script.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "vitest run",
+    "test:vigilar": "vitest",
+    "e2e": "playwright test",
+    "sintaxis": "for f in $(find docs_solutions/src -name '*.gs' | tr ' ' '?'); do node --check < \"$f\" || exit 1; done"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

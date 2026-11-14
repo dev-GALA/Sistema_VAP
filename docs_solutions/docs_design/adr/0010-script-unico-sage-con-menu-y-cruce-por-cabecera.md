@@ -3,6 +3,7 @@
 - **Estado:** Aceptada
 - **Fecha:** 2026-05-25
 - **Equivalencia:** DT-10
+- **Requisitos:** RNF-02
 
 ## Contexto
 

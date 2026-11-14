@@ -7,10 +7,9 @@ Cada ADR es inmutable una vez aceptado: si una decisión cambia, se crea un ADR 
 Formato: ver [`0000-plantilla.md`](0000-plantilla.md). Equivalencia con la antigua numeración
 `DT-NN` del documento monolítico, indicada en cada ficha.
 
-> **Cada decisión de aquí se materializa en uno o varios requisitos.** La correspondencia está en
-> [[SSD §12](../SSD.md)](../../../docs_discovery/requisitos_funcionales.md). Los 14 primeros ADR tienen requisito: ninguna decisión se
-> ha quedado sin aplicar. **ADR-0015 aún no**, por ser del 7 de septiembre de 2026 y estar pendiente
-> de llevar a requisitos.
+> **Cada decisión de aquí se materializa en uno o varios requisitos**, y lo declara **dentro del
+> propio ADR**, en su línea `Requisitos:`. La correspondencia completa está en
+> [SSD §12](../SSD.md#12-trazabilidad-completa). Los 16 ADR declaran requisito.
 >
 > Y en sentido contrario: **si un requisito nuevo choca con un ADR, no se toca el ADR**. Se escribe
 > uno nuevo que supere al anterior. Un requisito que contradice en silencio una decisión aceptada es
@@ -36,6 +35,15 @@ Formato: ver [`0000-plantilla.md`](0000-plantilla.md). Equivalencia con la antig
 | [0014](0014-volcado-actividad-profesores-por-periodo.md) | Volcado de Actividad de Profesores por periodo y bajo demanda | Aceptada | — |
 | [0015](0015-eliminar-calculo-salario-base-del-script-sage.md) | Eliminar el cálculo del salario base del script SAGE | Aceptada | — |
 | [0016](0016-un-unico-libro-de-vinculacion.md) | Un único libro de Vinculación como destino de todos los volcados | Aceptada · sin aplicar | — |
+
+## Notas del índice
+
+- **ADR-0011 está superado en parte por [ADR-0015](0015-eliminar-calculo-salario-base-del-script-sage.md):**
+  su dependencia con la acción *Calculo Salario Base* ya no existe. El 0011 **no se edita**; la
+  superación se declara aquí.
+- **ADR-0015 afecta a RF-21** («calculará el salario base»), que hoy está marcado ✅ y describe lo que
+  el 0015 retira. Está anotado en [OB-39](../../../docs_work/proximos_pasos.md); no se toca el
+  requisito hasta decidir el origen del salario base.
 
 ## Estados posibles
 

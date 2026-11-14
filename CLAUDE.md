@@ -82,7 +82,7 @@ Documentación de referencia:
 **`docs_work/` — el proceso y el trabajo por delante** (lo que se revisa con quien opera el sistema):
 
 - [docs_work/FLUJO.md](docs_work/flujo_doc/FLUJO.md) — el mapa del proceso mensual, del dato a la nómina
-- [docs_work/retomar_trabajos.md](docs_work/retomar_trabajos.md) — qué toca hacer ahora, agrupado en sprints
+- [docs_work/proximos_pasos.md](docs_work/proximos_pasos.md) — qué toca hacer ahora, agrupado en sprints
 - [docs_work/dudas/](docs_work/dudas/README_dudas.md) — cuestiones sin resolver y deuda técnica
 - [docs_work/reuniones/](docs_work/reuniones/README_reuniones.md) — guion y acta de cada reunión
 
@@ -92,7 +92,7 @@ Y [README.md](README.md) — mapa del repositorio · [CHANGELOG.md](CHANGELOG.md
 
 ## Cómo se organiza el trabajo
 
-El trabajo avanza por **sprints**, definidos en [docs_work/retomar_trabajos.md](docs_work/retomar_trabajos.md). Tres reglas
+El trabajo avanza por **sprints**, definidos en [docs_work/proximos_pasos.md](docs_work/proximos_pasos.md). Tres reglas
 que hay que respetar sin que haga falta recordarlas:
 
 1. **El sprint nuevo entra por arriba.** Cuando se decide abordar algo, se registra como sprint
@@ -111,6 +111,63 @@ que hay que respetar sin que haga falta recordarlas:
 
 Un sprint se cierra **por objetivo cumplido, no por fecha**: el desarrollo lo lleva una sola persona
 compatibilizándolo con otras funciones.
+
+---
+
+## Normas globales y skills de desarrollo
+
+Las preferencias generales del dispositivo están en `~/.claude/CLAUDE.md` y aplican todas: ADR en
+MADR con el estado en el nombre del fichero, SDD y arc42, pruebas con cada cambio, trazabilidad con
+script, MoSCoW solo para ordenar, dos revisiones antes del commit, consecuencias por escrito antes de
+subir a un entorno real, y que **los commits los hace siempre el usuario**. **Lo que este archivo
+diga tiene prioridad sobre el global** (las dos reglas de arriba son más estrictas y siguen mandando).
+
+Las copias de las skills de desarrollo están en [.claude/skills/](.claude/skills/) y se versionan con
+el repo. **Si el equipo tiene la misma skill instalada de forma global (`~/.claude/skills/`), se usa
+la global**; la copia del repo es el respaldo para quien no la tenga.
+
+| Skill | Cuándo se aplica |
+|---|---|
+| `dev-cambio-codigo` | Se añade, cambia o corrige código de `docs_solutions/src/` |
+| `dev-nuevo-adr` | Se crea o cambia un ADR, o su estado |
+| `dev-trazabilidad` | Cambian el problema, las HU, los RF o los RNF, o se pide comprobar la trazabilidad |
+| `dev-revision-cierre` | Cierre de jornada o antes de un commit |
+| `dev-pre-produccion` | Antes de subir algo a un entorno real. **Aquí todo lo que toca los libros de Sheets o los proyectos de Apps Script en uso mueve nóminas reales** |
+| `dev-inicio-proyecto`, `dev-nueva-skill` | Solo de referencia: crear un repo nuevo o una skill |
+| `dev-pruebas` | Se escribe, cambia o pide una prueba, o se monta la base de pruebas. **Aquí nunca se escribe en libros reales de nóminas: se prueba con dobles en memoria** |
+| `dev-licencia` | Crear o revisar el `LICENSE` de un repo |
+
+### Pruebas: cómo se ejecutan
+
+```sh
+npm test                    # Vitest: unitarias, integración y recorridos del backend (1.693 pruebas)
+npm run e2e                 # Playwright: las pantallas HTML reales contra el .gs real (193)
+python3 -m unittest discover -s scripts -p 'test_*.py'   # pruebas del verificador
+python3 scripts/verificar_trazabilidad.py                # trazabilidad y enlaces
+node --check < fichero.gs   # sintaxis de un .gs (Node no acepta la extensión)
+```
+
+Los `.gs` se prueban **sin modificarlos**: `tests/soporte/cargar-gs.js` los ejecuta en una caja de Node con dobles de
+Google en memoria. **Los dobles aproximan Google, no lo sustituyen**: triggers, cuotas, permisos y textos de error reales
+se comprueban a mano antes de cada despliegue. Las pruebas marcadas `it.fails`/`test.fail` **documentan defectos
+conocidos** ([proximos_pasos.md](docs_work/proximos_pasos.md)): al corregir el código hay que quitarles la marca.
+
+### Diferencias conocidas con la estructura estándar
+
+Este repo nació antes que el estándar y **todavía no lo cumple del todo**. Las skills presuponen la
+estructura estándar, así que, hasta migrar, **donde la skill diga una ruta, vale la equivalente de aquí**:
+
+| Estándar (skills) | En este repo |
+|---|---|
+| `docs_dev/docs_discovery/` | `docs_discovery/` |
+| `docs_dev/docs_solution/` | `docs_solutions/docs_design/` |
+| `sdd.md` · `arquitectura.md` | `SSD.md` (que ya sigue arc42) |
+| `historia_de_usuarios.md` | `historias_usuarios.md` |
+| `NNNN-ESTADO-titulo.md` en los ADR | `NNNN-titulo.md` (el estado va solo en la cabecera) |
+| `scripts/`, `tests/`, `valor_dev.md` | Aún no existen |
+
+La migración y las pruebas que faltan están anotadas en [docs_work/proximos_pasos.md](docs_work/proximos_pasos.md).
+**No se hace por iniciativa propia**: hay cientos de enlaces implicados y requiere el visto bueno.
 
 ---
 
@@ -212,7 +269,7 @@ Cuando se pida **revisar el repositorio**, se hacen **dos pasadas completas**, n
 | **Pasada 2 · Coherencia** | Documentos que afirman lo que el código ya no hace, contradicciones entre documentos, trazabilidad rota, decisiones sin requisito, numeraciones desincronizadas |
 
 **El informe se entrega en la conversación**, no en un archivo. Y **los hallazgos se registran como
-primeros pasos** en [`retomar_trabajos.md`](docs_work/retomar_trabajos.md), siguiendo la regla de que
+primeros pasos** en [`proximos_pasos.md`](docs_work/proximos_pasos.md), siguiendo la regla de que
 el sprint nuevo entra por arriba.
 
 > **Por qué dos y no una.** La primera pasada encuentra lo que está roto; la segunda, lo que está

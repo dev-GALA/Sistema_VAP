@@ -11,6 +11,12 @@ el cierre.
 | **Estado** | Reconstruido a partir del código y de los Sheets accesibles, revisado con el responsable del sistema |
 | **Responde a** | [Deuda técnica · DT-16](../dudas/deuda-tecnica.md#dt-16--falta-el-mapa-del-flujo-de-datos-y-usuarios) |
 
+> 🛑 **Aviso — este documento describe la versión que está EN PRODUCCIÓN, no el repositorio.**
+> El código del repositorio ya **no tiene** la acción *Calculo Salario Base* (ADR-0015), pero el Apps
+> Script desplegado **sigue mostrándola** hasta que se despliegue. Mientras tanto, **el paso 3 de
+> abajo sigue siendo válido en el sistema real** y no debe saltarse. Esta nota se retira, y el
+> documento se corrige, cuando se despliegue (OB-30 y OB-39 en [proximos_pasos.md](../proximos_pasos.md)).
+
 > ⚠️ **Este documento tiene zonas oscuras y están señaladas.** Lo verificado procede de leer el
 > código y los Spreadsheets reales. Lo que aparece con borde discontinuo o marcado como 🔍 es
 > **inferencia o desconocido**, y necesita confirmación. Las que tienen ficha propia viven en
@@ -251,7 +257,7 @@ de secretarias y profesores.
 | | |
 |---|---|
 | **Archivo** | `VAP_BBDD_Personas` — pestañas `VAP_Secretarias`, `VAP_Profesores` |
-| **Scripts** | `VAP_Script_Actualizacion_Automatica_Secretarias.js` · `VAP_Script_Actualizacion_Automatica_Profesores.js` |
+| **Scripts** | `VAP_Script_Actualizacion_Automatica_Secretarias.gs` · `VAP_Script_Actualizacion_Automatica_Profesores.gs` |
 | **Qué hacen** | Leen las personas con `Alta = TRUE` y reescriben los desplegables de los dos formularios. Al recibirse una respuesta, escriben además el `ID_Secre` o el `ID_Profesor` en la hoja de respuestas |
 
 > **Por qué va primero: si alguien no está de alta aquí, no existe para el sistema.** No aparece en

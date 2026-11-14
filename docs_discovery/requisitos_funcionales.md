@@ -5,7 +5,7 @@
 | **Versión** | 0.5 — separado de los no funcionales |
 | **Fecha** | 7 septiembre 2026 |
 | **Se deriva de** | [historias_usuarios.md](historias_usuarios.md) |
-| **Responde a** | [Sprint 2 · OB-33](../docs_work/retomar_trabajos.md) |
+| **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_no_funcionales.md](requisitos_no_funcionales.md) |
 
 ---

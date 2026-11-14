@@ -5,7 +5,7 @@
 | **Versión** | 0.4 — BORRADOR · confrontado con SSD y ADR |
 | **Fecha** | 18 agosto 2026 |
 | **Se deriva de** | [problem.md](problem.md) · [../docs_work/FLUJO.md](../docs_work/flujo_doc/FLUJO.md) · [../docs_work/dudas/](../docs_work/dudas/README_dudas.md) |
-| **Responde a** | [Sprint 0 · OB-15](../docs_work/retomar_trabajos.md) |
+| **Responde a** | [Sprint 0 · OB-15](../docs_work/proximos_pasos.md) |
 
 ---
 
@@ -864,7 +864,7 @@ construyeron primero justamente por eso. Medido sobre **lo pendiente**, que es l
 el reparto queda dentro de la regla de [CLAUDE.md](../CLAUDE.md).
 
 Dicho eso, la prioridad indica **cuánto duele que falte**; **cuándo se hace** lo decide esta tabla: **en qué sprint entra cada historia pendiente**, según
-[`retomar_trabajos.md`](../docs_work/retomar_trabajos.md).
+[`proximos_pasos.md`](../docs_work/proximos_pasos.md).
 
 | Sprint | Historias | Objetivos |
 |--------|-----------|-----------|

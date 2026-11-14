@@ -81,8 +81,8 @@ Con eso se puede decidir si unificar el destino es viable.
 El cambio es pequeño: **una línea en cada script**.
 
 ```js
-// VAP_Script Volcado Horas Extras Secretarias.js
-// VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js
+// VAP_Script Volcado Horas Extras Secretarias.gs
+// VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs
 const TARGET_SPREADSHEET_ID = '...';   // ← el libro que corresponda
 ```
 

@@ -5,7 +5,7 @@
       "Bash(git rm *)",
       "Bash(git ls-tree *)",
       "mcp__claude_ai_Google_Drive__read_file_content",
-      "Bash(node --check scripts_generales/VAP_script_export_SAGE.js)",
+      "Bash(node --check < docs_solutions/src/scripts_generales/VAP_script_export_SAGE.gs)",
       "Bash(grep -c \"logs\\\\` / \\\\`errores\\\\|hojas \\\\`logs\\\\|Run ID\" README.md ADR.md CHANGELOG.md)",
       "Bash(git config *)",
       "Bash(echo \"user.name : $\\(git config user.name\\)\")",

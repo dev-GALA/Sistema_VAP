@@ -1,4 +1,4 @@
-# RETOMAR TRABAJOS — Sistema VAP
+# PRÓXIMOS PASOS — Sistema VAP
 
 **Qué toca hacer ahora**, agrupado en sprints y en trozos lo bastante pequeños como para cerrarlos.
 
@@ -20,7 +20,7 @@ sin más: este documento reparte el trabajo en **objetivos pequeños y cerrables
 | | Responde a |
 |---|---|
 | [`requisitos_funcionales.md`](../docs_discovery/requisitos_funcionales.md) | ¿Qué hay que hacer, y por qué? |
-| **`retomar_trabajos.md`** *(este)* | **¿Qué hago ahora, y qué me lo impide?** |
+| **`proximos_pasos.md`** *(este)* | **¿Qué hago ahora, y qué me lo impide?** |
 | [`dudas/`](dudas/README_dudas.md) | ¿Qué falta saber para poder decidir? |
 | [`../docs_discovery/problem.md`](../docs_discovery/problem.md) | ¿Qué significa haberlo conseguido? *(resultados deseados)* |
 
@@ -56,7 +56,7 @@ sin más: este documento reparte el trabajo en **objetivos pequeños y cerrables
 |--------|---------------------|-----------|--------|
 | **0 · Historias y requisitos** | Poner por escrito qué tiene que hacer el sistema y para quién | OB-15, OB-16 | 🟢 **Cerrado** |
 | **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36 | 🟡 **En curso** — las tres fuentes ya analizadas |
-| **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37, OB-39 | 🟡 **En curso** — OB-29 y OB-33 cerrados |
+| **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37, OB-39 | 🟡 **En curso** — OB-29, OB-32, OB-33 y OB-37 cerrados; OB-31 a medias |
 | **3 · Reorganizar el repositorio** | Ordenar la documentación por la pregunta a la que responde | OB-28 | 🟢 **Cerrado** |
 | **4 · La webapp de coordinación** | Que el cierre se lance, se siga y se mida desde una pantalla | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14 | 🟡 **En curso** |
 | **5 · Saldar la deuda** | Que todo deje rastro, y limpiar las 20 entradas de deuda técnica | OB-17 … OB-19, OB-23 … OB-27, OB-38 | 🟡 **En curso** — OB-38 a medias |
@@ -247,7 +247,7 @@ asume.
 > bloquea a OB-12: sin él, dos de las tres comprobaciones se pueden construir y la tercera no.
 
 Si la decisión permite construir la correspondencia, el motor de cruce por nombre **ya existe** en
-[`VAP_Script_Cruce_BBDD_Personas_SAGE.js`](migration_data/VAP_Script_Cruce_BBDD_Personas_SAGE.js) —
+[`VAP_Script_Cruce_BBDD_Personas_SAGE.gs`](../docs_solutions/src/scripts_generales/VAP_Script_Cruce_BBDD_Personas_SAGE.gs) —
 se reutiliza, no se duplica ([CLAUDE.md](../CLAUDE.md)).
 
 **Se cierra cuando** hay una decisión escrita y validada, **y un ADR que la registre**.
@@ -316,6 +316,10 @@ Se cerraron en la misma pasada tres hallazgos menores de la auditoría:
 
 ### OB-30 · Poner al día lo que el código ya no hace — 🔵
 
+🟡 **En espera (14 nov 2026):** se pospone hasta decidir el despliegue, porque la producción sigue con la acción
+antigua. Mientras, [FLUJO.md](flujo_doc/FLUJO.md) lleva un aviso visible de que describe la versión desplegada.
+Queda por hacer: quitar ese aviso y corregir los 28 puntos cuando se despliegue.
+
 | | |
 |---|---|
 | **Depende de** | Que se decida desplegar (registro de la reunión 10, **C5**) |
@@ -329,7 +333,14 @@ que el código ya no tiene: `README.md`, `SSD.md` §7.5, `FLUJO.md` (12 puntos, 
 > **supera** [ADR-0015](../docs_solutions/docs_design/adr/0015-eliminar-calculo-salario-base-del-script-sage.md),
 > y eso hay que declararlo en el índice, no editando el 0011.
 
-### OB-31 · Cerrar la trazabilidad de los ADR — 🔵
+### OB-31 · Cerrar la trazabilidad de los ADR — 🔵 🟡 **A medias**
+
+🟢 **Hecho el 14 nov 2026:** la plantilla tiene la línea `Requisitos:`; los 16 ADR la declaran; SSD §12 y el
+índice están al día (16 filas). Se halló una **contradicción abierta**: **RF-21** («calculará el salario base»,
+✅) describe lo que el ADR-0015 retira; va a OB-39. El ADR-0011 se declara superado en parte por el 0015 **en
+el índice**, sin editarlo.
+🔴 **Queda** pasar los ADR a **MADR estricto** (*Decision Drivers*, *Considered Options*…) y renombrarlos con el
+estado en el nombre del fichero: depende de la migración a la estructura estándar, que **no se ha decidido**.
 
 | | |
 |---|---|
@@ -350,13 +361,16 @@ que el código ya no tiene: `README.md`, `SSD.md` §7.5, `FLUJO.md` (12 puntos, 
 >   **no tiene sección de requisitos relacionados**, y por eso ningún ADR la tiene. Hay que
 >   corregir la plantilla primero, y después los ADR.
 
-### OB-32 · Documentar el script de cruce y colocarlo donde toca — 🔵
+### OB-32 · Documentar el script de cruce y colocarlo donde toca — 🔵 🟢 **Cerrado**
+
+🟢 **Hecho el 14 nov 2026:** el script se mudó a `docs_solutions/src/scripts_generales/`, su cabecera dice
+«cuatro hojas» y los enlaces están actualizados. 🟢 **Documentado el 14 nov 2026:** SSD §7.6 y fila en el README.
 
 | | |
 |---|---|
 | **Prioridad** | 🔸 Should |
 
-`VAP_Script_Cruce_BBDD_Personas_SAGE.js` (905 líneas, 32 funciones) vive en `docs_work/migration_data/`
+`VAP_Script_Cruce_BBDD_Personas_SAGE.gs` (905 líneas, 32 funciones) vive en `docs_work/migration_data/`
 —una carpeta de trabajo— cuando **el código va en `docs_solutions/src/`**. No está en el SSD, y en el
 README solo figura la carpeta, no el script.
 
@@ -397,7 +411,11 @@ pasaron a [`items_v3.md`](items_v3.md).
 
 🔴 **Queda reestructurar el SSD según arc42.**
 
-### OB-37 · Crear el `.gitignore` y sacar la configuración local del repositorio — 🔵
+### OB-37 · Crear el `.gitignore` y sacar la configuración local del repositorio — 🔵 🟢 **Cerrado**
+
+🟢 **Hecho el 14 nov 2026:** `.gitignore` creado; `docs_work/migration_data/` pasa a ser **solo para datos**
+(ignorada, con README y `.gitkeep`); `settings.local.json` fuera del control de versiones; un CSV de prueba
+no aparece en `git status`.
 
 | | |
 |---|---|
@@ -433,7 +451,7 @@ en `git status`, y `settings.local.json` ya no está versionado.
 | **Prioridad** | 🔺 Must |
 
 **Lo que pasó (28 sep 2026):** en `VINC_FIELDS` de
-[`VAP_script_export_SAGE.js`](../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js),
+[`VAP_script_export_SAGE.gs`](../docs_solutions/src/scripts_generales/VAP_script_export_SAGE.gs),
 `L · Salario Base` apuntaba a `Líquido_a_percibir`, **el neto**, que ya va a `T · Nomina NETO`. Salario
 base y nómina neta recibían el mismo importe. Se ha repuntado a **`TOTAL_BRUTO`** (columna F del
 origen).
@@ -840,9 +858,9 @@ echó en falta un nombre.
    **registren** cada fila con `ID` y `Nombre` cuyo `Alta` no sea ni verdadero ni falso, indicando
    la fila. **No hay que aceptar el texto "TRUE" sin más**: eso escondería el error en vez de
    mostrarlo. La misma función está copiada en
-   [`VAP_Script_Actualizacion_Automatica_Profesores.js`](../docs_solutions/src/VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.js)
+   [`VAP_Script_Actualizacion_Automatica_Profesores.gs`](../docs_solutions/src/VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.gs)
    y en
-   [`VAP_Script_Actualizacion_Automatica_Secretarias.js`](../docs_solutions/src/VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script_Actualizacion_Automatica_Secretarias.js):
+   [`VAP_Script_Actualizacion_Automatica_Secretarias.gs`](../docs_solutions/src/VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script_Actualizacion_Automatica_Secretarias.gs):
    **el cambio va en las dos**, o se corrige una y se olvida la otra ([CLAUDE.md](../CLAUDE.md), DRY).
 
 **Se cierra cuando** las dos hojas tienen las tres reglas, y una fila con `Alta` en texto aparece en
@@ -979,6 +997,123 @@ SAGE, cuándo se lanzan los volcados, cuándo es la revisión con Gerencia, cuá
 > ordenan.
 
 ---
+
+
+## Pendientes que salen del trabajo del 14 nov 2026
+
+| Qué | Por qué | Decide |
+|---|---|---|
+| **Base de pruebas del código** (`package.json`, Vitest, Biome, `tests/`) | No hay ninguna prueba del código `.gs`: todo se valida contra producción (DT-17). Plantillas en la skill `dev-pruebas`. No se puede probar en local: triggers, cuotas y permisos de Apps Script (comprobación manual escrita). | Tú: instalar dependencias de desarrollo |
+| **Gancho `pre-commit`** que ejecute `scripts/` | Para que nadie olvide la trazabilidad (plantilla en `dev-pruebas`) | Tú: se activa con `git config core.hooksPath .githooks` |
+| **Migrar la estructura al estándar** (`docs_dev/`, `sdd.md` + `arquitectura.md`, ADR con estado en el nombre) | Las skills presuponen esa estructura; ver CLAUDE.md. Incluye OB-34 (arc42) y el MADR estricto de OB-31 | Tú |
+| **JS-09 no la recoge ninguna HU** | Aviso del verificador | Tú: ¿falta una HU o la JS sobra? |
+| **17 HU sin JS** (HU-03, 09 a 12, 14 a 19, 23, 24, 29, 30, 36, 41) | El documento dice que nacen del proceso real; el verificador lo deja en aviso | Tú: ¿se declara explícitamente «proceso real» en su Origen? |
+| **RF-21 contradice ADR-0015** | RF-21 «calculará el salario base» (✅); el 0015 lo retira | Va con OB-39 |
+| **MoSCoW: «Won't»** | El CLAUDE.md local lo usa para «no entra»; el global dice que MoSCoW solo ordena | Tú |
+| **Prueba en sesión nueva** de `dev-licencia` y `dev-pruebas` | Se crearon sin probar con casos reales | Tú |
+
+## Mejoras detectadas por las pruebas — **hacer antes del siguiente sprint**
+
+*(14 nov 2026. Salen de las pruebas generadas por cuatro agentes (**~50 defectos distintos, en los cuatro módulos**) sobre todo el código de `src/`. Ninguno de estos
+defectos se ha corregido: los `.gs` y los HTML mueven nóminas y la producción tiene otra versión. Cada prueba que
+lo documenta está marcada `it.fails('DEFECTO: …')` o `test.fail(…)`: **cuando se corrija el código, esa prueba
+empezará a fallar y habrá que quitarle la marca**. Orden propuesto: primero lo que puede pagar mal, después lo que
+solo deja sin rastro, después lo visual.)*
+
+### A · Puede afectar a lo que se paga
+
+| ID | Dónde | Defecto | Requisito |
+|---|---|---|---|
+| DEF-01 | `exportNeto` / `exportBruto` (SAGE) | Escriben **sin pedir confirmación ni permitir cancelar** | RNF-05 · RF-17 · RF-18 |
+| DEF-02 | `toNumber_` (SAGE) | El texto «12.5» se lee como **125**: un decimal con punto multiplica por 10 | RNF-08 · R-14 |
+| DEF-03 | `parsearFecha_` (cruce SAGE) | «31/02/2024» pasa a 02/03/2024 y «15/13/2024» a enero del año siguiente: debería devolver «no válida» | — |
+| DEF-04 | `analizarVolcado_` (profesores) | «DICIEMBRE» enviado en enero cae en «otro año» en vez de diciembre del año anterior | RF-16 |
+| DEF-05 | `vapAnalizarPeriodo` (horas extras) | Un año no numérico no se valida: todo cae en «otro año» y **las filas sin marca temporal se exportan** | RF-16 · RF-17 |
+| DEF-06 | `onFormSubmit` (horas extras) | **Dos envíos en el mismo segundo:** el ID del primero se escribe en la fila del segundo | RF-03 |
+| DEF-07 | `localizarFilaRespuesta_` (horas extras) | Con solo la cabecera devuelve la fila 1: el ID se escribiría **encima de la cabecera** | RF-03 |
+| DEF-08 | volcado de horas extras | Las filas de una secretaria **bloqueada por nombre duplicado** en destino se archivan igualmente como «ARCHIVADO» | RF-17 |
+| DEF-09 | `contarCeldasOcupadasDestino_` (profesores) | Si falta la pestaña destino devuelve 0 («limpio»); debería ser «no comprobable» | RF-23 |
+| DEF-10 | `construirStaff_` (cruce SAGE) | Excluye a quien tiene baja **futura**, aunque `estaActivo_` lo trata como activo *(dudoso: no hay documento que lo respalde; decidir)* | — |
+
+### B · Pueden dejar a medias o sin rastro
+
+| ID | Dónde | Defecto | Requisito |
+|---|---|---|---|
+| DEF-11 | Volcados de **profesores y horas extras** | Con el bloqueo ocupado, `waitLock` queda fuera del `try`: **no deja traza** en el LOG | RF-48 |
+| DEF-12 | `vapEjecutarExportacion` (**profesores y horas extras**) | Si falla el análisis no se escribe nada en el LOG (`vapAnalizarPeriodo` sí lo hace) | RF-48 |
+| DEF-13 | `valuesEqual_` / `volcarVinculacion_` (SAGE) | El número 12.5 y el texto «12.5» se ven distintos: **se reescriben celdas que no cambian** | RF-22 · RNF-08 |
+| DEF-14 | `volcarVinculacion_` (SAGE) | Escribe **celda a celda** (también horas extras: 80 escrituras para 40 personas) | RNF-07 |
+| DEF-15 | `volcarVinculacion_` (SAGE) | **No lee las cabeceras del destino**, así que no detecta que su estructura cambió | RNF-15 · R-08 |
+| DEF-16 | `crearTriggersProduccion` (horas extras) | Borra los disparadores **antes** de abrir el formulario: si falla, se pierden. También borra el de respaldo y los ajenos | RNF-12 |
+| DEF-17 | volcado de horas extras | Si el destino falla, las incidencias del análisis no llegan al LOG | RF-48 |
+
+### C · Seguridad y accesibilidad de las pantallas
+
+| ID | Dónde | Defecto |
+|---|---|---|
+| DEF-18 | **Diálogos de profesores y de horas extras** | El informe usa `innerHTML` **sin escapar** lo que viene de la hoja o escriben las secretarias: se puede inyectar HTML ([RNF-09](../docs_discovery/requisitos_no_funcionales.md)) |
+| DEF-19 | Los mismos diálogos y el portal | Falta `<html lang="es">` y `aria-live`/`role` en el informe y en los errores |
+
+> **DEF-11, 12, 18 y 19 están en dos módulos a la vez** (copias del mismo código): confirma la deuda
+> DRY de RNF-17. Al corregirlos, hacerlo **en un solo punto compartido**, no dos veces.
+
+### D · Observaciones (no son defectos de la prueba, pero conviene decidir)
+
+- `normalizarMes_` es laxo: «Mayo-Junio» se lee como MAYO, y cualquier palabra con las tres letras de un mes único se acepta («Martes» da MARZO).
+- Un envío sin marca temporal pisa a uno con marca.
+- Una persona sin `Id_Sage` y sin coincidencia recibe el ID `GALA_` en la copia del cruce.
+- Una baja exactamente a 5 años queda excluida por la hora del día.
+- Tras exportar con éxito, «Revisar» queda desactivado.
+- `crearTriggerHorarioRespaldo` no es idempotente: duplica.
+- Un fallo agota la ventana de 30 s de la caché.
+- **El SSD §6.3, §7.5 y §8.5 sigue hablando de *Calculo Salario Base* y de tres acciones** (entra en OB-30, en espera).
+
+### E · Lo que **no** se puede probar en local (hay que comprobar a mano antes de cada despliegue)
+
+Disparadores reales (`onOpen` por el menú, `onChange`, `onFormSubmit`, horarios), cuotas y tiempo máximo de ejecución,
+permisos reales, caducidad real de la caché, textos reales de error de Google (en inglés, y el código clasifica
+errores por texto), decodificación ISO-8859-1 real y conversión de `.xls`. **Hay que escribir una lista de
+comprobación manual paso a paso** (pendiente).
+
+### F · Limitaciones de los dobles (riesgo de falsa seguridad)
+
+- `getRange` con 0 o negativas filas: el doble lo acepta y **Google real lanza error**; el caso «destino solo con cabecera» no es verificable en local (DEF afecta a profesores y horas extras).
+- `getDisplayValues` devuelve ISO para las fechas, y la caché no caduca sola; `Utilities.getUuid().slice(0,8)` es idéntico en todas las ejecuciones.
+- Los errores del doble están en español y no activan los clasificadores del código; `getEventType` da `UNKNOWN` para `onEdit`; `getDataAsString` ignora el charset.
+- **Mejora del soporte:** llevar a `tests/soporte/` lo que cada agente hubo de crear aparte (`espiarFormato`, `fechaCaja`, `relojQueAvanza`, dobles de `FormApp`, `MimeType`, espías de caché y bloqueo) para no repetirlo en cada módulo.
+
+### H · Módulo de complementos de secretarias (informe del cuarto agente, 14 nov 2026)
+
+20 defectos documentados en Vitest y 15 en Playwright. Los de seguridad y permisos van **primero**:
+
+| ID | Dónde | Defecto | Requisito |
+|---|---|---|---|
+| DEF-20 | `vap_submitBatch` | **No valida el responsable ni el concepto contra la BBDD:** acepta un responsable inexistente o inactivo y un concepto que no tiene asignado | ADR-0002 · RF-06 · RNF-09 |
+| DEF-21 | `vap_consultaBatches` | Da los envíos de **cualquier** id de responsable | RNF-09 |
+| DEF-22 | Correcciones | Aceptan un `Batch_ID` inexistente o **de otro responsable** | RF-08 |
+| DEF-23 | Reporte | **No usa `LockService`:** con el bloqueo ocupado sigue escribiendo | RNF-04 |
+| DEF-24 | `parseNumber_` / `normalizeMoneyStr` | Aceptan «Infinity», «0x10» y «1e3»; «1.234» vale 1,234; «doce» se pierde sin incidencia y «12abc» se guarda como 12 | RNF-08 · RF-60 |
+| DEF-25 | Validación | Mes no entero (1,5) y año 1 se aceptan | RF-60 |
+| DEF-26 | Correo | HTML sin escapar (nombre del responsable y concepto) y **URL de consulta fija en el código** | RNF-09 |
+| DEF-27 | Exportación | Tras un error HTTP **el libro temporal queda en Drive** y el error es una excepción en bruto, sin alerta ni fila de ERROR en `Logs` | RF-48 |
+| DEF-28 | `vap_rellenarNombresSecretariaFaltantes` | Escribe celda a celda; además **no está en el menú** | RNF-07 |
+| DEF-29 | Consultas y desplegable de correcciones | **XSS por `innerHTML`** sin escapar (Batch_ID, concepto, nombre e id de secretaria) | RNF-09 |
+| DEF-30 | Consultas | Un envío vacío no muestra ningún aviso | RF-66 |
+| DEF-31 | Las 3 pantallas | Sin `lang`; `<label>` sin `for`; importes sin `aria-label`; mensajes sin `aria-live`; la cabecera del envío no se abre con teclado | — |
+
+**Observaciones:** el año del envío es siempre el actual; no se avisa si el correo falla; se aceptan importes negativos.
+**No probable:** cuotas, permisos OAuth reales, XLSX real de Google, entrega real del correo, menú real de Sheets, `<title>` (el arnés no lo sirve).
+**Límites de los dobles:** `SpreadsheetApp.create` no crea la primera hoja; el libro temporal no está en Drive; la hora queda fija al cargar.
+
+> **DEF-20, 21 y 22 son de acceso, no de formato:** hoy la web de reporte confía en el id que manda el navegador. Es el
+> mismo riesgo que R-02 del SSD (permisos no gestionados por rol nativo) y debería ir **el primero** de la lista A.
+
+### G · Decisiones que necesitan tu OK
+
+1. ¿Se corrigen los defectos de la tabla A, y en qué orden? Cada uno es un cambio en código que mueve nóminas: **uno a uno, con prueba y con aviso de despliegue**.
+2. ¿DEF-01 (confirmación antes de escribir) se hace antes que cualquier otro? Contradice un requisito que está marcado ✅ para los otros volcados.
+3. DEF-10: ¿una baja futura cuenta como activa o no?
+4. ¿Se sube una **comprobación manual** (lista paso a paso) a la skill `dev-pre-produccion` para lo no probable?
 
 ## Una pauta que atraviesa todos los sprints
 

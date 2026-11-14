@@ -198,7 +198,7 @@ La fórmula de `C2` es:
 >    (ver R-21).
 >
 > `VAP_Secretarias` **todavía no tiene estas reglas**: es parte de
-> [OB-38](../../docs_work/retomar_trabajos.md).
+> [OB-38](../../docs_work/proximos_pasos.md).
 
 **Columnas clave usadas por el backend de complementos** (constantes `COL_*` del `Code.gs`):
 
@@ -510,7 +510,7 @@ mano.
 
 ### 7.5 Transversal — Cálculos y volcado SAGE
 
-**`scripts_generales/VAP_script_export_SAGE.js`** (Apps Script enlazado a `VAP_Export_Sage`).
+**`scripts_generales/VAP_script_export_SAGE.gs`** (Apps Script enlazado a `VAP_Export_Sage`).
 Menú **"VAP_Acciones"** con 3 acciones, ampliable por partes
 (ver [ADR-0010](adr/0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md),
 [ADR-0011](adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md)).
@@ -547,6 +547,30 @@ Menú **"VAP_Acciones"** con 3 acciones, ampliable por partes
 **Auxiliares:** `volcarVinculacion_`, `clasificarError_`, `normalizarCabecera_`/`normalizeText_`,
 `aNumero_`/`toNumber_`, `makeKey_`, `hasValue_`, `valuesEqual_`, `getOrCreateLogSheet_`,
 `appendLogRows_`. Trigger: `onOpen` (crea el menú).
+
+### 7.6 Transversal — Cruce de la BBDD de personal con SAGE (uso único)
+
+**`scripts_generales/VAP_Script_Cruce_BBDD_Personas_SAGE.gs`** (905 líneas, 32 funciones). Punto de
+entrada: `cruzarBBDDConSage()`. Es de **uso único**: asigna el DNI a cada persona de `VAP_Secretarias` y
+`VAP_Profesores` y revisa `Id_Sage`, `Empresa` y fechas de alta/baja contra el export de empleados de SAGE
+(un CSV `;` en ISO-8859-1 que se deja en Drive; **el CSV no entra en el repositorio**, ver
+[CLAUDE.md](../../CLAUDE.md)).
+
+**No modifica ninguna hoja existente.** Crea cuatro hojas nuevas en `VAP_BBDD_Personas`:
+
+| Hoja | Contenido |
+|------|-----------|
+| `VAP_Secretarias_CRUCE` · `VAP_Profesores_CRUCE` | Copia de cada hoja con el DNI y los datos de SAGE |
+| `VAP_Cruce_Incidencias` | Todo lo que no cuadra, con su tipo (`P1_DUPLICADO`, `P2_SIN_BAJA_ANTERIOR`, `P3_EN_AMBAS_HOJAS`, `P5_NO_ES_PERSONA`, `P8_DISCREPANCIA`, `SIN_MATCH`) y el dato que difiere |
+| `VAP_Staff` | Personal de alta en SAGE que no es secretaria ni profesor |
+
+- **Cruce por nombre** (normaliza, expande abreviaturas, tokeniza, puntúa candidatos con niveles
+  `exacto > normalizado > parcial > por-id` y marca `AMBIGUO` si varios DNI casan). Es el motor que
+  [DUDA-0005](../../docs_work/dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md) propone
+  **reutilizar, no duplicar**.
+- Toda la configuración (IDs, nombres de hoja y de cabecera, colores) vive en el objeto `CFG`, no en la lógica.
+- **Aviso:** crear hojas dispara `onSpreadsheetChangeTrigger` del proyecto de secretarias y resincroniza
+  el desplegable del formulario real. El efecto es inocuo, pero conviene saberlo.
 
 ## 8. Flujos clave
 
@@ -637,7 +661,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 
 - **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0016)
 - **Requisitos y su estado:** [`requisitos_funcionales.md`](../../docs_discovery/requisitos_funcionales.md) · [`requisitos_no_funcionales.md`](../../docs_discovery/requisitos_no_funcionales.md)
-- **Trabajo en curso:** [`retomar_trabajos.md`](../../docs_work/retomar_trabajos.md)
+- **Trabajo en curso:** [`proximos_pasos.md`](../../docs_work/proximos_pasos.md)
 - **Cambios cronológicos:** [`../../CHANGELOG.md`](../../CHANGELOG.md)
 - **Mapa del repositorio:** [`../../README.md`](../../README.md)
 
@@ -666,9 +690,12 @@ tiene, o la decisión no llegó a aplicarse, o falta escribir el requisito:
 | [0012](adr/0012-auditoria-centralizada-logs-y-errores.md) | Auditoría en `logs` / `errores` | RF-46, RF-48 |
 | [0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md) | Volcado por periodo, bajo demanda | RF-16, RF-17, RF-18, RNF-05 |
 | [0014](adr/0014-volcado-actividad-profesores-por-periodo.md) | Volcado de actividad por periodo | RF-16, RF-20, RF-23, RF-63 |
+| [0015](adr/0015-eliminar-calculo-salario-base-del-script-sage.md) | Eliminar el cálculo del salario base | RF-21 *(afectado)*, RF-22, RNF-02 |
+| [0016](adr/0016-un-unico-libro-de-vinculacion.md) | Un único libro de Vinculación | RF-20, RF-22, RF-25 *(pendiente de aplicar)* |
 
-**Los 14 ADR aceptados tienen requisito.** Ninguna decisión se ha quedado sin materializar, y ningún
-requisito contradice una decisión tomada.
+**Los 16 ADR aceptados declaran requisito.** Dos matices: el 0016 está decidido pero **sin aplicar**, y
+**RF-21 describe lo que el ADR-0015 retira** (está marcado ✅ pero el cálculo ya no existe): es una
+contradicción abierta, anotada en [OB-39](../../docs_work/proximos_pasos.md).
 
 > **Y al revés, un aviso para el futuro:** si un requisito nuevo choca con un ADR, **no se cambia el
 > ADR** — los ADR son inmutables. Se escribe uno nuevo que supere al anterior. Que un requisito

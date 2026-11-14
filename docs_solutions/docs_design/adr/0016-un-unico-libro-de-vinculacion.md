@@ -4,6 +4,7 @@
 - **Fecha:** 2026-09-07
 - **Decisores:** [Reunión 10](../../../docs_work/reuniones/070926_10_revision_vap.md) — 7 septiembre 2026
 - **Equivalencia:** —
+- **Requisitos:** RF-20, RF-22, RF-25 *(decidida, pendiente de aplicar)*
 
 ## Contexto
 

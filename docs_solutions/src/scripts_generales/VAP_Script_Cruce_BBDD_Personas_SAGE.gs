@@ -4,7 +4,7 @@
  * Uso único. Cruza VAP_Secretarias y VAP_Profesores con el export de empleados de SAGE
  * para asignar el DNI y revisar Id_Sage, Empresa y fechas de alta/baja.
  *
- * NO MODIFICA NINGUNA HOJA EXISTENTE. Crea tres hojas nuevas:
+ * NO MODIFICA NINGUNA HOJA EXISTENTE. Crea cuatro hojas nuevas:
  *   · VAP_Secretarias_CRUCE   — copia de VAP_Secretarias, con DNI y datos de SAGE
  *   · VAP_Profesores_CRUCE    — copia de VAP_Profesores, con DNI y datos de SAGE
  *   · VAP_Cruce_Incidencias   — todo lo que no cuadra, con su tipo y el dato que difiere

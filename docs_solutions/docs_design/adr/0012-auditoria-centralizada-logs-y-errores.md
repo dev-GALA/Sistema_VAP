@@ -3,6 +3,7 @@
 - **Estado:** Aceptada
 - **Fecha:** 2026-05-25
 - **Equivalencia:** DT-12
+- **Requisitos:** RF-46, RF-48
 
 ## Contexto
 

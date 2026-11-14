@@ -3,6 +3,7 @@
 - **Estado:** Aceptada
 - **Fecha:** 2026-03-24
 - **Equivalencia:** DT-04
+- **Requisitos:** RF-02
 
 ## Contexto
 

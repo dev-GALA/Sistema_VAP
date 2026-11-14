@@ -3,6 +3,7 @@
 - **Estado:** Aceptada
 - **Fecha:** 2026-08-17
 - **Equivalencia:** — (posterior a la numeración `DT-NN`)
+- **Requisitos:** RF-16, RF-17, RF-18, RNF-05
 
 ## Contexto
 

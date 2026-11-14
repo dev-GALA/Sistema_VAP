@@ -4,7 +4,7 @@
 |---|---|
 | **Versión** | 0.5 — separado de los funcionales |
 | **Fecha** | 7 septiembre 2026 |
-| **Responde a** | [Sprint 2 · OB-33](../docs_work/retomar_trabajos.md) |
+| **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_funcionales.md](requisitos_funcionales.md) |
 
 ---

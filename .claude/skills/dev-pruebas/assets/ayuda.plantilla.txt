@@ -1,0 +1,21 @@
+// tests/ayuda.js — carga archivos .gs como lo hace Apps Script: todos comparten el ámbito global.
+// Cada archivo exporta sus funciones con `module.exports` solo cuando existe `module` (Node).
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+// Orden de carga: primero lo que no depende de nada. Rellenar con los archivos de src/ sin extensión.
+const TODOS = [
+  // 'dominio-ejemplo',
+];
+
+export function cargar(...nombres) {
+  const lista = nombres.length ? nombres : TODOS;
+  const modulos = {};
+  for (const nombre of lista) {
+    const exportado = require(`../src/${nombre}.gs`);
+    Object.assign(modulos, exportado);
+    Object.assign(globalThis, exportado);
+  }
+  return modulos;
+}

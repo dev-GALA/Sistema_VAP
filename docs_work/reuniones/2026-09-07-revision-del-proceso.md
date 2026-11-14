@@ -258,7 +258,7 @@ que no se pueden resolver sin ella delante.
 - [ ] Cerrar o actualizar las fichas [DUDA-0001](../dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md),
       [DUDA-0002](../dudas/0002-RESUELTA-signo-de-seguro-medico-y-cobee-en-sage.md) y
       [DUDA-0003](../dudas/0003-momentos-de-copia-y-pega-del-proceso.md).
-- [ ] Cerrar en [`retomar_trabajos.md`](../retomar_trabajos.md) los objetivos **OB-02 … OB-06** que
+- [ ] Cerrar en [`proximos_pasos.md`](../proximos_pasos.md) los objetivos **OB-02 … OB-06** que
       hayan quedado resueltos, y actualizar el estado de los requisitos afectados.
 - [ ] Si alguna respuesta cambia una decisión de diseño, **escribir un ADR** — no editar uno
       existente.

@@ -28,7 +28,7 @@ Separa tres cosas que se confunden con facilidad:
 |---|---|---|
 | **Una duda** | `docs_work/dudas/` | Falta información para poder decidir |
 | **Una decisión** | [`docs_solutions/docs_design/adr/`](../../docs_solutions/docs_design/adr/README_ADR.md) | Ya se decidió; queda registrado el porqué |
-| **Una tarea** | [`retomar_trabajos.md`](../retomar_trabajos.md) | Se sabe qué hacer; falta hacerlo |
+| **Una tarea** | [`proximos_pasos.md`](../proximos_pasos.md) | Se sabe qué hacer; falta hacerlo |
 
 El recorrido habitual es **duda → decisión → tarea**. Cuando una duda se resuelve y da lugar a un
 cambio de diseño, se crea el ADR correspondiente y se enlaza desde la duda.
@@ -48,7 +48,7 @@ cambio de diseño, se crea el ADR correspondiente y se enlaza desde la duda.
 > contraste y abrir Vinculación, aparecieron tres preguntas de naturaleza distinta —**el formato**
 > de lo que llega, **el riesgo** de guardar la correspondencia con el banco, y **qué hay hoy** en las
 > columnas contra las que habría que comparar—. Son el material de entrada del sprint de contraste
-> en [`retomar_trabajos.md`](../retomar_trabajos.md).
+> en [`proximos_pasos.md`](../proximos_pasos.md).
 
 ## Deuda técnica
 
@@ -59,7 +59,7 @@ explicar**.
 
 Vive aquí y no entre los requisitos porque comparte naturaleza con las dudas: son **hallazgos**, no
 trabajo planificado. Cuando se decide abordar una, pasa a
-[`retomar_trabajos.md`](../retomar_trabajos.md) como objetivo de un sprint.
+[`proximos_pasos.md`](../proximos_pasos.md) como objetivo de un sprint.
 
 Las tres de prioridad más alta:
 

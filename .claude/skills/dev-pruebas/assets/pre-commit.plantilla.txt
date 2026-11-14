@@ -1,0 +1,25 @@
+#!/bin/sh
+# .githooks/pre-commit — bloquea el commit si fallan pruebas, trazabilidad o linter.
+# Se activa una vez por clon con: git config core.hooksPath .githooks
+# Saltárselo (git commit --no-verify) solo con decisión expresa del responsable.
+export PYTHONDONTWRITEBYTECODE=1
+
+bloquear() {
+    echo "pre-commit: $1. Commit bloqueado." >&2
+    exit 1
+}
+
+if [ -d scripts ]; then
+    echo "pre-commit: pruebas de los scripts…"
+    python3 -m unittest discover -s scripts -p 'test_*.py' -q || bloquear "las pruebas de los scripts fallan"
+    [ -f scripts/verificar_trazabilidad.py ] && { python3 scripts/verificar_trazabilidad.py || bloquear "la trazabilidad tiene errores"; }
+fi
+
+if [ -f package.json ]; then
+    [ -d node_modules ] || bloquear "faltan dependencias: ejecuta «npm ci»"
+    npm run --silent lint --if-present || bloquear "el linter encuentra errores"
+    if [ -d tests ]; then
+        echo "pre-commit: pruebas del producto…"
+        npm test --silent || bloquear "las pruebas del producto fallan"
+    fi
+fi

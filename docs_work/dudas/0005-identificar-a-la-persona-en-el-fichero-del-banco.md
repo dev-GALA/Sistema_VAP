@@ -104,7 +104,7 @@ El nombre sirve para **construir la tabla una vez**, no para cruzar cada mes:
    truncados. Solo se vuelve al nombre cuando aparece una cuenta nueva.
 
 > **No habría que escribir el motor de nombres.**
-> [`VAP_Script_Cruce_BBDD_Personas_SAGE.js`](../migration_data/VAP_Script_Cruce_BBDD_Personas_SAGE.js)
+> [`VAP_Script_Cruce_BBDD_Personas_SAGE.gs`](../../docs_solutions/src/scripts_generales/VAP_Script_Cruce_BBDD_Personas_SAGE.gs)
 > ya normaliza, tokeniza, puntúa candidatos y marca `AMBIGUO` cuando varios DNIs casan con un mismo
 > nombre — y ya está probado contra ese mismo formato de SAGE. Sería **reutilizarlo, no duplicarlo**
 > ([CLAUDE.md](../../CLAUDE.md), la regla de no duplicar).

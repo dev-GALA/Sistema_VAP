@@ -17,7 +17,7 @@
 
 ## El hallazgo
 
-El script `VAP_script_export_SAGE.js` aplica **`Math.abs()`** a los tres conceptos que suma al
+El script `VAP_script_export_SAGE.gs` aplica **`Math.abs()`** a los tres conceptos que suma al
 `TOTAL_BRUTO` para calcular el salario base:
 
 ```js

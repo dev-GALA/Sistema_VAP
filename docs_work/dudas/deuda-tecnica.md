@@ -46,7 +46,7 @@ cambiar algo) · 🟢 baja (higiene)
 
 ### DT-01 · `toNumber_` corrompe decimales con punto
 
-**Dónde:** `docs_solutions/src/scripts_generales/VAP_script_export_SAGE.js`
+**Dónde:** `docs_solutions/src/scripts_generales/VAP_script_export_SAGE.gs`
 
 ```js
 const normalized = s.replace(/\./g, '').replace(',', '.');
@@ -123,7 +123,7 @@ El de profesores y el tramo final de nóminas tienen huecos que habrá que resol
 
 ### DT-02 · Escritura celda a celda en Export Neto/Bruto
 
-**Dónde:** `VAP_script_export_SAGE.js`, dentro de `volcarVinculacion_`
+**Dónde:** `VAP_script_export_SAGE.gs`, dentro de `volcarVinculacion_`
 
 ```js
 tgtSheet.getRange(destRowNum, f.dstCol).setValue(after);
@@ -141,7 +141,7 @@ ya usan los volcados de horas extras y profesores tras el rediseño.
 
 ### DT-04 · El mapeo de destino va por posición fija
 
-**Dónde:** `VINC_FIELDS` en `VAP_script_export_SAGE.js`
+**Dónde:** `VINC_FIELDS` en `VAP_script_export_SAGE.gs`
 
 Las cabeceras del **origen** se localizan por nombre (robusto ante reordenaciones), pero el
 **destino** usa números de columna fijos (`G=7, H=8, I=9, L=12, P=16, Q=17, R=18, T=20`). Insertar
@@ -176,8 +176,9 @@ implementación existente.
 La única verificación automática disponible es de sintaxis:
 
 ```bash
-find . -name "*.js" -not -path "./.git/*" -print0 | while IFS= read -r -d '' f; do
-  node --check "$f" && echo "OK  $f"
+# Node no acepta --check sobre .gs: se pasa el contenido por la entrada estándar
+find docs_solutions/src -name "*.gs" -print0 | while IFS= read -r -d '' f; do
+  node --check < "$f" && echo "OK  $f"
 done
 ```
 
@@ -322,8 +323,8 @@ Entre los scripts hay **tres funciones** que convierten texto a número, cada un
 
 | Función | Dónde | Comportamiento |
 |---------|-------|----------------|
-| `aNumero_` | `VAP_script_export_SAGE.js` | Distingue miles de decimales. **Correcta** |
-| `toNumber_` | `VAP_script_export_SAGE.js` | Elimina todos los puntos. **Incorrecta** (DT-01) |
+| `aNumero_` | `VAP_script_export_SAGE.gs` | Distingue miles de decimales. **Correcta** |
+| `toNumber_` | `VAP_script_export_SAGE.gs` | Elimina todos los puntos. **Incorrecta** (DT-01) |
 | `parseNumber_` | Backend de complementos | Decide por la posición del último separador. Correcta |
 
 **Arreglo:** quedarse con una y usarla en todas partes. Al no haber módulos en Apps Script, habría
@@ -353,7 +354,7 @@ de `Logs`, esa función escribe mal y las otras no.
 
 ### DT-15 · El backend de complementos no tiene extensión
 
-**Dónde:** `docs_solutions/src/VAP_script_secretarias/VAP_Complementos Secretarias/VAP_Export_Complementos_Mensuales_Secretarias`
+**Dónde:** `docs_solutions/src/VAP_script_secretarias/VAP_Complementos Secretarias/VAP_Export_Complementos_Mensuales_Secretarias.gs`
 
 1.133 líneas de JavaScript **sin extensión `.js`**: sin resaltado de sintaxis, sin `node --check`,
 sin lint. Es el archivo más grande del repositorio y el único que no se puede verificar.
