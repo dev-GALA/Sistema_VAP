@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.5 — separado de los no funcionales |
-| **Fecha** | 7 septiembre 2026 |
+| **Versión** | 0.6 — con RF-72 a RF-89 (Comprobaciones, Proceso mensual, Altas/bajas y `VAP_Pagos`) |
+| **Fecha** | 16 noviembre 2026 (versión 0.5: 7 septiembre 2026) |
 | **Se deriva de** | [historias_usuarios.md](historias_usuarios.md) |
 | **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_no_funcionales.md](requisitos_no_funcionales.md) |
@@ -73,6 +73,10 @@ se puede dar por incumplido.
 | **RF-04** | El sistema identificará a cada persona **por su identificador** en todos los cruces entre origen y destino | 🔴 | 🔸 | HU-03 |
 
 | **RF-57** | El sistema permitirá dar de alta un concepto retributivo nuevo y asignarlo a un responsable **como configuración, sin cambios en el código** | 🟡 | 🔸 | HU-41 |
+| **RF-82** | El sistema permitirá **dar de alta, dar de baja y modificar** a una persona desde una pantalla, y **ver todo el maestro respetando sus pestañas**; el alta exigirá empresa, identificador de SAGE, nombre, DNI y fecha de alta, y la cuenta bancaria podrá darse en ese momento o después | 🔴 | 🔸 | HU-47 |
+| **RF-83** | Un **cambio de empresa** se tratará como una **baja en la empresa de origen y un alta en la de destino** | 🔴 | 🔸 | HU-47 |
+| **RF-84** | Cada alta, baja o modificación quedará **registrada** en una hoja del maestro de personas con quién, cuándo, la acción, el identificador y el valor anterior y el nuevo, **sin la cuenta bancaria ni su huella** | 🔴 | 🔺 | HU-47 |
+| **RF-85** | Cuando un cambio afecte a más de un libro, el sistema **registrará primero el evento, aplicará las escrituras y comprobará después que los libros concuerdan**, avisando si algo queda a medias | 🔴 | 🔺 | HU-47 |
 
 > **RF-04 está sin cumplir y es deuda conocida.** El identificador se escribe (RF-03) pero los
 > volcados **siguen cruzando por nombre**. Mientras siga así, un cambio de grafía en un nombre puede
@@ -161,10 +165,30 @@ se puede dar por incumplido.
 | **RF-33** | El sistema contrastará las transferencias emitidas con los importes calculados, aplicando una **tolerancia definida** para redondeos | 🔴 | 🔺 | HU-25 |
 | **RF-34** | Los informes de verificación distinguirán los tipos de diferencia: importe distinto, presente en un origen y no en el otro, y **no cruzado por falta de correspondencia** | 🔴 | 🔺 | HU-23, HU-24, HU-25 |
 | **RF-35** | Los informes de verificación serán de **solo lectura**: no modificarán ningún dato | 🔴 | 🔺 | HU-23, HU-24, HU-25 |
+| **RF-72** | El sistema ofrecerá una **lista cerrada de comprobaciones**, cada una con sus dos documentos, su clave de cruce, su signo y su tolerancia definidos; **solo el desarrollo** podrá añadir o cambiar una | 🔴 | 🔸 | HU-42 |
+| **RF-73** | Para cada comprobación el usuario elegirá la comprobación y subirá los dos documentos, y el sistema **verificará por su contenido** que cada uno es del tipo esperado; si no lo es, **no continuará** y lo dirá | 🔴 | 🔺 | HU-42 |
+| **RF-74** | Antes de comparar, el sistema **verificará la integridad y el periodo** de cada documento (totales del propio documento, recuento declarado, mes) y **se negará a comparar** si no cuadran, indicando cuál falló | 🔴 | 🔺 | HU-23, HU-25, HU-42 |
+| **RF-75** | El sistema contrastará el documento de la aseguradora contra **tres orígenes**: el primer export de SAGE, la Vinculación de gastos de personal y el segundo export de SAGE, cada uno como comprobación independiente | 🔴 | 🔺 | HU-23 |
+| **RF-76** | El resultado de una comprobación se podrá **copiar a un correo**; por defecto copiará **solo el resumen**, y la lista de personas solo si el usuario lo elige de forma expresa | 🔴 | 🔹 | HU-43 |
+| **RF-77** | Cada diferencia detectada quedará **registrada**, identificada por comprobación, periodo, persona y tipo de diferencia, con un estado (abierta o resuelta) y, si se resuelve, quién y cuándo; se podrá consultar desde una pantalla distinta de la de comprobar | 🔴 | 🔸 | HU-44 |
+| **RF-78** | Al repetir una comprobación, el sistema **cerrará** las diferencias que ya no aparezcan indicando que desaparecieron al comprobar de nuevo, y **no duplicará** las que siguen abiertas | 🔴 | 🔸 | HU-44 |
+| **RF-80** | Al empezar el mes, el sistema comprobará entre el export de SAGE y el maestro de personas que cada identificador (empresa y nº de empleado) y su DNI **siguen en concordancia**, y listará como incidencia los DNI relacionados con otro identificador y las personas que están en un origen y no en el otro; el paso solo se dará por superado cuando no queden incidencias | 🔴 | 🔺 | HU-46 |
+| **RF-81** | Siempre que una comprobación disponga a la vez del identificador (empresa y nº) y del DNI de una persona, el sistema verificará que **siguen en concordancia** antes de usarlos, porque una persona puede cambiar de empresa | 🔴 | 🔸 | HU-46 |
+| **RF-86** | Del dato bancario de cada persona el sistema guardará **solo una huella**, calculada con una **clave secreta** guardada en la configuración del script, junto al identificador de la persona y **en un libro aparte** (`VAP_Pagos`); **nunca la cuenta** | 🔴 | 🔺 | HU-48 |
+| **RF-87** | La huella **no incluirá el identificador de la persona ni su empresa**, de modo que un cambio de empresa no la altere y pueda buscarse sin saber de quién es | 🔴 | 🔺 | HU-48 |
+| **RF-88** | Al contrastar el fichero del banco, el sistema buscará la huella de cada cuenta **solo entre las personas activas** y reportará como **no cruzada** la que no encuentre o sea ambigua | 🔴 | 🔺 | HU-25, HU-48 |
+| **RF-89** | Para las personas ya existentes, el sistema ofrecerá una **carga inicial de uso único** que proponga la persona por empresa y nombre, compruebe el importe y **exija confirmación humana** antes de guardar | 🔴 | 🔺 | HU-48 |
 
 > **RF-34 es el que evita el peor fallo posible en una verificación:** que una persona que no casa
 > por identificador desaparezca del informe y se cuente como correcta. Lo *no comprobado* nunca debe
 > presentarse como *comprobado*.
+>
+> **RF-72 es una decisión de alcance, no de comodidad.** La lista de comprobaciones no la amplía quien
+> la usa: cada una exige escribir y probar cómo se lee cada documento y cómo se cruza. Dejarlo
+> configurable desde la pantalla sería prometer algo que hoy no se puede cumplir con seguridad.
+>
+> **RF-77 y RF-78 guardan datos personales de forma duradera** (nombre y DNI de cada diferencia). Su
+> protección es [RNF-18](requisitos_no_funcionales.md).
 
 ### F · Coordinación del cierre
 
@@ -180,7 +204,14 @@ se puede dar por incumplido.
 | **RF-43** | El estado de un paso se deducirá del registro del sistema siempre que ese paso deje rastro; los que no lo dejen podrán marcarse manualmente y se distinguirán de los deducidos | 🔴 | 🔺 | HU-29 |
 | **RF-44** | El sistema señalará los pasos ejecutados fuera del orden establecido | 🔴 | 🔸 | HU-29 |
 | **RF-45** | El sistema permitirá registrar comentarios asociados a un paso y a un periodo, consultables después | 🔴 | 🔹 | HU-30 |
+| **RF-79** | El sistema ofrecerá una pantalla de **proceso mensual** con los pasos del mes en orden, cada uno marcado como **manual** o **ejecutable desde la pantalla**, con su estado, y a la que se podrán **añadir pasos** sin rehacer los existentes | 🟡 | 🔸 | HU-45 |
 
+> **RF-79 está 🟡, y conviene decir en qué.** El esqueleto v0.1.0 de la webapp
+> ([`docs_solutions/src/webapp/`](../docs_solutions/src/webapp/README.md)) ya muestra los pasos del mes en orden,
+> marcados como manuales o ejecutables, con su estado leído del libro propio, y el catálogo de pasos es **un
+> dato**, no lógica. **Falta** desplegarla, que ningún paso se pueda marcar ni lanzar desde la pantalla (solo
+> lectura) y los pasos ejecutables mismos (OB-44).
+>
 > **RF-41 es una decisión de honestidad, no de funcionalidad.** Es preferible declarar que no se
 > puede medir a mostrar un número que parece medido: un panel que dice "85 % de cobertura" cuando el
 > denominador es desconocido es peor que uno que dice "no se puede saber".
@@ -242,10 +273,10 @@ se puede dar por incumplido.
 | Estado | Funcionales | No funcionales |
 |---|---|---|
 | ✅ **Cumplidos** | 25 | 5 |
-| 🟡 **Parciales** | 8 | 7 |
-| 🔴 **No cumplidos** | 37 | 5 |
+| 🟡 **Parciales** | 9 | 7 |
+| 🔴 **No cumplidos** | 54 | 8 |
 | ⚪ **En decisión** | 1 | — |
-| | **71** | **17** |
+| | **89** | **20** |
 
 *Los dos requisitos no funcionales sin cumplir —escritura en bloque y precisión numérica— son deuda
 técnica ya inventariada, no funcionalidad ausente.*
@@ -254,12 +285,12 @@ técnica ya inventariada, no funcionalidad ausente.*
 
 | Bloque | Cumplidos | Total |
 |---|---|---|
-| A · Maestro de personal | 3 | 5 |
+| A · Maestro de personal | 3 | 9 |
 | B · Captura de datos | 11 | 17 |
 | C · Consolidación | 10 | 16 |
 | D · Ajuste y cierre | 1 | 4 |
-| E · Verificación | **0** | 5 |
-| F · Coordinación del cierre | **0** | 10 |
+| E · Verificación | **0** | 18 |
+| F · Coordinación del cierre | **0** | 11 |
 | G · Trazabilidad y consulta | **0** | 8 |
 | H · Medición e informes | **0** | 6 |
 
@@ -274,7 +305,7 @@ técnica ya inventariada, no funcionalidad ausente.*
 
 ## 3.bis Trazabilidad hacia las historias
 
-Cada requisito indica de qué historia sale. En sentido contrario, **las 41 historias tienen al menos
+Cada requisito indica de qué historia sale. En sentido contrario, **las 48 historias tienen al menos
 un requisito que las implementa**:
 
 | Historia | | Requisitos |
@@ -301,9 +332,9 @@ un requisito que las implementa**:
 | **HU-20** | Saber qué hizo cada ejecución | RF-46, RF-47, RF-48 |
 | **HU-21** | Ajustar un importe en la revisión | RF-27 |
 | **HU-22** | Dar el mes por cerrado | RF-28, RF-29, RF-30 |
-| **HU-23** | Comprobar el seguro médico | RF-31, RF-34, RF-35 |
+| **HU-23** | Comprobar el seguro médico | RF-31, RF-34, RF-35, RF-74, RF-75 |
 | **HU-24** | Comprobar las ayudas de comida y transporte | RF-32, RF-34, RF-35 |
-| **HU-25** | Comprobar que lo pagado es lo calculado | RF-33, RF-34, RF-35 |
+| **HU-25** | Comprobar que lo pagado es lo calculado | RF-33, RF-34, RF-35, RF-74, RF-88 |
 | **HU-26** | Lanzar el cierre del mes | RF-36, RF-37 |
 | **HU-27** | Enterarme de que tengo que reportar | RF-38 |
 | **HU-28** | Ver quién ha reportado y quién no | RF-39, RF-40, RF-41 |
@@ -320,6 +351,13 @@ un requisito que las implementa**:
 | **HU-39** | Sacar los datos consolidados del mes | RF-62 |
 | **HU-40** | Conservar copia de lo que se volcó | RF-63, RF-64, RF-70, RF-71 |
 | **HU-41** | Incorporar un concepto retributivo nuevo | RF-57 |
+| **HU-42** | Elegir qué comprobar y subir los dos documentos | RF-72, RF-73, RF-74 |
+| **HU-43** | Llevar el resultado a un correo | RF-76 |
+| **HU-44** | Dejar constancia de las diferencias y marcarlas como resueltas | RF-77, RF-78 |
+| **HU-45** | Seguir el proceso mensual paso a paso desde una pantalla | RF-79 |
+| **HU-46** | Comprobar que cada persona sigue en concordancia entre SAGE y el maestro de personas | RF-80, RF-81 |
+| **HU-47** | Dar de alta, baja y modificar a una persona desde una pantalla | RF-82, RF-83, RF-84, RF-85 |
+| **HU-48** | Reconocer a la persona en el fichero del banco sin guardar su cuenta | RF-86, RF-87, RF-88, RF-89 |
 
 > Comprobado sobre el propio documento: **ninguna historia se ha quedado sin requisito**, y ningún
 > requisito existe sin una historia que lo justifique. Si en el futuro aparece un requisito sin
@@ -369,9 +407,19 @@ cumplirse**, y por eso son muchos más: la diferencia son los que **aún no tien
 1. **RF-14** — decisión de negocio: ¿se pide declarar "no tengo nada que reportar"?
 2. **RF-15** — no se puede concretar hasta saber qué datos aporta el Gerente.
 3. **RF-31 … RF-35** — escritos sobre cómo *deberían* venir los documentos de las entidades. Habrá
-   que revisarlos al recibirlos.
-4. **RF-24** — falta decidir si el bloqueo es absoluto o admite una excepción justificada.
-5. **RNF-09** — el alcance real del control de acceso está sin definir, y tratándose de datos
+   que revisarlos al recibirlos. **Ya se han leído ADESLAS y la Vinculación** (ver
+   [fuentes_de_contraste.md](../docs_work/docs_cruce/fuentes_de_contraste.md)); faltan COBEE completo, el banco y los dos exports de SAGE.
+4. **RF-75** — no se puede concretar hasta ver una muestra del primer y del segundo export de SAGE.
+5. **RF-86 … RF-89** — **decisiones de seguridad por firmar antes de construir**: algoritmo de la huella,
+   dónde y cómo se guarda la clave, quién abre `VAP_Pagos`, copia de seguridad de la clave, plazo de
+   conservación y si se enseñan los últimos dígitos al confirmar. Van a un ADR.
+6. **RF-80** — la incidencia «DNI con otro identificador» necesita el **DNI en el export de SAGE**
+   (pedido el 16 nov 2026); sin él solo se aproxima por el nombre.
+7. **RF-79** — ✅ **decidido el 16 nov 2026**: el *proceso mensual* y el tablero de los nueve pasos
+   (OB-22) son **la misma pantalla**, con dos nombres.
+8. **RF-77** — dónde se guardan las diferencias, quién las ve y cuánto se conservan (RNF-18).
+9. **RF-24** — falta decidir si el bloqueo es absoluto o admite una excepción justificada.
+10. **RNF-09** — el alcance real del control de acceso está sin definir, y tratándose de datos
    retributivos conviene concretarlo.
-6. 🔍 **Validar las prioridades con negocio.** Las de este documento son propuesta de quien lo
+11. 🔍 **Validar las prioridades con negocio.** Las de este documento son propuesta de quien lo
    escribe, no decisión de quien lo usa.

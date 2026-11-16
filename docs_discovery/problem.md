@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.1 — BORRADOR, pendiente de revisión |
-| **Fecha** | 17 agosto 2026 |
+| **Versión** | 0.2 — BORRADOR · con lo visto al probar la verificación con ficheros reales |
+| **Fecha** | 16 noviembre 2026 (versión 0.1: 17 agosto 2026) |
 | **Autor** | Fran Cañete (fcsainz) |
 | **Estado** | Propuesta inicial para revisión |
 
@@ -219,6 +219,7 @@ auditar y dependiente de una sola persona.**
 | **Dirección / RRHH** | No | Necesita que el sistema retributivo sea defendible ante una reclamación, y **poder valorar qué aporta**: tiempo ahorrado, errores evitados, descuadres detectados |
 | **Departamento de Data** | No | Consume la actividad del proceso para analizarla, comparar periodos y detectar variaciones que merezcan explicación |
 | **Quien mantiene el sistema** | Sí | Hoy, una sola persona: cualquier fallo o ausencia recae sobre ella |
+| **Quien exporta de SAGE** | Sí | Hace cada mes la primera exportación laboral de la que parten los volcados y las comprobaciones. Hoy el export **no trae el DNI**, que es lo que permitiría identificar a cada persona en el resto de documentos (§4.4) |
 
 > El caso del **profesorado** merece atención: es el único colectivo cuya retribución se determina
 > sin que participe en el proceso ni pueda contrastar lo que se ha reportado sobre él. Cualquier
@@ -319,6 +320,26 @@ final es el resultado de las cuatro, y todas menos el ajuste son reconstruibles 
 > que el Gerente introduce directamente en el archivo de cálculo. De ninguna de las dos consta qué
 > entró ni cuándo.
 
+> **Lo que se ha visto al probar la verificación con ficheros reales (16 nov 2026, solo cifras).** El
+> hueco deja de ser una hipótesis. Con una muestra de un mes de ADESLAS, COBEE, banco y SAGE, y el libro
+> de la Vinculación:
+>
+> - **ADESLAS es coherente consigo mismo** (106 asegurados, 71 titulares, total del pie cuadrado), pero
+>   **al cruzarlo con la Vinculación solo cuadran 56 de los 71 titulares**: 4 constan con 0 €, 9 con otro
+>   importe y 2 no se encuentran por DNI. Además hay 3 personas con importe que no son titulares.
+> - **Esas diferencias no nacen del volcado:** el libro refleja fielmente lo que trae SAGE (473 de 474),
+>   salvo retoques manuales posteriores y filas que no están en el export. Hoy **nada lo detecta**.
+> - **Las ayudas de COBEE no llegan a SAGE ni al libro:** sus cuatro columnas vienen vacías en las 493
+>   personas, mientras COBEE dice haber concedido comida a 8.
+> - **Para cruzar hace falta una identidad común.** SAGE identifica a la persona por empresa y nº de
+>   empleado y **no trae DNI**; ADESLAS y COBEE, por DNI; el banco, por nombre e IBAN. Antes de comparar
+>   importes hay que comprobar que **cada persona sigue siendo la misma en todas partes**, incluso si ha
+>   cambiado de empresa (HU-46).
+>
+> Son datos de **una sola muestra** y no se ha verificado que la hoja del libro sea la del mes
+> contrastado: marcan el orden de magnitud, no una tasa. Detalle en
+> [fuentes_de_contraste.md](../docs_work/docs_cruce/fuentes_de_contraste.md) §9 y §10.
+
 ---
 
 ## 5. *Job stories*
@@ -383,6 +404,17 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 > versión del documento. Nótese que JS-06 pide **rapidez y autonomía** —resolver sin volver al
 > origen— mientras que JS-02 pide **conservar el rastro**. No son contradictorios porque hablan de
 > momentos distintos del proceso, pero la diferencia es deliberada y conviene no unificarlos.
+
+> **Cómo se sirven hoy estas situaciones tras el diseño del 16 nov 2026.**
+>
+> - **JS-03 y JS-08** (saber qué falta, dar la salida) se sirven con **una sola pantalla**, *Proceso mensual*,
+>   que es el tablero de los nueve pasos con otro nombre: unos pasos son manuales y otros se ejecutan desde
+>   ella (HU-45).
+> - **JS-05** no es solo el alta: abarca **bajas y cambios de empresa o de cuenta**. Un cambio de empresa
+>   se trata como **baja en una y alta en otra**, y su historial queda partido (HU-47; el riesgo R-21 del
+>   SSD ya lo describía para los profesores).
+> - **JS-09 y JS-10** necesitan, antes que nada, que la identidad de cada persona concuerde entre SAGE y el
+>   maestro de personas (HU-46) y que el pago se reconozca sin guardar la cuenta (HU-48).
 
 > 🔍 **Por validar:** ¿faltan situaciones? Las candidatas que se me ocurren y no he escrito: el mes
 > en que un concepto retributivo cambia de criterio, y el momento en que alguien nuevo asume el rol
@@ -475,6 +507,9 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 | **Decisión** | Avance por fases y por colectivos, en lugar de un despliegue único |
 | **De facto** | Desarrollo y mantenimiento a cargo de una sola persona, compatibilizado con otras funciones |
 | **De facto** | **La automatización tiene un techo de aceptación.** Quien opera el cierre maneja datos retributivos muy sensibles y necesita seguir **teniendo el control** de cuándo ocurre cada cosa |
+| **Impuesta** | Los ficheros de ADESLAS, COBEE, banco y SAGE y los libros con nóminas contienen **datos personales** (DNI, IBAN, correo, importes nominativos): no entran en el repositorio ni se copian a la documentación ([CLAUDE.md](../CLAUDE.md), segunda regla) |
+| **Decisión** | La webapp nueva tiene **su propio libro, propiedad de la cuenta del desarrollador** y no de la cuenta compartida del grupo, porque la información es muy delicada ([ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), propuesta) |
+| **Decisión** *(propuesta, pendiente de validar con Gerencia y protección de datos)* | De la cuenta bancaria **solo se guarda una huella**, nunca la cuenta, y **no en el mismo libro que el DNI** (RF-86) |
 
 > **Sobre el techo de automatización.** No es una limitación técnica ni una resistencia al cambio:
 > es una consecuencia razonable de lo que está en juego. Un paso que se dispara solo, en un proceso
@@ -513,6 +548,11 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 - **No** convertirse en un ERP de RRHH.
 - **No** exigir que los usuarios aprendan una herramienta nueva compleja: deben seguir trabajando de
   forma reconocible.
+- **No corregir por su cuenta** *(decidido el 16 nov 2026)*. Las comprobaciones **solo informan**: la
+  Responsable de Administración corrige en el documento de origen y repite la comprobación. Un informe que
+  corrigiera solo sería un paso más que se dispara solo, contra la pauta de §7 (RF-35).
+- **No guardar la cuenta bancaria de las personas** *(propuesta, pendiente de validar)*. Para reconocer un
+  pago basta una huella: el sistema no necesita volver a leer la cuenta (RF-86, RNF-19).
 
 > **Sobre el primer anti-objetivo.** Queda escrito aquí precisamente porque su consecuencia no es
 > obvia: el importe final de un concepto **puede no coincidir** con el que reportó su fuente, y esa
@@ -564,6 +604,12 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
    simplemente nunca se ha intentado capturar? *(→ §4.4 · supuesto S-05)* — no para
    eliminar el ajuste, que es terreno humano por diseño, sino para saber si el límite actual del
    sistema está donde debe estar.
+6. ¿Puede el export de SAGE incluir el DNI, y llegan las ayudas de COBEE en el segundo export? *(→ §4.4;
+   [fuentes_de_contraste.md](../docs_work/docs_cruce/fuentes_de_contraste.md) §7, preguntas 11 a 13)*
+7. ¿Validan Gerencia y protección de datos guardar solo una huella de la cuenta bancaria? *(→ §7, §8;
+   OB-36)*
+8. ¿Qué hoja de la Vinculación es la del mes que se contrasta, y qué significan los importes de +1,00 € de
+   su columna ADESLAS? *(→ §4.4)*
 
 **Resueltas:**
 
@@ -576,6 +622,9 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 | ¿Quién reporta la actividad del profesorado? | Las secretarias que lo gestionan reportan parte; el resto llega por el Gerente u otras vías. El profesorado **no** reporta su propia actividad | §3.1, §3.2 |
 | ¿El Gerente puede modificar datos reportados por otros? | Sí, en la etapa de revisión final | §3.1 |
 | ¿Queda constancia de esas modificaciones? | No, y es una **decisión deliberada** | §2.2, §8 |
+| ¿El *Proceso mensual* y el tablero de los nueve pasos son dos pantallas? | **Una sola**, con dos nombres (16 nov 2026) | HU-45 |
+| ¿Un cambio de empresa es la misma persona con otro identificador? | No: **baja en una empresa y alta en otra**; el historial queda partido (16 nov 2026) | HU-47 · RF-83 · R-21 |
+| ¿De quién es la webapp nueva y dónde guarda su estado? | En **un libro propio**, de la cuenta del desarrollador (16 nov 2026, propuesta) | [ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) |
 
 ---
 

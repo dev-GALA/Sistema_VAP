@@ -9,7 +9,7 @@ Formato: ver [`0000-plantilla.md`](0000-plantilla.md). Equivalencia con la antig
 
 > **Cada decisión de aquí se materializa en uno o varios requisitos**, y lo declara **dentro del
 > propio ADR**, en su línea `Requisitos:`. La correspondencia completa está en
-> [SSD §12](../SSD.md#12-trazabilidad-completa). Los 16 ADR declaran requisito.
+> [SSD §12](../SSD.md#12-trazabilidad-completa). Los 18 ADR declaran requisito.
 >
 > Y en sentido contrario: **si un requisito nuevo choca con un ADR, no se toca el ADR**. Se escribe
 > uno nuevo que supere al anterior. Un requisito que contradice en silencio una decisión aceptada es
@@ -35,6 +35,8 @@ Formato: ver [`0000-plantilla.md`](0000-plantilla.md). Equivalencia con la antig
 | [0014](0014-volcado-actividad-profesores-por-periodo.md) | Volcado de Actividad de Profesores por periodo y bajo demanda | Aceptada | — |
 | [0015](0015-eliminar-calculo-salario-base-del-script-sage.md) | Eliminar el cálculo del salario base del script SAGE | Aceptada | — |
 | [0016](0016-un-unico-libro-de-vinculacion.md) | Un único libro de Vinculación como destino de todos los volcados | Aceptada · sin aplicar | — |
+| [0017](0017-webapp-del-proceso-mensual-stack-y-estructura.md) | Webapp del proceso mensual: stack y estructura del código | Propuesta | — |
+| [0018](0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) | Libro propio de la webapp, propietario y accesos | Propuesta | — |
 
 ## Notas del índice
 

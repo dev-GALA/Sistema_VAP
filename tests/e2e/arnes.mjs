@@ -40,7 +40,8 @@ const SHIM = `<script>
 
 /**
  * Arranca una aplicación de prueba.
- *  - codigo: rutas de .gs (relativas a docs_solutions/src) cargadas en la caja.
+ *  - codigo: rutas de .gs (relativas a `raiz`, por defecto docs_solutions/src) cargadas en la caja.
+ *  - raiz: carpeta base de `codigo` y `html` (la webapp usa SRC_WEBAPP).
  *  - html: { NombreEnApps Script: 'ruta/relativa.html' } con los archivos HTML del proyecto.
  *  - preparar(entorno): rellena el Google falso (libros, hojas, propiedades…) antes de servir.
  * Rutas del servidor:
@@ -49,9 +50,9 @@ const SHIM = `<script>
  *  - POST /rpc/FUNCION → ejecuta la función del .gs con los argumentos JSON; devuelve {valor} o {error}.
  * Devuelve { url, entorno, llamadas, cerrar }. `llamadas` registra cada `google.script.run`.
  */
-export async function iniciarAplicacion({ codigo, html = {}, preparar = () => {}, google = {} }) {
-  const plantillasHtml = Object.fromEntries(Object.entries(html).map(([n, r]) => [n, readFileSync(join(SRC, r), 'utf8')]));
-  const entorno = cargarGs(codigo, { plantillasHtml, ...google });
+export async function iniciarAplicacion({ codigo, html = {}, preparar = () => {}, google = {}, raiz = SRC }) {
+  const plantillasHtml = Object.fromEntries(Object.entries(html).map(([n, r]) => [n, readFileSync(join(raiz, r), 'utf8')]));
+  const entorno = cargarGs(codigo, { plantillasHtml, raiz, ...google });
   preparar(entorno);
   const llamadas = [];
 

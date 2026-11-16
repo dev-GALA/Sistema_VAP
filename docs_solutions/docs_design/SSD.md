@@ -1,7 +1,7 @@
 # SSD — Sistema VAP (Valoración de Actividad Productiva)
 **Software Specification & Design Document**
-**Versión:** 2.0
-**Fecha última actualización:** 25 septiembre 2026
+**Versión:** 2.1
+**Fecha última actualización:** 16 noviembre 2026
 
 > Documento único que cubre **especificación** (qué debe hacer el sistema) y **diseño**
 > (cómo está construido). Las **decisiones de arquitectura** se registran aparte, una por
@@ -103,8 +103,16 @@ VAP
 │   │   ├── Sincronización desplegable → VAP_Profesores (lista dinámica + ID_Profesor)
 │   │   └── Registro de Actividad → VINCULACIÓN GASTOS PERSONAL (acumulación mes/año)
 └── Transversal
-    └── VAP_Export_Sage (menú "VAP_Acciones": Salario Base, Export Neto, Export Bruto)
+    ├── VAP_Export_Sage (menú "VAP_Acciones": Salario Base, Export Neto, Export Bruto)
+    └── Webapp del proceso mensual (v0.1.0, esqueleto; docs_solutions/src/webapp/, libro propio VAP_Webapp)
 ```
+
+> **Webapp del proceso mensual (nueva, 16 nov 2026):** una sola webapp de Administración con cinco pantallas
+> —*Proceso mensual*, *Comprobaciones*, *Registro de diferencias*, *Altas/bajas* y *Maestro de personal*—,
+> de la que hoy existe el esqueleto de solo lectura. Es un proyecto de Apps Script **independiente**, con
+> **su propio libro**, y no toca ninguno de los scripts que mueven nóminas
+> ([ADR-0017](adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) y
+> [ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), ambos en estado Propuesta).
 
 > Decisiones de arquitectura relevantes: [ADR-0001](adr/0001-google-sheets-como-bbdd-central.md)
 > (Sheets como BBDD), [ADR-0002](adr/0002-webapp-propia-para-reporte-de-complementos.md)
@@ -127,6 +135,8 @@ VAP
 | Formulario Actividad Profesores | `REGISTRO DE ACTIVIDAD DE PROFESORES 26` | Captura la actividad mensual de profesores |
 | Export SAGE | `VAP_Export_Sage` (pestaña `bbdd_export_sage_laboral`) | Origen de cálculos y volcados de nóminas; hojas `logs`/`errores` de auditoría |
 | Carpeta export XLSX | (ID en `EXPORT_FOLDER_ID`) | Destino de los Excel mensuales generados |
+| Libro de la webapp | `VAP_Webapp` *(nombre provisional, por crear)* | Hojas `config` (clave/valor, con los correos de cada rol) y `estado_pasos`. Propiedad de la cuenta del desarrollador. **No guarda DNI, cuentas ni huellas** ([ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md)) |
+| Libro de pagos | `VAP_Pagos` *(planificado, [OB-45](../../docs_work/proximos_pasos.md))* | `id_personal` + huella de la cuenta bancaria, sin IBAN, sin DNI y sin nombre. La clave de la huella vive en la configuración del script. Pendiente de validar con Gerencia y protección de datos |
 
 > **Nota:** los IDs de spreadsheets, formularios y carpetas de Drive están **hardcodeados**
 > en cada script (habitual en Apps Script). Tenerlo en cuenta si el repositorio se hace público.
@@ -572,6 +582,35 @@ entrada: `cruzarBBDDConSage()`. Es de **uso único**: asigna el DNI a cada perso
 - **Aviso:** crear hojas dispara `onSpreadsheetChangeTrigger` del proyecto de secretarias y resincroniza
   el desplegable del formulario real. El efecto es inocuo, pero conviene saberlo.
 
+### 7.7 Transversal — Webapp del proceso mensual (v0.1.0, esqueleto)
+
+Código en [`docs_solutions/src/webapp/`](../src/webapp/README.md); decisiones en
+[ADR-0017](adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) y
+[ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) (**Propuesta**). Es el soporte de
+[RF-72](../../docs_discovery/requisitos_funcionales.md), RF-73, RF-79 y RF-82; **hoy solo cumple en parte RF-79**
+(los pasos del mes y su estado, en solo lectura). De las demás existe solo la pantalla vacía: no hay subida de
+ficheros, comprobaciones ni altas.
+
+| Capa | Archivos | Qué hay |
+|------|----------|---------|
+| Dominio | `dominio-periodo`, `-pantallas`, `-acceso`, `-pasos` | Reglas puras: formato AAAA-MM, qué pantallas ve cada rol, quién entra, estado de cada paso |
+| Casos de uso | `app-contexto`, `app-proceso-mensual` | Contexto del usuario y pasos del mes, con las dependencias inyectadas |
+| Infraestructura | `infra-configuracion`, `-hojas`, `-principal` | Lectura del libro propio, propiedades del script y el punto de entrada |
+| Interfaz | `ui-index`, `-aviso`, `-estilos`, `-cliente` | Cinco pantallas; estilo copiado de `carfa` (identidad SIFAF) |
+
+- **Acceso:** los correos de cada rol están en la hoja `config` (`email_administracion`, `email_desarrollo`).
+  `doGet` y **cada** función `api…` lo comprueban en el servidor. Un correo que no consta, repetido, en dos
+  roles o que Google no identifica **no entra**; si falta el libro, una hoja o una columna, **la aplicación se
+  niega** y lo dice. El mensaje de denegación es el mismo sea cual sea el motivo.
+- **Solo lectura:** ninguna pantalla escribe todavía. Solo *Proceso mensual* muestra datos (tres pasos del
+  primer grupo y su estado). Las otras cuatro dicen que están pendientes.
+- **Se prueba** con Vitest (dominio, casos de uso, integración y una prueba de **arquitectura** que vigila
+  los prefijos, la regla de dependencias, ES2019 y que solo `api…` sea pública) y con Playwright sobre las
+  pantallas HTML reales. **No se prueba en automático** el comportamiento real dentro de Google
+  (`Session.getActiveUser()`, permisos, ventana de seguridad de HtmlService): se comprueba a mano antes de
+  desplegar ([R-23](#9-riesgos-y-limitaciones)).
+- **Aún sin desplegar:** falta crear el libro, el proyecto de Apps Script y la propiedad `ID_LIBRO_WEBAPP`.
+
 ## 8. Flujos clave
 
 ### 8.1 Reporte de complementos (manager)
@@ -640,6 +679,12 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-19 | **Los movimientos de datos entre libros se hacen copiando y pegando**, y ninguno deja constancia de qué se movió ni cuándo | Alto | Pendiente: [RF-25](../../docs_discovery/requisitos_funcionales.md), [DUDA-0003](../../docs_work/dudas/0003-momentos-de-copia-y-pega-del-proceso.md). Rompe la cadena de trazabilidad justo en el punto donde el dato sale del sistema |
 | R-20 | **El archivo donde se calcula la nómina está fuera del sistema**: no consta su estructura y no se controla lo que entra en él | Alto | Pendiente: [DUDA-0001](../../docs_work/dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md). Es el supuesto S-06 de [`problem.md`](../../docs_discovery/problem.md) |
 | R-21 | **El `ID_Profesor` se deriva de la empresa y del `Id_Sage`.** Si se edita la empresa de un profesor, su ID cambia y sus respuestas anteriores quedan con el antiguo | Medio | Procedimiento: al cambiar de empresa, baja y fila nueva, nunca editar la existente ([§6.1.0](#610-reglas-de-entrada-de-vap_profesores)) |
+| R-22 | **La webapp depende de la cuenta de una persona**: el libro y el proyecto son de la cuenta del desarrollador | Medio | [ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md): segundo editor, transferencia de la propiedad y copia de seguridad. **Aún por concretar** |
+| R-23 | **`Session.getActiveUser()` puede no identificar al usuario** según cómo se despliegue, y entonces la webapp **deniega a todos** | Medio | No verificado en el dominio. Se prueba a mano entrando con la cuenta de la Responsable de Administración antes de dar la webapp por buena |
+| R-24 | **Los ficheros reales de ADESLAS, COBEE, banco y SAGE, y el libro de la Vinculación, están en `docs_work/docs_cruce/`**, protegidos solo por la extensión en `.gitignore` | Alto | Pendiente de decidir: moverlos a `migration_data/` (ignorada entera) o declarar la carpeta ignorada dejando pasar solo los `.md`. Ver [proximos_pasos.md](../../docs_work/proximos_pasos.md) |
+| R-25 | **La clave de la huella de `VAP_Pagos`**: perderla obliga a repetir la carga inicial, y su custodia es una decisión de seguridad | Alto | Propuesta, sin construir: copia de seguridad de la clave y acceso limitado ([RNF-20](../../docs_discovery/requisitos_no_funcionales.md)) |
+| R-26 | **Retoques manuales en la Vinculación tras el volcado**: el libro puede no reflejar lo que trae SAGE (en la muestra, 1 valor distinto y 7 filas que no están en el export) | Medio | Lo detectan las comprobaciones ([HU-23](../../docs_discovery/historias_usuarios.md)); hoy nada lo avisa |
+| R-27 | **Las ayudas de COBEE no llegan a SAGE ni a la Vinculación** (columnas vacías en las 493 personas de la muestra) | Alto | Pregunta abierta: ¿es el primer o el segundo export? ([fuentes_de_contraste.md](../../docs_work/docs_cruce/fuentes_de_contraste.md) §7) |
 | R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [RNF-08](../../docs_discovery/requisitos_no_funcionales.md) |
 
 ## 10. Glosario
@@ -659,11 +704,13 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 
 ## 11. Referencias
 
-- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0016)
+- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0018)
 - **Requisitos y su estado:** [`requisitos_funcionales.md`](../../docs_discovery/requisitos_funcionales.md) · [`requisitos_no_funcionales.md`](../../docs_discovery/requisitos_no_funcionales.md)
 - **Trabajo en curso:** [`proximos_pasos.md`](../../docs_work/proximos_pasos.md)
 - **Cambios cronológicos:** [`../../CHANGELOG.md`](../../CHANGELOG.md)
 - **Mapa del repositorio:** [`../../README.md`](../../README.md)
+- **Webapp del proceso mensual:** [`docs_solutions/src/webapp/README.md`](../src/webapp/README.md)
+- **Fuentes de contraste (ADESLAS, COBEE, banco, SAGE):** [`fuentes_de_contraste.md`](../../docs_work/docs_cruce/fuentes_de_contraste.md)
 
 ---
 
@@ -692,8 +739,10 @@ tiene, o la decisión no llegó a aplicarse, o falta escribir el requisito:
 | [0014](adr/0014-volcado-actividad-profesores-por-periodo.md) | Volcado de actividad por periodo | RF-16, RF-20, RF-23, RF-63 |
 | [0015](adr/0015-eliminar-calculo-salario-base-del-script-sage.md) | Eliminar el cálculo del salario base | RF-21 *(afectado)*, RF-22, RNF-02 |
 | [0016](adr/0016-un-unico-libro-de-vinculacion.md) | Un único libro de Vinculación | RF-20, RF-22, RF-25 *(pendiente de aplicar)* |
+| [0017](adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) | Webapp del proceso mensual: stack y estructura *(propuesta)* | RF-72, RF-73, RF-79, RF-82, RNF-09, RNF-11, RNF-16, RNF-17 |
+| [0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) | Libro propio de la webapp, propietario y accesos *(propuesta)* | RF-42, RF-43, RF-79, RNF-09, RNF-12 |
 
-**Los 16 ADR aceptados declaran requisito.** Dos matices: el 0016 está decidido pero **sin aplicar**, y
+**Los 16 ADR aceptados declaran requisito, y las dos propuestas (0017 y 0018) también.** **Requisitos nuevos sin ADR todavía:** RF-80, RF-81 (concordancia de identidad, [OB-44](../../docs_work/proximos_pasos.md)), RF-83 a RF-85 (altas, bajas y su registro, [OB-46](../../docs_work/proximos_pasos.md)) y RF-86 a RF-89 con RNF-19 y RNF-20 (`VAP_Pagos` y la huella, [OB-45](../../docs_work/proximos_pasos.md) y [OB-36](../../docs_work/proximos_pasos.md)): necesitan decisiones de seguridad firmadas antes de escribir su ADR. Dos matices: el 0016 está decidido pero **sin aplicar**, y
 **RF-21 describe lo que el ADR-0015 retira** (está marcado ✅ pero el cálculo ya no existe): es una
 contradicción abierta, anotada en [OB-39](../../docs_work/proximos_pasos.md).
 
@@ -724,7 +773,13 @@ Los riesgos de [`SSD.md` §9](SSD.md#9-riesgos-y-limitaciones) y el requisito qu
 | R-18 | Los procesos automáticos no dejan rastro | RF-47 | 🔴 No |
 | R-19 | Los movimientos entre libros no dejan constancia | RF-25 | 🔴 No |
 | R-20 | El archivo de cálculo está fuera del sistema | — | Duda abierta |
-| R-21 | El ID del profesor cambia si cambia su empresa | RF-04 | 🟡 Cubierto por procedimiento, no por el sistema |
+| R-21 | El ID del profesor cambia si cambia su empresa | RF-04, RF-83 | 🟡 Cubierto por procedimiento; **RF-83** lo fija como baja + alta |
+| R-22 | La webapp depende de la cuenta de una persona | RNF-12 | 🔴 Por concretar ([ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md)) |
+| R-23 | Google puede no identificar al usuario | RNF-09 | 🟡 Deniega por defecto; sin verificar en real |
+| R-24 | Ficheros reales con datos personales protegidos solo por extensión | RNF-09, RNF-18 | 🔴 Decisión pendiente |
+| R-25 | Custodia y pérdida de la clave de la huella | RNF-20 | 🔴 No construido |
+| R-26 | Retoques manuales tras el volcado | RF-31, RF-75 | 🔴 No (lo detectaría la comprobación) |
+| R-27 | COBEE no llega a SAGE ni al libro | RF-32 | 🔴 Pregunta abierta |
 
 > **Tres riesgos no tenían requisito y ahora lo tienen** (RF-70, RF-71, RNF-15). Y **tres riesgos
 > nuevos** salieron de esta confrontación y se han añadido al SSD: R-18, R-19 y R-20 — los tres de

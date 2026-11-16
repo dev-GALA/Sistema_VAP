@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Código | `VALOR-DEV` |
-| Versión | 0.1 |
-| Fecha | 2026-11-14 |
+| Versión | 0.2 |
+| Fecha | 2026-11-16 |
 | Estado | 🟡 Vivo — se revisa con cada cambio que añada valor registrable |
 | Propietario | Dpto. Data y Tecnología |
 
@@ -17,7 +17,7 @@ registro de revisiones) y de `carfa` (conclusión por delante, límites dichos a
 impacto interno acumulado), **con las mismas tarifas que BUCA**, para que las cifras sean comparables.
 Lo particular de VAP, que ninguno de los dos tiene, está en las dos secciones siguientes.
 
-**Última revisión:** 2026-11-14 · **Fase:** la Fase 1 (secretarias) y la Fase 2.A (sincronización de
+**Última revisión:** 2026-11-16 · **Fase:** la Fase 1 (secretarias) y la Fase 2.A (sincronización de
 formularios de profesores) están **en producción**; el resto de lo documentado está **pendiente de
 construir** (ver «Lo que existe y lo que no»).
 
@@ -25,9 +25,16 @@ construir** (ver «Lo que existe y lo que no»).
 
 ## Conclusión
 
-Reponer a precio de mercado **lo que hoy existe** costaría **≈ 21.000 €** (intervalo 14.300 – 34.200 €;
-255 – 356 horas, central ≈ 305 h, margen ±35 %), sin IVA. Es inferior a la de `gala_buca` (≈ 25.600 €) y a la de `carfa`
-(23.265 – 47.580 €, cifras que cita BUCA), con menos código y más análisis.
+Reponer a precio de mercado **lo que hoy existe** costaría **≈ 30.300 €** (intervalo 20.300 – 49.700 €;
+364 – 521 horas, central ≈ 442 h, margen ±35 %), sin IVA. Es algo superior a la de `gala_buca` (≈ 25.600 €) y cae
+dentro de la franja de `carfa` (23.265 – 47.580 €, cifras que cita BUCA).
+
+> **De dónde sale el salto desde las ≈ 21.000 € del 14 nov, dicho con claridad.** De las ≈ 9.300 € de
+> diferencia, **solo una parte es trabajo de hoy**: el análisis de los ficheros reales, los dos ADR, la
+> actualización de requisitos y de documentos, y la webapp v0.1.0 (≈ 109 – 165 h en conjunto con la
+> re-medición). **Lo que más pesa es una corrección, no trabajo nuevo:** la cifra de pruebas del 14 nov (800
+> líneas) era previa a la suite que se añadió ese mismo día, y **re-medirla** aporta unas 60 – 90 h. Quien cite
+> la cifra debe saberlo.
 
 **El valor que aporta todavía no se puede cifrar en euros.** Falta el «antes»: los diez resultados
 deseados de `problem.md` §6 figuran con «sin dato». Lo que sí se puede decir, sin inventar nada, es
@@ -44,12 +51,11 @@ de una sola persona** y **poder reconstruir de dónde salió una cifra**.
 - **Las horas son estimación de quien redacta, sin contraste externo**, calculadas sobre lo que hoy hay
   en el repo (no sobre un registro de horas reales). Las tarifas vienen de otro repo (BUCA), que las
   verificó el 2026-11-14; **aquí no se han vuelto a consultar las fuentes**.
-- **Lo construido apenas está cubierto por pruebas.** Hay 4.449 líneas de Apps Script y 1.458 de
-  interfaz, y las únicas pruebas automáticas **no prueban ese código**: 11 pruebas de Vitest comprueban
-  el propio arnés de pruebas (`tests/soporte/`), una de Playwright carga el portal y 11 de Python
-  comprueban el verificador de trazabilidad. La lógica de negocio se ha validado hasta hoy **contra
-  producción** (deuda `DT-17`). Un valor que descansa en eso vale menos que uno probado. No se resta
-  nada de la cifra, pero **se dice**.
+- **Las pruebas son locales y con dobles de Google, no contra Google real.** Hay 4.845 líneas de Apps Script y
+  1.773 de interfaz, cubiertas por 1.790 pruebas de Vitest (41 de ellas documentan **defectos conocidos**) y 202
+  de Playwright. Pero los dobles **aproximan Google, no lo sustituyen**: triggers, cuotas, permisos y textos
+  de error reales se comprueban a mano. La webapp nueva **aún no se ha probado en Google real ni está
+  desplegada**. No se resta nada de la cifra, pero **se dice**.
 
 ---
 
@@ -58,11 +64,11 @@ de una sola persona** y **poder reconstruir de dónde salió una cifra**.
 Antes de valorar, qué hay realmente (fuente: `historias_usuarios.md` «Resumen por estado» y
 `requisitos_funcionales.md`, recuentos del 2026-11-14):
 
-| | Historias de usuario (41) | Requisitos funcionales (71) |
+| | Historias de usuario (48) | Requisitos funcionales (89) |
 |---|---|---|
 | ✅ Implementado | **20** | **25** |
-| 🟡 Parcial | 6 | 8 |
-| 🔴 Pendiente | 14 | 37 |
+| 🟡 Parcial | 7 | 9 |
+| 🔴 Pendiente | 20 | 54 |
 | ⚪ En decisión | 1 | 1 |
 
 **Lo implementado es «mover datos»**: maestro de personal, captura (complementos, horas extras,
@@ -151,34 +157,35 @@ material delante. Las horas incluyen el análisis y las decisiones, no solo la e
 
 | # | Artefacto | Qué incluye | Perfil | Horas |
 |---|---|---|---|---|
-| A1 | Descubrimiento | `problem.md` (597 líneas: JTBD, 11 job stories, 10 resultados deseados, restricciones y anti-objetivos); 41 HU con criterios de aceptación; 71 RF y 17 RNF con sus 7 justificaciones; matriz de trazabilidad | Analista / Product | 28 – 40 |
-| A2 | Mapa del proceso y trabajo con el negocio | `FLUJO.md` y 8 diagramas; 6 dudas formalizadas; 2 actas de reunión; análisis de los tres documentos de contraste (ADESLAS, COBEE, banco) | Analista / Product | 12 – 18 |
-| A3 | 16 ADR (MADR) | Alternativas y consecuencias: Sheets como BBDD, webapp propia, responsable por complemento, envíos por mes y año, proyectos GAS independientes, auditoría centralizada, volcados por periodo, un único libro de vinculación | Arquitecto / Tech Lead | 14 – 20 |
-| A4 | SSD | 753 líneas: arquitectura, modelo de datos de cuatro libros, componentes y flujos, 21 riesgos y trazabilidad completa (§12) | Arquitecto / Tech Lead | 10 – 14 |
-| A5 | `proximos_pasos.md` | 1.043 líneas: 39 objetivos en 7 sprints con dependencias y tres vías | Arquitecto / Tech Lead | 5 – 8 |
+| A1 | Descubrimiento | `problem.md` (646 líneas: JTBD, 11 job stories, 10 resultados deseados, restricciones y anti-objetivos, con lo visto en los ficheros reales); 48 HU con criterios de aceptación; 89 RF y 20 RNF con sus 7 justificaciones; matriz de trazabilidad | Analista / Product | 34 – 50 |
+| A2 | Mapa del proceso y trabajo con el negocio | `FLUJO.md` y 8 diagramas; 6 dudas formalizadas (3 con actualización del 16 nov); 2 actas de reunión; análisis de los documentos de contraste (ADESLAS, COBEE, banco), del export de SAGE y del libro de la Vinculación, con cruces medidos sobre ficheros reales (`fuentes_de_contraste.md`, 485 líneas) | Analista / Product | 22 – 34 |
+| A3 | 18 ADR (MADR; 16 aceptados y 2 propuestos: 0017 y 0018) | Alternativas y consecuencias: Sheets como BBDD, webapp propia, responsable por complemento, envíos por mes y año, proyectos GAS independientes, auditoría centralizada, volcados por periodo, un único libro de vinculación | Arquitecto / Tech Lead | 17 – 25 |
+| A4 | SSD | 806 líneas: arquitectura, modelo de datos de cuatro libros, componentes y flujos, 27 riesgos y trazabilidad completa (§12) | Arquitecto / Tech Lead | 12 – 17 |
+| A5 | `proximos_pasos.md` | 1.364 líneas: 46 objetivos en 7 sprints con dependencias y tres vías | Arquitecto / Tech Lead | 8 – 13 |
 | A6 | Complementos de secretarias | `Export_Complementos_Mensuales` (1.132 líneas `.gs`: reporte masivo, correcciones sin borrar, consulta de envíos, notificaciones, exportación mensual) y 3 pantallas (943 líneas HTML) | Desarrollador senior | 47 – 64 |
 | A7 | Horas extras de secretarias | Sincronización del desplegable (342) y volcado por periodo con informe y confirmación (600), más diálogo (251 HTML) | Desarrollador senior | 32 – 43 |
 | A8 | Actividad de profesores | Sincronización (343), volcado con acumulación campo a campo (666) y diálogo (264 HTML) | Desarrollador senior | 34 – 46 |
 | A9 | Scripts SAGE | `export_SAGE` (461 líneas) y cruce de la BBDD de personas con SAGE (905): cruce por cabecera, volcado Neto/Bruto, auditoría | Desarrollador senior | 41 – 54 |
 | A10 | Auditoría de código y deuda técnica | 20 entradas de deuda técnica verificadas contra los Sheets reales | Desarrollador senior | 6 – 9 |
 | A11 | Verificador de trazabilidad (`scripts/`) | 215 líneas de Python sin dependencias y sus 11 pruebas (141 líneas) | Desarrollador senior | 5 – 8 |
-| A12 | Arnés de pruebas | 800 líneas en `tests/`: doble de Google en memoria (519), cargador de `.gs` en Node, Vitest y Playwright | Desarrollador senior | 14 – 20 |
-| A13 | `README`, `CHANGELOG`, `LICENSE`, `.gitignore`, `CLAUDE.md` del proyecto | Incluye reglas de datos personales y de no actuar sin permiso | Desarrollador senior | 4 – 7 |
+| A12 | Pruebas de todo el código y arnés | 11.194 líneas en `tests/` sin contar las de la webapp: 1.693 pruebas de Vitest y 193 de Playwright, **41 defectos conocidos documentados** como `it.fails`, doble de Google en memoria (519), cargador de `.gs` en Node y arnés de las pantallas. **Re-medido el 16 nov:** la cifra de 14 nov (800 líneas) era previa a la suite | Desarrollador senior | 74 – 110 |
+| A13 | `README`, `CHANGELOG`, `LICENSE`, `.gitignore`, `CLAUDE.md` del proyecto | Incluye reglas de datos personales y de no actuar sin permiso | Desarrollador senior | 5 – 9 |
+| A15 | Webapp del proceso mensual v0.1.0 (esqueleto) | 396 líneas de `.gs` en tres capas y 315 de HTML; cinco pantallas, acceso por rol comprobado en el servidor y hoja `config`; 851 líneas de pruebas (97 de Vitest, 9 de Playwright, una prueba de arquitectura) y la comprobación de que detectan seis roturas hechas a propósito; Biome; README y dos ADR en Propuesta | Desarrollador senior | 24 – 34 |
 | A14 | Este documento | Doble enfoque, parámetros y fórmulas sin resolver | Arquitecto / Tech Lead | 3 – 5 |
-| | **Total** | | | **255 – 356 h** |
+| | **Total** | | | **364 – 521 h** |
 
-Estimación central: **≈ 305 h** (unas 38 jornadas). Margen declarado: **±35 %**. No se valoran las skills
+Estimación central: **≈ 442 h** (unas 55 jornadas). Margen declarado: **±35 %**. No se valoran las skills
 de `.claude/skills/` (viven fuera del repo en origen) ni `backup_old_js/` (copias históricas).
 
-### Tamaño medido (2026-11-14)
+### Tamaño medido (2026-11-16)
 
 | Capa | Líneas |
 |---|---|
-| Apps Script (`.gs`, 7 archivos) | 4.449 |
-| Interfaz (`.html`, 5 archivos) | 1.458 |
-| Pruebas y arnés (`tests/`) | 800 |
+| Apps Script (`.gs`, 16 archivos, 9 de la webapp) | 4.845 |
+| Interfaz (`.html`, 9 archivos, 4 de la webapp) | 1.773 |
+| Pruebas y arnés (`tests/`) | 12.045 |
 | Python (verificador y sus pruebas) | 356 |
-| Documentación (discovery, SSD, plan, flujo: 4.495; ADR: 795; dudas y actas: 1.933) | ≈ 7.200 |
+| Documentación (discovery, SSD, plan, flujo: 5.207; ADR: 933; dudas, actas y fuentes de contraste: 2.474) | ≈ 8.600 |
 
 ### Contraste con otros desarrollos de GALA
 
@@ -193,13 +200,13 @@ reverificados.
 | `sigema` | ≈ 7.400 | 226 | 31 |
 | `scripts_form_uniforme_expedientes` v1 | ≈ 1.750 | 56 – 88 | 32 – 50 |
 | `gala_buca` | ≈ 12.500 | 292 – 418 | 23 – 33 |
-| **Sistema VAP** | **≈ 7.060** (4.449 + 1.458 + 800 + 356) | **255 – 356** | **36 – 50** |
+| **Sistema VAP** | **≈ 19.020** (4.845 + 1.773 + 12.045 + 356) | **364 – 521** | **19 – 27** |
 
-**Lectura:** VAP está en la **parte alta** de la franja, y es coherente: tiene **mucha documentación y
-poco código y pocas pruebas** (≈ 7.200 líneas de documentos frente a ≈ 7.060 de código y pruebas), igual
-que `scripts_form_uniforme_expedientes`, que sale caro por línea por la misma razón. **No lo valida**,
-solo prueba que tiene el mismo orden de magnitud. Si se quisiera la cifra más prudente, el
-límite inferior (255 h) es el que menos se puede discutir.
+**Lectura:** con las pruebas incluidas, VAP queda en la **franja baja** de las horas por línea (19 – 27),
+frente al 36 – 50 del 14 nov, **cuando solo contaban 800 líneas de pruebas**. Sigue teniendo mucha
+documentación (≈ 8.600 líneas), pero ya no «poco código y pocas pruebas». **No lo valida**, solo prueba que
+tiene el mismo orden de magnitud. Si se quisiera la cifra más prudente, el límite inferior (364 h) es el que
+menos se puede discutir.
 
 ### Fórmula
 
@@ -209,16 +216,16 @@ Valor de reposición = Σ (horas del artefacto × tarifa de mercado del perfil)
 
 | Perfil | Horas (rango, central) | Tarifa (rango, central) | Mínimo | Central | Máximo |
 |---|---|---|---|---|---|
-| Arquitecto / Tech Lead (A3, A4, A5, A14) | 32 – 47 (39,5) | 90 – 140 (90) | 2.880 € | 3.555 € | 6.580 € |
-| Desarrollador senior (A6 – A13) | 183 – 251 (217) | 55 – 95 (70) | 10.065 € | 15.190 € | 23.845 € |
-| Analista / Product (A1, A2) | 40 – 58 (49) | 35 – 65 (46) | 1.400 € | 2.254 € | 3.770 € |
-| **Total** | **255 – 356 (≈ 305)** | | **14.345 €** | **≈ 21.000 €** | **34.195 €** |
+| Arquitecto / Tech Lead (A3, A4, A5, A14) | 40 – 60 (50) | 90 – 140 (90) | 3.600 € | 4.500 € | 8.400 € |
+| Desarrollador senior (A6 – A13, A15) | 268 – 377 (322,5) | 55 – 95 (70) | 14.740 € | 22.575 € | 35.815 € |
+| Analista / Product (A1, A2) | 56 – 84 (70) | 35 – 65 (46) | 1.960 € | 3.220 € | 5.460 € |
+| **Total** | **364 – 521 (≈ 442)** | | **20.300 €** | **≈ 30.300 €** | **49.675 €** |
 
-**Cómo leer la cifra.** El central (**≈ 21.000 €**) es lo que cabe citar. El mínimo y el máximo
+**Cómo leer la cifra.** El central (**≈ 30.300 €**) es lo que cabe citar. El mínimo y el máximo
 multiplican a la vez los dos extremos (horas y tarifa), así que el intervalo es muy ancho a propósito y
 no es una banda de confianza. **Sensibilidad:** con el margen de ±35 % sobre las horas, el central va de
-≈ 13.650 a ≈ 28.350 €; si el arquitecto se valorase a la tarifa de desarrollador (70 €/h), el central
-bajaría unos 790 €.
+≈ 19.700 a ≈ 40.900 €; si el arquitecto se valorase a la tarifa de desarrollador (70 €/h), el central
+bajaría unos 1.000 €.
 
 **Lo que sigue sin respaldo:** las horas son estimación propia sin contraste, y las tarifas de arquitecto
 y analista salen de una o dos fuentes.
@@ -231,9 +238,9 @@ No se cifran, porque cualquier número sería indefendible. Desaparecen si el de
   y presencial; el dato de un profesor **no tiene un único autor** (hay que acumular campo a campo, no
   quedarse con el último envío); existe **trabajo manual invisible** (vaciar la hoja de respuestas para
   que el volcado no reutilizara valores del mes pasado) que nadie había escrito en ningún procedimiento.
-- **Dieciséis decisiones con sus alternativas.** Reponerlas no es copiar los ADR: es volver a hacer el
+- **Dieciocho decisiones con sus alternativas (dos aún en Propuesta).** Reponerlas no es copiar los ADR: es volver a hacer el
   análisis y equivocarse en los mismos sitios.
-- **Riesgos identificados antes de materializarse** (R-01 a R-21): por ejemplo, que el volcado a Neto/Bruto
+- **Riesgos identificados antes de materializarse** (R-01 a R-27): por ejemplo, que el volcado a Neto/Bruto
   escriba por posición fija, o que el archivo donde se calcula la nómina esté fuera del sistema.
 - **La regla de datos personales** del proyecto: ningún fichero de ADESLAS, COBEE, bancos o SAGE entra en
   el repositorio. Es una política, no código, y evita el incidente más caro posible.
@@ -348,7 +355,11 @@ Lo que se sabe y lo que no.
 - ~400 personas, 4 responsables de complemento, 55 autoescuelas y 12 cierres al año.
 - 122 casos de un profesor con más de un reporte en el mismo mes: justifica la acumulación por campo.
 - Primera pieza sustituida: el reporte masivo de complementos, **varios meses en uso**.
-- 0 errores y 18 avisos de trazabilidad (`verificar_trazabilidad.py`, 2026-11-14).
+- 0 errores y 17 avisos de trazabilidad (`verificar_trazabilidad.py`, 2026-11-16).
+- **Primera medida de descuadres, sobre una sola muestra (16 nov 2026):** de 71 titulares de ADESLAS, **15 no
+  cuadran con el libro de la Vinculación** (4 a 0 €, 9 con otro importe y 2 que no se encuentran), y 3 personas
+  más constan con importe sin ser titulares. **No es una tasa**: es un mes, una hoja no verificada como la del
+  mes y un solo proveedor. Pero confirma que lo que hoy nadie comprueba tiene diferencias.
 
 **No medido todavía, y por eso no se cifra:**
 
@@ -368,12 +379,12 @@ la cifra de la Parte A valora el repo, no lo desplegado.
 
 | Concepto | Cifra | Estado |
 |---|---|---|
-| **Valor de reposición** | **≈ 21.000 €** (14.300 – 34.200 €) = 255 – 356 h (≈ 305 h, ±35 %) × tarifas de mercado de 2026 | Horas estimadas por quien redacta; tarifas con fuente, heredadas de BUCA |
+| **Valor de reposición** | **≈ 30.300 €** (20.300 – 49.700 €) = 364 – 521 h (≈ 442 h, ±35 %) × tarifas de mercado de 2026 | Horas estimadas por quien redacta; tarifas con fuente, heredadas de BUCA. **El salto sobre el 14 nov se debe sobre todo a re-medir las pruebas** |
 | **Valor aportado** | Sin cifra. Orden de magnitud: ≈ 80 h/año por cada minuto ahorrado por persona y mes | Hipótesis; faltan línea base y coste-hora |
 
 Qué existe hoy, dicho sin adornos: **un proceso de captura y consolidación en producción para
-secretarias y profesores, con 20 de 41 historias implementadas, documentado y trazado, pero sin pruebas
-automáticas sobre su lógica y sin ninguna medida del «antes».** El valor de reposición es real y defendible
+secretarias y profesores, con 20 de 48 historias implementadas, documentado y trazado, con pruebas locales sobre su lógica
+(con dobles de Google, sin probar en Google real) y sin ninguna medida del «antes».** El valor de reposición es real y defendible
 como orden de magnitud. El valor aportado **existe pero no está medido**.
 
 **Qué falta para cerrar la Parte B:** `horas_cierre_mes`, `min_reporte`, `errores_cierre`,
@@ -387,3 +398,4 @@ urgente mientras el proceso manual siga siendo recuperable en la memoria de quie
 | Fecha | Cambio | Quién |
 |---|---|---|
 | 2026-11-14 | Creación del documento. Parte A con inventario de 14 artefactos (255 – 356 h, ≈ 21.000 €); tarifas heredadas de `gala_buca`. Parte B con partidas B1 a B9 ancladas a JS/RD, **sin cifras**: faltan línea base y costes-hora. | Redactado con Claude; pendiente de revisión del responsable |
+| 2026-11-16 | Revisión de cierre. **Re-medido** el tamaño (código 4.845 + 1.773 líneas; pruebas 12.045) y **añadidos** A15 (webapp v0.1.0) y las ampliaciones de A1 a A5, A12 y A13: de 255 – 356 h (≈ 21.000 €) a 364 – 521 h (≈ 30.300 €). **El salto es sobre todo corrección:** la suite de pruebas del 14 nov no estaba en la cifra (A12 pasa de 14 – 20 h a 74 – 110 h); el trabajo del 16 nov son ≈ 49 – 75 h (A1, A2, A3, A4, A5, A13 y A15). Horas estimadas por quien redacta, sin contraste. Parte B sin cambios de fórmula; se añade la primera medida de descuadres (una muestra). | Redactado con Claude; pendiente de revisión del responsable |

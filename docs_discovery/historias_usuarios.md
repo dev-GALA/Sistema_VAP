@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.4 — BORRADOR · confrontado con SSD y ADR |
-| **Fecha** | 18 agosto 2026 |
+| **Versión** | 0.5 — BORRADOR · con las historias de Comprobaciones, Proceso mensual y Altas/bajas (HU-42 a HU-48) |
+| **Fecha** | 16 noviembre 2026 (versión 0.4: 18 agosto 2026) |
 | **Se deriva de** | [problem.md](problem.md) · [../docs_work/FLUJO.md](../docs_work/flujo_doc/FLUJO.md) · [../docs_work/dudas/](../docs_work/dudas/README_dudas.md) |
 | **Responde a** | [Sprint 0 · OB-15](../docs_work/proximos_pasos.md) |
 
@@ -178,6 +178,32 @@ intervención técnica.
 >
 > Era un *job* recogido en `problem.md` —*"incorporar un concepto retributivo nuevo sin rehacer el
 > proceso"*— que se había quedado sin historia.
+
+### HU-47 · Dar de alta, baja y modificar a una persona desde una pantalla
+
+**Como** Responsable de Administración, **quiero** una pantalla de *Altas/bajas* desde la que dar de
+alta, dar de baja y modificar a una persona, y ver todo el maestro respetando sus pestañas, **para**
+mantenerlo al día sin tocar las hojas a mano y dejando constancia de cada cambio.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔸 Importante | JS-05 |
+
+- **Dado** un alta, **entonces** me piden empresa, identificador de SAGE, nombre, DNI y fecha de alta, y
+  la **cuenta bancaria** puede darse en ese momento o más tarde.
+- **Dado** una baja, **entonces** la persona deja de estar activa y **no se borra**.
+- **Dado** que veo el maestro, **entonces** veo **todas sus pestañas** tal como están y puedo
+  **modificar la empresa o la cuenta** de una persona.
+- **Dado** que una persona cambia de empresa, **entonces** se registra como **baja en la empresa de
+  origen y alta en la de destino**: su historial queda partido.
+- **Dado** cualquier alta, baja o modificación, **entonces** queda registrada con quién, cuándo, qué
+  cambió y el valor anterior y el nuevo, **sin la cuenta ni su huella**.
+- **Dado** que un cambio afecta a más de un libro, **entonces** no puede quedar a medias sin que se
+  avise.
+
+> **Con este modelo, un mismo DNI puede figurar dos veces** (una fila de baja y otra de alta). La
+> concordancia de [HU-46](#hu-46--comprobar-que-cada-persona-sigue-en-concordancia-entre-sage-y-el-maestro-de-personas)
+> solo debe dar por incidencia **dos filas activas** con el mismo DNI.
 
 ---
 
@@ -571,8 +597,12 @@ origen, **para** resolverlo en el momento y no retrasar el cierre.
 
 # É5 · Verificación
 
-Las tres historias de esta épica dependen de **un documento que emite un tercero**. Sin él no hay
-verificación posible: comparar el sistema consigo mismo no verifica nada.
+Las tres primeras historias de esta épica (HU-23, HU-24, HU-25) dependen de **un documento que emite
+un tercero**. Sin él no hay verificación posible: comparar el sistema consigo mismo no verifica nada.
+Las tres siguientes (HU-42, HU-43, HU-44) describen **cómo se usan** esas comprobaciones: la pantalla
+*Comprobaciones*, el resultado que se copia a un correo y el seguimiento de las diferencias. La última
+(HU-46) es la comprobación **previa a todas**: que cada persona siga en concordancia entre SAGE y el
+maestro de personas.
 
 ### HU-23 · Comprobar el seguro médico
 
@@ -589,6 +619,9 @@ persona con la relación real de asegurados, **para** que un error no se propagu
 - **Dado** que hay personas que no casan por identificador, **entonces** aparecen aparte en lugar de
   desaparecer del informe.
 - **Dado** que reviso el informe, **entonces** no se ha modificado ningún dato: solo informa.
+- **Dado** el documento de la aseguradora, **entonces** puedo contrastarlo, con la misma pauta y por
+  separado, contra **tres orígenes**: el **primer export de SAGE** (principio del proceso mensual), la
+  **Vinculación de gastos de personal** y el **segundo export de SAGE**.
 
 ### HU-24 · Comprobar las ayudas de comida y transporte
 
@@ -623,6 +656,123 @@ afectada.
 
 > **Es la única comprobación que mira el resultado final.** Cierra el circuito entre lo que el
 > sistema calcula y lo que la persona recibe — hoy nadie verifica ese tramo.
+
+### HU-42 · Elegir qué comprobar y subir los dos documentos
+
+**Como** Responsable de Administración, **quiero** elegir una comprobación de una lista y subir los dos
+documentos que compara, **para** contrastar un mes sin depender de nadie y sin comparar por error un
+documento con otro que no es.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔺 Imprescindible | JS-09 · JS-10 |
+
+- **Dado** que abro *Comprobaciones*, **entonces** veo la lista de comprobaciones disponibles, y cada
+  una dice **qué dos documentos** espera.
+- **Dado** que subo un documento que no es el que la comprobación espera, **entonces** el sistema me
+  lo dice con claridad —por ejemplo, que parece de otro proveedor— y no continúa.
+- **Dado** que un documento está incompleto o es de otro periodo que el elegido, **entonces** el
+  sistema se niega a comparar y dice **qué comprobación previa falló**.
+- **Dado** que necesito una comprobación que no está en la lista, **entonces** no puedo añadirla yo:
+  la incorpora el desarrollo, porque exige escribir sus reglas de cruce.
+- **Dado** que he corregido el documento de origen, **entonces** puedo **volver a comprobar** y ver el
+  resultado actualizado.
+
+> **La lista es cerrada a propósito.** Cada comprobación lleva sus propias reglas —cómo se lee cada
+> documento, por qué campo se cruza, qué signo y qué tolerancia—, y eso no se configura desde la
+> pantalla: se escribe, se prueba y se registra.
+
+### HU-43 · Llevar el resultado a un correo
+
+**Como** Responsable de Administración, **quiero** copiar el resultado de una comprobación para
+pegarlo en un correo, **para** avisar a quien tiene que corregir sin tener que reescribirlo a mano.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔹 Deseable | JS-09 · JS-10 |
+
+- **Dado** un resultado, **cuando** pulso el icono de copiar, **entonces** queda en el portapapeles un
+  texto listo para pegar en un correo.
+- **Dado** que copio sin más, **entonces** el texto lleva el **resumen** —cifras por tipo de
+  diferencia—, y **no** nombres ni DNI.
+- **Dado** que quiero incluir la lista de personas, **entonces** lo elijo de forma expresa.
+
+> **Por qué el resumen es lo predeterminado.** Un correo con nombres y DNI sale de la plataforma y
+> ya no se controla: es la superficie de compartición de la que habla la
+> [segunda regla de CLAUDE.md](../CLAUDE.md).
+
+### HU-44 · Dejar constancia de las diferencias y marcarlas como resueltas
+
+**Como** Responsable de Administración, **quiero** que las diferencias encontradas queden registradas
+y poder marcarlas como resueltas, **para** saber qué queda por corregir y no depender de mi memoria ni
+de un correo.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔸 Importante | JS-09 · JS-10 |
+
+- **Dado** que se ejecuta una comprobación, **entonces** cada diferencia queda registrada y la puedo
+  consultar después desde **otra pantalla**, distinta de la de comprobar.
+- **Dado** una diferencia registrada, **entonces** puedo marcarla como **resuelta**, y queda quién la
+  marcó y cuándo.
+- **Dado** que repito la misma comprobación tras corregir el documento, **entonces** las diferencias
+  que ya no aparecen se cierran indicando que **desaparecieron al comprobar de nuevo**, y las que
+  siguen **no se duplican**.
+- **Dado** que consulto el registro, **entonces** solo veo datos personales si tengo derecho a ello.
+
+> **Esto guarda nombres y DNI de forma duradera**, a diferencia de la pantalla de comprobar, que no
+> necesita conservar nada. Antes de construirlo hay que decidir dónde se guarda, quién lo ve y cuánto
+> tiempo se conserva ([RNF-18](requisitos_no_funcionales.md)).
+
+### HU-46 · Comprobar que cada persona sigue en concordancia entre SAGE y el maestro de personas
+
+**Como** Responsable de Administración, **quiero** comprobar, al empezar el mes, que el identificador de
+cada trabajador (empresa y nº de SAGE) y su DNI siguen en concordancia entre el export de SAGE y el
+maestro de personas, **para** corregir antes de seguir cualquier alta, baja o cambio de empresa que no
+esté reflejado.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔺 Imprescindible | JS-05 · JS-09 |
+
+- **Dado** el export de SAGE del mes y el maestro de personas con las altas y bajas ya actualizadas,
+  **cuando** lanzo la comprobación, **entonces** veo que todo es correcto o la lista de incidencias.
+- **Dado** que un **DNI está relacionado con un identificador distinto** en cada origen, **entonces**
+  aparece como incidencia con los datos de los dos lados.
+- **Dado** que una persona **está en un origen y no en el otro**, **entonces** aparece como incidencia
+  y dice de qué lado falta.
+- **Dado** que corrijo a mano los datos en la hoja que proceda y repito la comprobación, **entonces**
+  el resultado se actualiza, y se repite **hasta que todo sea correcto**.
+- **Dado** que una persona cambia de empresa, **entonces** la comprobación lo detecta en lugar de dar
+  por buena la relación anterior.
+- **Dado** que reviso el resultado, **entonces** no se ha modificado ninguna hoja: solo informa.
+
+> **Hoy el export de SAGE no trae DNI.** Sin él, la primera incidencia (DNI con otro identificador) solo
+> se puede **aproximar por el nombre**. Se ha pedido a quien exporta que lo incluya (16 nov 2026). La
+> segunda sí se puede comprobar ya.
+
+### HU-48 · Reconocer a la persona en el fichero del banco sin guardar su cuenta
+
+**Como** Responsable de Administración, **quiero** que el sistema reconozca a quién corresponde cada
+pago del fichero del banco sin que nadie guarde las cuentas, **para** comprobar lo pagado sin crear una
+lista de IBAN.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔺 Imprescindible | JS-10 |
+
+- **Dado** el fichero del banco, **entonces** cada cuenta se reconoce por su **huella** entre las
+  personas **activas**, y la que no se reconoce o es ambigua aparece como **no cruzada**.
+- **Dado** que una persona cambia de empresa, **entonces** su cuenta se sigue reconociendo.
+- **Dado** que alguien cambia de cuenta, **entonces** la antigua deja de valer y la nueva se reconoce.
+- **Dado** que arranco el sistema con las personas ya existentes, **entonces** puedo cargar sus cuentas
+  **una sola vez** desde el fichero del banco, con una propuesta por empresa y nombre, comprobando el
+  importe y con **confirmación mía** antes de guardar.
+- **Dado** que se usa el sistema, **entonces** la cuenta no aparece en ningún registro, mensaje ni hoja.
+
+> **La huella vive solo en `VAP_Pagos`**, junto al identificador de la persona, y **no en el maestro**
+> con los DNI. Se calcula con una clave secreta guardada en la configuración del script, y **no incluye
+> el identificador**, así que un cambio de empresa no la altera.
 
 ---
 
@@ -702,6 +852,30 @@ recoger lo que falló y mejorarlo al mes siguiente.
 
 - **Dado** que escribo un comentario, **entonces** queda asociado a ese paso y a ese mes.
 - **Dado** que abro un mes anterior, **entonces** veo los comentarios que se dejaron.
+
+### HU-45 · Seguir el proceso mensual paso a paso desde una pantalla
+
+**Como** Responsable de Administración, **quiero** una pantalla de *Proceso mensual* con los pasos del
+mes, unos manuales y otros que se lanzan desde la propia pantalla, **para** saber en qué paso estoy y
+ejecutar los que se pueden sin salir de ella.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🟡 Parcial | 🔸 Importante | JS-03 · JS-08 |
+
+- **Dado** que abro *Proceso mensual*, **entonces** veo los pasos del mes en orden y, de cada uno, si es
+  **manual** o **ejecutable desde la pantalla**.
+- **Dado** un paso manual, **entonces** lo marco como hecho y queda quién y cuándo.
+- **Dado** un paso ejecutable, **entonces** lo lanzo desde la pantalla, veo su resultado y sus
+  incidencias, y puedo repetirlo.
+- **Dado** que un paso tiene incidencias sin resolver, **entonces** no figura como superado.
+- **Dado** que los pasos se irán incorporando de uno en uno, **entonces** añadir un paso no obliga a
+  rehacer los anteriores.
+
+> **Es la primera pantalla de la webapp, y es la misma que el *tablero de los nueve pasos*** de
+> [OB-22](../docs_work/proximos_pasos.md) y de [HU-29](#hu-29--ver-por-dónde-va-el-cierre):
+> *Proceso mensual* es el nombre con el que la llama quien la usa. **Decidido el 16 nov 2026.** Lo que
+> añade esta historia a HU-29 es que **algunos pasos se ejecutan desde la propia pantalla**.
 
 ---
 
@@ -809,14 +983,14 @@ De cada *job story* de [`problem.md`](problem.md) a las historias que la cubren:
 |---|---|---|
 | **JS-01** | Reportar la actividad del equipo | HU-04, HU-05, HU-06, HU-08 |
 | **JS-02** | Corregir un error propio | HU-07 |
-| **JS-03** | Saber qué falta | HU-13, HU-28 |
+| **JS-03** | Saber qué falta | HU-13, HU-28, HU-45 |
 | **JS-04** | Responder a una reclamación | HU-08, HU-20, HU-31, HU-32 |
-| **JS-05** | Dar de alta a alguien nuevo | HU-01, HU-02 |
+| **JS-05** | Dar de alta a alguien nuevo | HU-01, HU-02, HU-46, HU-47 |
 | **JS-06** | Ajustar un importe en la revisión | HU-21 |
 | **JS-07** | Dar el mes por cerrado | HU-22, HU-32 |
-| **JS-08** | Dar la salida del mes | HU-26, HU-27 |
-| **JS-09** | Confiar en lo que se descuenta | HU-23, HU-24 |
-| **JS-10** | Confirmar que lo pagado es lo calculado | HU-25 |
+| **JS-08** | Dar la salida del mes | HU-26, HU-27, HU-45 |
+| **JS-09** | Confiar en lo que se descuenta | HU-23, HU-24, HU-42, HU-43, HU-44, HU-46 |
+| **JS-10** | Confirmar que lo pagado es lo calculado | HU-25, HU-42, HU-43, HU-44, HU-48 |
 | **JS-11** | Saber si este mes ha sido normal | HU-33, HU-34, HU-35 |
 
 **Las once *job stories* están cubiertas.** Y en sentido contrario, las historias que **no** salen
@@ -833,8 +1007,8 @@ concepto retributivo nuevo sin rehacer el proceso* (`problem.md` §4.3) → ahor
 | Estado | Historias | |
 |---|---|---|
 | ✅ **Implementadas** | HU-01 … HU-10, HU-14 … HU-17, HU-21, HU-36 … HU-40 | **20** |
-| 🟡 **Parciales** | HU-11, HU-12, HU-18, HU-20, HU-31, HU-41 | **6** |
-| 🔴 **Pendientes** | HU-19, HU-22 … HU-30, HU-32 … HU-35 | **14** |
+| 🟡 **Parciales** | HU-11, HU-12, HU-18, HU-20, HU-31, HU-41, HU-45 | **7** |
+| 🔴 **Pendientes** | HU-19, HU-22 … HU-30, HU-32 … HU-35, HU-42 … HU-44, HU-46 … HU-48 | **20** |
 | ⚪ **En decisión** | HU-13 | **1** |
 
 **Lo que enseña este reparto:** lo implementado está en **maestro de personal, captura y
@@ -868,9 +1042,9 @@ Dicho eso, la prioridad indica **cuánto duele que falte**; **cuándo se hace** 
 
 | Sprint | Historias | Objetivos |
 |--------|-----------|-----------|
-| **1** · La webapp de coordinación | HU-26 … HU-30, HU-33 … HU-35 | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14 |
+| **1** · La webapp de coordinación | HU-26 … HU-30, HU-33 … HU-35, HU-45, HU-47 | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14, OB-43, OB-46 |
 | **2** · Saldar la deuda | HU-18, HU-19, HU-20 | OB-17 … OB-19, OB-23 … OB-27 |
-| **3** · Verificación de datos | HU-23, HU-24, HU-25 | OB-01 … OB-06, OB-11, OB-12 |
+| **3** · Verificación de datos | HU-23, HU-24, HU-25, HU-42, HU-43, HU-44, HU-46, HU-48 | OB-01 … OB-06, OB-11, OB-12, OB-40 … OB-42, OB-44, OB-45 |
 | **Sin sprint asignado** | HU-11, HU-12, HU-13, HU-22, HU-31, HU-32, HU-41 | — |
 
 **El Sprint 3 existe por estas tres historias.** HU-18, HU-19 y HU-20 no construyen nada nuevo:
@@ -894,6 +1068,8 @@ información de ese rastro: hacerlos sobre un registro con agujeros sería const
 | HU-28 · Quién ha reportado | HU-26 — y **HU-13** si se quiere medir a secretarias y profesorado |
 | HU-29 · Estado del cierre | HU-20 — el estado se deduce del rastro; sin rastro hay que marcarlo todo a mano |
 | HU-23, HU-24, HU-25 · Verificaciones | Los documentos de las entidades. No dependen del sistema |
+| HU-23 · contra los dos exports de SAGE | Una **muestra de cada export** de SAGE: aún no se han visto |
+| HU-44 · Registro de diferencias | Decidir dónde se guardan, quién los ve y cuánto se conservan (RNF-18) |
 | HU-33, HU-34, HU-35 · Informes | HU-20 y la decisión de dónde se guarda el histórico |
 | HU-19 · Traslado con constancia | Saber cuáles son los archivos de destino (DUDA-0001) |
 

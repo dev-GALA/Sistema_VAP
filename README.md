@@ -2,7 +2,7 @@
 
 Sistema interno de **GALA Formación** para automatizar el cálculo de los salarios mensuales variables de dos colectivos: **secretarias** y **profesores de autoescuelas**.
 
-Está construido sobre **Google Workspace**: Google Sheets como base de datos, Google Apps Script para la lógica y webapps propias para el reporte y la consulta de complementos. La fuente única de verdad del personal es el Google Sheet `VAP_BBDD_Personas`.
+Está construido sobre **Google Workspace**: Google Sheets como base de datos, Google Apps Script para la lógica y webapps propias para el reporte y la consulta de complementos, y una **webapp del proceso mensual en construcción** (esqueleto de solo lectura, aún sin desplegar). La fuente única de verdad del personal es el Google Sheet `VAP_BBDD_Personas`.
 
 > 📐 **La documentación está repartida en tres carpetas, según a qué pregunta responde.**
 >
@@ -36,6 +36,9 @@ Está construido sobre **Google Workspace**: Google Sheets como base de datos, G
 >   mismo archivo antes y después.
 > - **[docs_work/flujo_doc/](docs_work/flujo_doc/)** — el mapa del flujo y los ocho diagramas en
 >   archivos aparte, listos para revisar fuera del repositorio.
+> - **[docs_work/docs_cruce/fuentes_de_contraste.md](docs_work/docs_cruce/fuentes_de_contraste.md)** — cómo vienen
+>   ADESLAS, COBEE, el banco y SAGE y cómo se cruzan con el libro de gastos de personal (solo formato y cifras;
+>   **los ficheros reales viven solo en local**).
 > - **[docs_work/items_v3.md](docs_work/items_v3.md)** — ideas sin trazabilidad, que por eso no
 >   se planifican: solo se construye lo trazable.
 >
@@ -60,10 +63,14 @@ Sistema_VAP
 ├── docs_solutions/                 # LA SOLUCIÓN — cómo está construido, y con qué código
 │   ├── docs_design/                # EL DISEÑO
 │   │   ├── SSD.md                  # Especificación + diseño del sistema
-│   │   └── adr/                    # Decisiones de arquitectura (ADR-0001 … ADR-0016)
+│   │   └── adr/                    # Decisiones de arquitectura (ADR-0001 … ADR-0018; 0017 y 0018 en Propuesta)
 │   └── src/                        # CÓDIGO — una carpeta por proyecto de Apps Script
 │       ├── scripts_generales/      # Scripts transversales (no atados a un único colectivo)
 │       │   └── VAP_script_export_SAGE.gs   # Salario base + Export Neto/Bruto (menú "VAP_Acciones")
+│       ├── webapp/                 # Webapp del proceso mensual v0.1.0 (esqueleto, solo lectura, sin desplegar)
+│       │   ├── dominio-*.gs · app-*.gs · infra-*.gs   # Capas por prefijo (ADR-0017)
+│       │   ├── ui-*.html           # Cinco pantallas; estilo copiado de carfa (identidad SIFAF)
+│       │   └── README.md           # Qué crear en Google y cómo probarla
 │       ├── VAP_script_secretarias/ # FASE 1 — Secretarias (en producción)
 │       │   ├── VAP_Horas_Extras_Secretarias/    # → proyecto GAS de la hoja de respuestas
 │       │   │   ├── VAP_Script_Actualizacion_Automatica_Secretarias.gs  # Sincroniza el desplegable
@@ -82,14 +89,16 @@ Sistema_VAP
 │           ├── backup_VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs
 │           ├── script_vinculacion_gastos_personal_brutos_old.js  # volcado bruto previo (fusionado en SAGE)
 │           └── script_vinculacion_gastos_personal_neto_old.js    # volcado neto previo (fusionado en SAGE)
-├── tests/                          # PRUEBAS — Vitest (unitarias, integración, recorridos) y Playwright (e2e); dobles de Google en tests/soporte/
+├── tests/                          # PRUEBAS — Vitest (unitarias, integración, recorridos) y Playwright (e2e); dobles de Google en tests; `webapp/` y su e2e/soporte/
 ├── scripts/                        # Verificador de trazabilidad (Python) y sus pruebas
 ├── .claude/skills/                 # Skills de desarrollo del equipo (copias; manda la global si existe)
 ├── LICENSE · package.json          # Licencia propietaria · herramientas de prueba (el código corre en Apps Script)
+├── biome.json                      # Linter y formato, solo para docs_solutions/src/webapp y tests/webapp
 ├── docs_work/                      # EL PROCESO — lo que se revisa con quien opera el sistema
 │   ├── proximos_pasos.md         # Qué toca ahora, en sprints, y qué lo bloquea
 │   ├── dudas/                      # Cuestiones sin resolver + deuda técnica
 │   ├── migration_data/             # Datos de trabajo (ignorada por git: exports reales, nunca al repo)
+│   ├── docs_cruce/                 # Fuentes de contraste: solo `fuentes_de_contraste.md` va al repo (los ficheros reales, no)
 │   ├── reuniones/                  # Guion y acta de cada reunión, una por archivo
 │   ├── flujo_doc/                  # El mapa del flujo, listo para revisar fuera del repo
 │   │   ├── FLUJO.md                # Mapa del proceso mensual, del dato a la nómina
@@ -221,6 +230,16 @@ Scripts transversales que operan sobre datos comunes a varios colectivos (p. ej.
 > Las cabeceras del **origen** se localizan **por nombre** (robusto ante reordenación); el mapeo al **destino** usa posiciones de columna fijas (`VINC_FIELDS`). La columna `% IRPF` (S) del destino no se toca. Detalle completo en [SSD §7.5](docs_solutions/docs_design/SSD.md#75-transversal--cálculos-y-volcado-sage) y los ADR [0010](docs_solutions/docs_design/adr/0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md) / [0011](docs_solutions/docs_design/adr/0011-fusionar-volcado-de-nominas-en-el-script-sage.md) / [0012](docs_solutions/docs_design/adr/0012-auditoria-centralizada-logs-y-errores.md).
 
 ---
+
+## Webapp del proceso mensual (en construcción)
+
+Una sola webapp de Administración con cinco pantallas: **Proceso mensual**, **Comprobaciones**, **Registro de
+diferencias**, **Altas/bajas** y **Maestro de personal**. Hoy existe el **esqueleto v0.1.0, de solo lectura**:
+el acceso por rol (la lista de correos vive en la hoja `config` de su **libro propio**) y la pantalla *Proceso
+mensual* con sus primeros pasos. Decisiones: [ADR-0017](docs_solutions/docs_design/adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md)
+y [ADR-0018](docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), **en Propuesta**.
+**Aún no está desplegada**: qué crear en Google y cómo probarla, en
+[docs_solutions/src/webapp/README.md](docs_solutions/src/webapp/README.md).
 
 ## Notas
 

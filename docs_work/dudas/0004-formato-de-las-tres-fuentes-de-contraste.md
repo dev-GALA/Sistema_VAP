@@ -157,3 +157,21 @@ que dos casos reales del fichero no rompan el cruce.
 ## Decisión y acciones derivadas
 
 > *(pendiente — la regla de fusión de ADESLAS, si se confirma, debería quedar como ADR)*
+
+## Actualización · 16 noviembre 2026
+
+*Solo cifras; el detalle está en [fuentes_de_contraste.md](../docs_cruce/fuentes_de_contraste.md) §3 a §5, §9 y §10.*
+
+- **ADESLAS** se ha leído entero: cuadra consigo mismo en tres niveles (fila, certificado y total del pie) y
+  confirma la regla de fusión: **agrupar por certificado e identificar por el NIF del titular**. Se compara
+  contra `Importe Total` (no `Prima Neta`). La cabecera tiene **23 columnas**, no las 18 descritas arriba;
+  las 5 de más no están identificadas.
+- **COBEE** llega ya con la codificación correcta, una fila por línea y los nombres sin truncar: este fichero
+  corrige los dos defectos que describe esta ficha. Solo `Comida Flex EXENTO` trae importes (8 personas).
+- **El banco** sigue incompleto en la muestra (10 pagos de 208), pero se ha visto que la remesa de la
+  cabecera coincide en número con las personas de **GALA** que tienen líquido en SAGE (208), con 587,47 € de
+  diferencia sin explicar. Probablemente hay **un fichero por empresa**: por confirmar.
+- **Cuarta fuente:** el export de SAGE (493 personas, sin DNI). Su identificación por empresa + nº de empleado
+  exige un salto por la Vinculación para llegar al DNI.
+
+Sigue abierta: faltan la remesa completa del banco y los exports de COBEE de otros meses.

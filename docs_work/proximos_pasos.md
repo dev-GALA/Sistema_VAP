@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.8 |
-| **Fecha** | 25 septiembre 2026 |
+| **Versión** | 0.9 |
+| **Fecha** | 16 noviembre 2026 |
 | **Se apoya en** | [FLUJO.md](flujo_doc/FLUJO.md) · [dudas/](dudas/README_dudas.md) |
 
 ---
@@ -55,10 +55,10 @@ sin más: este documento reparte el trabajo en **objetivos pequeños y cerrables
 | Sprint | Objetivo del sprint | Objetivos | Estado |
 |--------|---------------------|-----------|--------|
 | **0 · Historias y requisitos** | Poner por escrito qué tiene que hacer el sistema y para quién | OB-15, OB-16 | 🟢 **Cerrado** |
-| **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36 | 🟡 **En curso** — las tres fuentes ya analizadas |
+| **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36, OB-40, OB-44, OB-45 *(por colocar)* | 🟡 **En curso** — las cuatro fuentes ya analizadas (ADESLAS y SAGE a fondo; COBEE y banco con muestra incompleta) |
 | **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37, OB-39 | 🟡 **En curso** — OB-29, OB-32, OB-33 y OB-37 cerrados; OB-31 a medias |
 | **3 · Reorganizar el repositorio** | Ordenar la documentación por la pregunta a la que responde | OB-28 | 🟢 **Cerrado** |
-| **4 · La webapp de coordinación** | Que el cierre se lance, se siga y se mida desde una pantalla | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14 | 🟡 **En curso** |
+| **4 · La webapp de coordinación** | Que el cierre se lance, se siga y se mida desde una pantalla | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14, OB-41, OB-42, OB-43, OB-46 | 🟡 **En curso** — esqueleto v0.1.0 escrito y probado; falta crear el libro y desplegarlo |
 | **5 · Saldar la deuda** | Que todo deje rastro, y limpiar las 20 entradas de deuda técnica | OB-17 … OB-19, OB-23 … OB-27, OB-38 | 🟡 **En curso** — OB-38 a medias |
 | **6 · Lo que hay que pedir y preguntar** | Lo que no depende de nosotros: documentos de terceros y respuestas del negocio | OB-01 … OB-06 | 🟡 **En curso** — los tres documentos ya han llegado |
 
@@ -252,6 +252,41 @@ se reutiliza, no se duplica ([CLAUDE.md](../CLAUDE.md)).
 
 **Se cierra cuando** hay una decisión escrita y validada, **y un ADR que la registre**.
 
+> **Posición del desarrollo, 16 nov 2026:** cruzar el **último export de SAGE** con los datos de
+> nómina y los **ficheros del banco** es una de las funcionalidades más esperadas, así que **la
+> correspondencia persona ↔ cuenta se necesita desde el primer día**. La propuesta es una **hoja
+> aparte con `id_personal` y una huella de la cuenta**, sin guardar el IBAN y sin el DNI en esa hoja.
+> **Sigue pendiente de validar** con Gerencia y protección de datos, y de escribirse en el ADR.
+
+### OB-45 · Crear `VAP_Pagos`, la huella y la carga inicial de cuentas — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-86…RF-89](../docs_discovery/requisitos_funcionales.md) · [RNF-19 · RNF-20](../docs_discovery/requisitos_no_funcionales.md) · [HU-48](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-36 (la decisión y su ADR) · **las decisiones de seguridad firmadas** · OB-46 para el mantenimiento mes a mes |
+| **Sprint** | ⚠️ **Por colocar.** Decidido el 16 nov 2026 que va **al siguiente sprint**; falta abrirlo (ver nota) |
+
+Un libro nuevo, **`VAP_Pagos`**, con el `id_personal` de cada persona y la **huella** de su cuenta, sin
+IBAN, sin DNI y sin nombre. La clave con la que se calcula vive en la configuración del script. El
+diseño completo está en [fuentes_de_contraste.md §12](docs_cruce/fuentes_de_contraste.md).
+
+**La carga inicial es de uso único:** con el fichero completo del banco de cada empresa, el sistema
+propone a la persona por empresa y nombre, comprueba que el importe coincide con su líquido en SAGE, y
+**una persona confirma** antes de guardar (en bloque las de nombre único e importe coincidente, una a
+una las demás). Después se retira: el mantenimiento pasa a ser Altas/bajas (OB-46).
+
+> **Decisiones de seguridad que hay que firmar una a una antes de crear nada:** algoritmo de la huella
+> (propuesta: HMAC-SHA256), **dónde y cómo se guarda la clave**, quién puede abrir `VAP_Pagos`, copia de
+> seguridad de la clave (si se pierde, hay que repetir la carga inicial), plazo de conservación y si la
+> pantalla enseña los últimos dígitos al confirmar.
+>
+> **Sobre el sprint:** la regla del proyecto es que el sprint nuevo entra **por arriba** y el resto
+> baja, con la consecuencia de renumerar. Cambia cientos de referencias, así que **no se ha hecho** sin
+> tu visto bueno.
+
+**Se cierra cuando** `VAP_Pagos` existe con sus permisos, la huella se calcula sin que la cuenta salga
+de memoria, y las cuentas de las personas actuales están cargadas con confirmación.
+
 ### OB-12 · Construir las tres comprobaciones — 🔵
 
 | | |
@@ -276,6 +311,61 @@ Tres cosas que ya se sabe que hay que respetar:
 > saber qué se supone que guardan produciría un informe que sería ruido entero.
 
 **Se cierra cuando** las tres comprobaciones producen su informe de diferencias sobre un mes real.
+
+### OB-40 · Definir las tres comprobaciones de ADESLAS y registrarlas en un ADR — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-72…RF-75](../docs_discovery/requisitos_funcionales.md) · [HU-23](../docs_discovery/historias_usuarios.md) · [HU-42](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-11 · una muestra **del segundo** export de SAGE (del primero ya hay una) · la respuesta a si el export de SAGE puede **incluir el DNI** *(pedido el 16 nov 2026)* |
+| **Sale de aquí** | Un ADR *«Contraste con fuentes externas: lectores y fichas por comprobación»* |
+
+El documento de ADESLAS se contrasta contra **tres orígenes**: primer export de SAGE, Vinculación de
+gastos de personal y segundo export de SAGE. Cada una es una **ficha** que dice qué dos documentos
+compara, por qué campo cruza, con qué signo y con qué tolerancia. El lector de ADESLAS es **uno solo**
+y sirve a las tres.
+
+**Ya se sabe del cruce de ADESLAS contra la Vinculación** (hoja `Hoja 1`, solo cifras agregadas):
+agrupar por certificado e identificar por el `NIF` del titular **funciona** —68 de 71 titulares casan
+por DNI—; el libro guarda `ADESLAS` **en negativo**; hace falta decidir una tolerancia (hay un caso de
+1 céntimo); y el informe necesita separar «con 0 €», «con otro importe», «no está en el libro» y «en el
+libro sin ser titular». Detalle en [fuentes_de_contraste.md §9](docs_cruce/fuentes_de_contraste.md).
+
+**Preguntas sin contestar** (una por una, con quien corresponda):
+1. ¿Qué hoja de la Vinculación es la del mes que se contrasta, y qué son `020326` y `COMPR`?
+2. ¿Qué significan los importes de **+1,00 €** que aparecen en la columna `ADESLAS` del libro?
+3. ¿Qué tolerancia se acepta?
+4. ¿Dónde empiezan los datos de la Vinculación? Las pruebas dicen que en la **fila 7**, y
+   [DUDA-0006](dudas/0006-que-contienen-las-columnas-de-contraste-de-vinculacion.md) dice la 9.
+5. ¿Qué son las 5 columnas de más del fichero de ADESLAS (23 en el fichero, 18 en el documento)?
+6. ¿Puede el export de SAGE incluir el DNI? Sin él, el cruce da un salto por la Vinculación
+   (empresa + nº de empleado) y deja 22 personas sin pareja. **Pedido el 16 nov 2026.**
+7. ¿La muestra de SAGE es el primer o el segundo export del mes? Los importes de **COBEE** llegan
+   **vacíos** (493 de 493) y habría que saber si es lo esperado: [fuentes_de_contraste.md §10](docs_cruce/fuentes_de_contraste.md).
+
+**Se cierra cuando** las tres fichas están escritas, probadas con ficheros ficticios y recogidas en un
+ADR **aceptado**.
+
+### OB-44 · Comprobar que cada persona sigue en concordancia entre SAGE y el maestro de personas — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-80 · RF-81](../docs_discovery/requisitos_funcionales.md) · [HU-46](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | Ver las hojas de `VAP_BBDD_Personas` (**no se han visto**: hay varias pestañas y la comprobación toca más de una) · la respuesta sobre el **DNI en el export de SAGE** |
+| **Es la base de** | OB-40 y OB-43: es la comprobación previa a las demás |
+
+Al empezar el mes: actualizar a mano el export de SAGE y las altas y bajas del maestro de personas, y
+**comprobar que `id_trabajador` y DNI coinciden**. Resultado **A** (todo correcto, se sigue) o **B**
+(incidencias: **B.1** un DNI relacionado con otro identificador, **B.2** una persona en un origen y no
+en el otro). Se corrige a mano en la hoja que proceda y **se repite hasta que sale todo correcto**. Las
+palabras exactas están en [fuentes_de_contraste.md §11](docs_cruce/fuentes_de_contraste.md).
+
+**Hay datos reales que ya apuntan a incidencias de los dos tipos** (cruce contra la Vinculación, no
+contra el maestro): 22 personas de SAGE sin pareja, 32 de la Vinculación sin SAGE y una clave empresa +
+nº con dos DNI. **No sé si el maestro de personas las tendría**, porque no lo he visto.
+
+**Se cierra cuando** la comprobación se ejecuta sobre las hojas reales, en solo lectura, y lista las
+incidencias de los dos tipos.
 
 ---
 
@@ -566,17 +656,26 @@ un trimestre con otro no dependa de que nadie haya sobrescrito una hoja.
 
 **Se cierra cuando** están decididos el almacén y qué se escribe en él tras cada cierre.
 
-### OB-20 · El esqueleto de la webapp — 🔵
+### OB-20 · El esqueleto de la webapp — 🔵 🟡 **Código hecho, sin desplegar**
 
 | | |
 |---|---|
 | **Responde a** | [RF-42…RF-45](../docs_discovery/requisitos_funcionales.md) · [HU-36](../docs_discovery/historias_usuarios.md) |
 | **Depende de** | Nada |
+| **Sale de aquí** | [`docs_solutions/src/webapp/`](../docs_solutions/src/webapp/README.md) v0.1.0 · [ADR-0017](../docs_solutions/docs_design/adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) · [ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) *(ambos Propuesta)* |
 
-Acceso, portada y navegación, reutilizando el patrón de las webapps que ya existen —el portal de
-complementos ya resuelve el enrutado y la validación por email—. **No inventar uno nuevo.**
+Acceso, portada y navegación. **Se ha hecho el 16 nov 2026**, con las cinco pantallas (OB-43, OB-41, OB-42,
+OB-46 y el maestro) como esqueleto de **solo lectura**: acceso por rol comprobado en el servidor, hoja
+`config` con los correos de cada rol, y *Proceso mensual* mostrando los tres pasos del primer grupo.
 
-**Se cierra cuando** se entra, se identifica quién entra y se navega entre las secciones vacías.
+> **Cambia respecto a lo previsto:** el texto original decía *reutilizar el patrón del portal de
+> complementos*. No se hizo: la webapp nueva sigue el modelo de **BUCA** (capas por prefijo, `api…` con
+> comprobación de rol, pruebas de arquitectura), que ya estaba probado y es lo que registra el ADR-0017.
+> El portal de complementos sigue como está.
+
+**Se cierra cuando** está **desplegada** y la Responsable de Administración entra con su cuenta, se
+identifica quién entra y navega entre las pantallas. Falta: crear el libro `VAP_Webapp`, el proyecto de
+Apps Script y la propiedad `ID_LIBRO_WEBAPP`, y probar en Google real (ver *Pendientes del 16 nov*).
 
 ### OB-21 · Lanzar el mes y registrar sus fechas — 🔵
 
@@ -611,6 +710,10 @@ con incidencias— **marcados a mano**, y notas por paso y por mes.
 >
 > Y cuando llegue la deducción automática, [RF-43](../docs_discovery/requisitos_funcionales.md) exige que se distinga
 > lo deducido de lo marcado a mano — así que la marca manual **no se tira**, se queda.
+
+> **Desde el 16 nov 2026 esta pantalla se llama «Proceso mensual»** y sus pasos son **manuales o
+> ejecutables desde ella** ([OB-43](#ob-43--la-pantalla-proceso-mensual--)). Los pasos ejecutables
+> se irán incorporando de uno en uno; el tablero manual sigue siendo el punto de partida.
 
 **Se cierra cuando** se ve el estado del mes en curso y se pueden dejar notas.
 
@@ -668,6 +771,101 @@ suyo: **Administración** el detalle del mes, **Data** el dato en bruto y compar
 resumen y la tendencia.
 
 **Se cierra cuando** los tres informes se generan solos y cada uno llega a quien le sirve.
+
+## El proceso mensual
+
+### OB-43 · La pantalla «Proceso mensual» — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-79](../docs_discovery/requisitos_funcionales.md) · [HU-45](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-44 (es su primer grupo de pasos) · OB-21 y OB-22 |
+| **Decidido el 16 nov 2026** | Es **la misma pantalla que OB-22**: «Proceso mensual» es su nombre de uso. **No se construye una segunda** |
+
+Será **la primera pantalla** de la webapp. Una lista de pasos del mes, **unos manuales y otros
+ejecutables desde la propia pantalla**, a los que se irán añadiendo más. El primer grupo, que se puede
+ejecutar desde ella porque sus dos fuentes son hojas de Google gestionadas por este sistema, es:
+
+1. Actualizar a mano los datos mensuales del primer export en `VAP_Export_SAGE_Laboral`.
+2. Actualizar a mano `VAP_BBDD_Personas` con las altas y bajas.
+3. Comprobar la concordancia de `id_trabajador` y DNI (**OB-44**).
+
+> **Es OB-22 con otro nombre.** Lo que OB-43 añade al tablero es que **algunos pasos se ejecutan desde
+> la propia pantalla**, no solo se marcan. OB-22 lo recoge con una nota.
+
+**Se cierra cuando** la pantalla de OB-22 muestra los pasos como manuales o ejecutables y ejecuta el
+primer grupo.
+
+## Altas, bajas y modificaciones
+
+### OB-46 · La pantalla «Altas/bajas» y el registro de cambios — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-82…RF-85](../docs_discovery/requisitos_funcionales.md) · [HU-47](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-45 (donde se guarda la huella) · ver **todas las pestañas** de `VAP_BBDD_Personas` (no se han visto) |
+
+Una pantalla para **dar de alta, de baja y modificar** a una persona, y para ver todo el maestro
+respetando sus pestañas. Un alta pide **empresa, identificador de SAGE, nombre, DNI y fecha de alta**; la
+cuenta se puede dar en ese momento o después. Un **cambio de empresa es una baja y un alta**.
+
+Cada cambio queda registrado en **una hoja nueva de `VAP_BBDD_Personas`** con quién, cuándo, la acción,
+el identificador y el valor anterior y el nuevo, **sin la cuenta ni su huella**. El orden de las
+escrituras es: **evento, cambios en los dos libros, y comprobación de que concuerdan** (RF-85).
+
+> **Con las bajas y altas por cambio de empresa, un mismo DNI aparece dos veces.** [OB-44](#ob-44--comprobar-que-cada-persona-sigue-en-concordancia-entre-sage-y-el-maestro-de-personas--)
+> debe dar por incidencia solo dos filas **activas**. Y `VAP_Pagos` tendrá dos filas con la misma
+> huella (una de baja): la búsqueda mira solo las activas.
+
+**Se cierra cuando** se da de alta, de baja y se modifica desde la pantalla, y cada cambio deja su
+registro sin que un fallo a mitad de camino quede sin avisar.
+
+## La pantalla de Comprobaciones
+
+Salen de hablar el diseño con la Responsable de Administración el 16 noviembre 2026. Dependen del
+trabajo de contraste del **Sprint 1** (OB-40) y se construyen **después** de él.
+
+### OB-41 · La pantalla «Comprobaciones» — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-72…RF-76](../docs_discovery/requisitos_funcionales.md) · [HU-42](../docs_discovery/historias_usuarios.md) · [HU-43](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-40 · OB-35 · la decisión de **cómo entra la Vinculación** (se sube como Excel o se lee de Drive) |
+
+Una pantalla para elegir la comprobación de una lista **cerrada** (solo la amplía el desarrollo), subir
+los dos documentos, ver las comprobaciones previas de cada uno (integridad y mes), y recibir el
+resultado con un icono para **copiar al correo**, que por defecto lleva solo el resumen.
+
+**Sin verificar:** que Apps Script pueda leer un `.xls` o un `.xlsx` de 1,3 MB con tres pestañas.
+Condiciona todo el diseño de la subida y hay que probarlo **con ficheros ficticios** antes de dibujar
+nada definitivo.
+
+**Preguntas abiertas:** ¿se sube la Vinculación o se lee de Drive? Al volver a comprobar, ¿se vuelve a
+subir el documento externo o se conserva un rato (son datos personales)? ¿El mes lo elige la
+Responsable o se detecta del fichero?
+
+**Se cierra cuando** la Responsable elige una comprobación, sube dos ficheros y obtiene su resultado
+sin ayuda.
+
+### OB-42 · El registro de diferencias, consultable y marcable como resuelto — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-77 · RF-78 · RNF-18](../docs_discovery/requisitos_funcionales.md) · [HU-44](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-41 · **una decisión escrita sobre protección de datos** |
+| **Va el primero** | Es un ADR: dónde se guardan, quién los ve y cuánto se conservan |
+
+Cada diferencia se guarda, identificada por **comprobación + periodo + persona + tipo**, con estado
+abierta o resuelta. Al volver a comprobar, las que ya no salen se cierran y las que siguen no se
+duplican. **Se consulta desde otra pantalla.**
+
+> **Es la primera vez que el sistema guarda nombres y DNI de forma duradera para esta función.** Lo que
+> se dijo antes —procesar y borrar— ya no vale para este registro, y hay que decidirlo y escribirlo
+> antes de construir nada: el registro se ve desde otra pantalla, así que es otra superficie de
+> compartición.
+
+**Se cierra cuando** hay un ADR aceptado con esa decisión, y se puede marcar una diferencia como
+resuelta y consultarla después.
 
 ---
 
@@ -874,7 +1072,7 @@ el registro de ejecución de los dos scripts.
 > ADESLAS, COBEE y el banco, y las respuestas que solo puede dar quien opera el sistema cada mes.
 
 Aquí no se construye nada: se pide y se pregunta. Todo lo que se construye con estas respuestas está
-en el **[Sprint 1](#sprint-1--contrastar-el-vap-con-fuentes-externas)**.
+en el **[Sprint 1](#sprint-1--contrastar-el-vap-con-fuentes-externas--en-curso)**.
 
 > **Verificar contra un dato del propio sistema no es verificar**, es comprobar que coincide consigo
 > mismo. De ahí que el contraste dependa de documentos que emiten terceros.
@@ -1003,14 +1201,34 @@ SAGE, cuándo se lanzan los volcados, cuándo es la revisión con Gerencia, cuá
 
 | Qué | Por qué | Decide |
 |---|---|---|
-| **Base de pruebas del código** (`package.json`, Vitest, Biome, `tests/`) | No hay ninguna prueba del código `.gs`: todo se valida contra producción (DT-17). Plantillas en la skill `dev-pruebas`. No se puede probar en local: triggers, cuotas y permisos de Apps Script (comprobación manual escrita). | Tú: instalar dependencias de desarrollo |
+| ~~**Base de pruebas del código** (`package.json`, Vitest, Biome, `tests/`)~~ **Hecho** | Vitest y Playwright existen desde el 14 nov, y **Biome desde el 16 nov, solo para `docs_solutions/src/webapp/` y `tests/webapp/`** (el código antiguo no se reformatea). Sigue sin poder probarse en local: triggers, cuotas y permisos de Apps Script (comprobación manual escrita). | — |
 | **Gancho `pre-commit`** que ejecute `scripts/` | Para que nadie olvide la trazabilidad (plantilla en `dev-pruebas`) | Tú: se activa con `git config core.hooksPath .githooks` |
 | **Migrar la estructura al estándar** (`docs_dev/`, `sdd.md` + `arquitectura.md`, ADR con estado en el nombre) | Las skills presuponen esa estructura; ver CLAUDE.md. Incluye OB-34 (arc42) y el MADR estricto de OB-31 | Tú |
-| **JS-09 no la recoge ninguna HU** | Aviso del verificador | Tú: ¿falta una HU o la JS sobra? |
-| **17 HU sin JS** (HU-03, 09 a 12, 14 a 19, 23, 24, 29, 30, 36, 41) | El documento dice que nacen del proceso real; el verificador lo deja en aviso | Tú: ¿se declara explícitamente «proceso real» en su Origen? |
+| ~~**JS-09 no la recoge ninguna HU**~~ **Resuelto el 16 nov** | La recogen HU-23, HU-24, HU-42, HU-43, HU-44 y HU-46 | — |
+| **17 HU sin JS** (HU-03, 09 a 12, 14 a 19, 23, 24, 29, 30, 36, 41; las nuevas HU-42 a HU-48 sí citan JS) | El documento dice que nacen del proceso real; el verificador lo deja en aviso | Tú: ¿se declara explícitamente «proceso real» en su Origen? |
 | **RF-21 contradice ADR-0015** | RF-21 «calculará el salario base» (✅); el 0015 lo retira | Va con OB-39 |
 | **MoSCoW: «Won't»** | El CLAUDE.md local lo usa para «no entra»; el global dice que MoSCoW solo ordena | Tú |
 | **Prueba en sesión nueva** de `dev-licencia` y `dev-pruebas` | Se crearon sin probar con casos reales | Tú |
+
+## Pendientes que salen del trabajo del 16 nov 2026
+
+La jornada diseñó la verificación con ficheros reales (ADESLAS, COBEE, banco, SAGE y la Vinculación), la
+webapp del proceso mensual, `VAP_Pagos` con la huella y *Altas/bajas*. Esto queda **por decidir o por hacer**:
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| **Crear el libro `VAP_Webapp`** (hojas `config` y `estado_pasos`), el proyecto de Apps Script, la propiedad `ID_LIBRO_WEBAPP` y desplegar | Sin ello el esqueleto no se puede enseñar. Estructura exacta en el [README de la webapp](../docs_solutions/src/webapp/README.md). Los nombres de los menús de Google **no están verificados**: se hace paso a paso, con captura | **Tú**, el 17 nov, guiado por Claude |
+| **Decisiones de seguridad de la webapp:** «ejecutar como» (tú o quien accede), quién tiene acceso, segundo editor, frecuencia de la copia | Bloquean aceptar [ADR-0017](../docs_solutions/docs_design/adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) y [ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), ambos en Propuesta. Riesgos R-22 y R-23 | Tú |
+| **`clasp`: ¿se adopta?** | El despliegue sigue siendo copiar y pegar (R-13). Su inicio de sesión es una credencial: se decide cada parámetro antes de usarlo | Tú |
+| **¿Abrir un sprint nuevo para OB-45 (`VAP_Pagos` y la carga inicial)?** | Dijiste «el siguiente sprint». La regla del proyecto es que el sprint nuevo entra **por arriba** y el resto baja, con renumeración de cientos de referencias; **no se ha hecho**. Alternativa: colgarlo del Sprint 1 | Tú |
+| **Decisiones de seguridad de `VAP_Pagos`:** algoritmo de la huella (propuesta HMAC-SHA256), dónde y cómo se guarda la clave, quién abre el libro, copia de la clave, plazo de conservación, si se enseñan los últimos dígitos | Sin ellas no se escribe el ADR de OB-36 y OB-45. Riesgo R-25 | Tú, con Gerencia y protección de datos |
+| **Ficheros reales en `docs_work/docs_cruce/`** (ADESLAS, COBEE, banco, SAGE y la Vinculación) | Solo los protege la extensión en `.gitignore` (R-24). El `README.md` de esa carpeta se borró y sus enlaces se repuntaron al de `migration_data/`. ¿Mover los ficheros a `migration_data/`, o declarar `docs_cruce/` ignorada dejando pasar solo los `.md`? | Tú |
+| **Skill `dev-apps-script`** | Las convenciones de Apps Script solo viven en el CLAUDE.md de BUCA. Contenido propuesto: capas y prefijos, ES2019, seguridad (`api…` y `_`), configuración, pruebas, despliegue y límites de la plataforma | Tú; se crea con `dev-nueva-skill` |
+| **Prueba en Google real de la webapp** | **No se puede automatizar:** `Session.getActiveUser()`, permisos y ventana de seguridad de HtmlService. Alternativa: la lista de comprobación manual del README de la webapp, antes de cada despliegue | Tú, con la cuenta de la Responsable |
+| **Preguntas a Administración y a quien exporta de SAGE** | Hoja de la Vinculación del mes, significado de los +1,00 €, tolerancia, DNI en el export de SAGE (pedido), primer o segundo export, dónde se descuenta COBEE. Ver OB-40 y [fuentes_de_contraste.md §7](docs_cruce/fuentes_de_contraste.md) | Administración · quien exporta |
+| **Remesa completa del banco** (y saber si hay un fichero por empresa) | La muestra trae 10 pagos de 208; la carga inicial de `VAP_Pagos` se mide con el fichero entero | Banco · Administración |
+| **FLUJO.md no refleja la pantalla *Proceso mensual*** | Describe el proceso a mano y la versión desplegada; sigue en espera de OB-30 | Va con OB-30 |
+| **Cifras antiguas en `valor_dev.md`** | Se actualizaron el 16 nov; se vuelven a desfasar con cada requisito nuevo | Mantener |
 
 ## Mejoras detectadas por las pruebas — **hacer antes del siguiente sprint**
 

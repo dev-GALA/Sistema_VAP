@@ -78,6 +78,7 @@ Documentación de referencia:
 - [docs_solutions/docs_design/SSD.md](docs_solutions/docs_design/SSD.md) — especificación y diseño
 - [docs_solutions/docs_design/adr/](docs_solutions/docs_design/adr/README_ADR.md) — decisiones de arquitectura
 - [docs_solutions/src/](docs_solutions/src/) — el código, una carpeta por proyecto de Apps Script
+- [docs_solutions/src/webapp/](docs_solutions/src/webapp/README.md) — la **webapp del proceso mensual** (esqueleto v0.1.0, solo lectura, sin desplegar; [ADR-0017](docs_solutions/docs_design/adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) y [ADR-0018](docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) en Propuesta). Sigue las convenciones de BUCA: capas por prefijo, solo `api…` pública y con rol comprobado en el servidor, ES2019
 
 **`docs_work/` — el proceso y el trabajo por delante** (lo que se revisa con quien opera el sistema):
 
@@ -140,8 +141,9 @@ la global**; la copia del repo es el respaldo para quien no la tenga.
 ### Pruebas: cómo se ejecutan
 
 ```sh
-npm test                    # Vitest: unitarias, integración y recorridos del backend (1.693 pruebas)
-npm run e2e                 # Playwright: las pantallas HTML reales contra el .gs real (193)
+npm test                    # Vitest: unitarias, integración y recorridos del backend (1.790: 1.749 pasan y 41 documentan defectos)
+npm run e2e                 # Playwright: las pantallas HTML reales contra el .gs real (202)
+npm run lint                # Biome: solo docs_solutions/src/webapp y tests/webapp (el código antiguo no se reformatea)
 python3 -m unittest discover -s scripts -p 'test_*.py'   # pruebas del verificador
 python3 scripts/verificar_trazabilidad.py                # trazabilidad y enlaces
 node --check < fichero.gs   # sintaxis de un .gs (Node no acepta la extensión)
@@ -164,9 +166,9 @@ estructura estándar, así que, hasta migrar, **donde la skill diga una ruta, va
 | `sdd.md` · `arquitectura.md` | `SSD.md` (que ya sigue arc42) |
 | `historia_de_usuarios.md` | `historias_usuarios.md` |
 | `NNNN-ESTADO-titulo.md` en los ADR | `NNNN-titulo.md` (el estado va solo en la cabecera) |
-| `scripts/`, `tests/`, `valor_dev.md` | Aún no existen |
+| `scripts/`, `tests/`, `valor_dev.md` | **Ya existen** (`scripts/`, `tests/` y `docs_work/valor_dev.md`) |
 
-La migración y las pruebas que faltan están anotadas en [docs_work/proximos_pasos.md](docs_work/proximos_pasos.md).
+La migración, los ficheros reales de `docs_work/docs_cruce/` (protegidos solo por extensión en `.gitignore`) y lo que sigue sin probarse en Google real están anotados en [docs_work/proximos_pasos.md](docs_work/proximos_pasos.md).
 **No se hace por iniciativa propia**: hay cientos de enlaces implicados y requiere el visto bueno.
 
 ---

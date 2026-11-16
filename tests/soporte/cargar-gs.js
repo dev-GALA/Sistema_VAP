@@ -9,6 +9,8 @@ import { crearGoogle } from './google.js';
 
 export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SRC = join(RAIZ, 'docs_solutions', 'src');
+// La webapp del proceso mensual (ADR-0017) es un proyecto más de `src/`; se carga con `{ raiz: SRC_WEBAPP }`.
+export const SRC_WEBAPP = join(SRC, 'webapp');
 
 export const CODIGO = {
   exportSage: 'scripts_generales/VAP_script_export_SAGE.gs',
@@ -52,7 +54,7 @@ export function cargarGs(rutas, opciones = {}) {
     contexto,
   );
   for (const ruta of [].concat(rutas)) {
-    vm.runInContext(readFileSync(join(SRC, ruta), 'utf8'), contexto, { filename: ruta });
+    vm.runInContext(readFileSync(join(opciones.raiz || SRC, ruta), 'utf8'), contexto, { filename: ruta });
   }
   const ejecutar = (codigo) => vm.runInContext(codigo, contexto);
   return {

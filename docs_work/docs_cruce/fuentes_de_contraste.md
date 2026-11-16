@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Versión** | 0.1 — BORRADOR |
-| **Fecha** | 14 noviembre 2026 |
+| **Versión** | 0.2 — BORRADOR |
+| **Fecha** | 16 noviembre 2026 |
 | **Se apoya en** | [DUDA-0004](../dudas/0004-formato-de-las-tres-fuentes-de-contraste.md) · [DUDA-0005](../dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md) · [DUDA-0006](../dudas/0006-que-contienen-las-columnas-de-contraste-de-vinculacion.md) |
-| **Requisitos** | RF-31 · RF-32 · RF-33 · RF-34 · RF-35 · HU-23 · HU-24 · HU-25 |
+| **Requisitos** | RF-31 … RF-35 · RF-72 … RF-89 · RNF-18 … RNF-20 · HU-23 · HU-24 · HU-25 · HU-42 … HU-48 |
 
 > **Este documento describe formatos y cifras agregadas. No contiene datos de personas** (nombres, DNI,
 > IBAN, importes nominativos): los ficheros reales viven en esta carpeta **solo en local** y no entran en
@@ -224,7 +224,7 @@ columna** del libro se compara (`Nomina NETO` o `EFECTIVO`:
 - Quién puede subir y ver el informe se decide **en el servidor**, no solo en pantalla
   ([RNF-09](../../docs_discovery/requisitos_no_funcionales.md)).
 - **Los ficheros reales no entran en el repositorio** y esta carpeta no debe usarse como almacén
-  permanente: ver el [README](README.md).
+  permanente: ver el [README de `migration_data/`](../migration_data/README.md).
 
 ## 7. Lo que sigue sin saberse
 
@@ -240,8 +240,246 @@ columna** del libro se compara (`Nomina NETO` o `EFECTIVO`:
 | 8 | ¿Qué mes de nómina contrasta con cada fichero? | Administración | DUDA-0004 |
 | 9 | ¿Cómo se sube un `.xls` a la webapp (conversión por Drive, o pedir `.xlsx`)? | Desarrollo | Prueba pendiente (§6) |
 | 10 | ¿Qué son los 10,10 € de los pagos de la muestra del banco? | Administración | Nueva |
+| 11 | ¿Puede el export de SAGE **incluir el DNI**? *(pedido el 16 nov 2026 a la persona que hace las exportaciones)* | Quien exporta de SAGE | §10 · OB-40 |
+| 12 | ¿La muestra de SAGE es el **primer** o el **segundo** export del mes? | Administración | §10 |
+| 13 | Si en SAGE los importes de COBEE llegan vacíos, ¿**dónde se descuenta** lo de COBEE? | Administración | §10 |
+| 14 | ¿Qué son las 22 personas de SAGE sin pareja en la Vinculación y las 32 de la Vinculación sin SAGE? | Administración | §10 |
+| 15 | ¿Qué hojas de `VAP_BBDD_Personas` intervienen en la concordancia de identidad, y cuál es la que manda? | Desarrollo | §11 · OB-44 |
+| 16 | ~~¿El *Proceso mensual* es la misma pantalla que el tablero de los nueve pasos (OB-22)?~~ **Sí, la misma** (16 nov 2026) | — | §11 · OB-43 |
 
 ## 8. Ficheros de esta carpeta
 
-Los ficheros reales (`.xls` y `.csv`) están **protegidos solo por su extensión** en
-[`.gitignore`](../../.gitignore): ver el [README](README.md) de esta carpeta.
+Los ficheros reales (`.xls`, `.xlsx` y `.csv`) están **protegidos solo por su extensión** en
+[`.gitignore`](../../.gitignore): ver el [README de `migration_data/`](../migration_data/README.md). Desde el 16 noviembre
+2026 hay además el libro de la **Vinculación** (`.xlsx`) y un informe de trabajo con nombres y DNI
+(`.xlsx`): **los dos con datos personales, los dos solo en local**.
+
+## 9. El cruce ADESLAS ↔ Vinculación (16 noviembre 2026) y la pantalla «Comprobaciones»
+
+*Solo cifras agregadas: ninguna fila, nombre ni DNI.* Registra una prueba hecha **en local y en solo
+lectura** con los ficheros reales.
+
+### 9.1 ADESLAS cuadra consigo mismo
+
+| Nivel | Comprobación | Resultado |
+|---|---|---|
+| Fila | `Prima Neta` + `Impuestos y Tasas` = `Importe Total` | 0 diferencias en 106 filas |
+| Certificado | suma de `Importe Total` = `Importe Total Certificado` | 0 diferencias en 71 certificados |
+| Fichero | suma de filas = total del pie | 5.970,98 € = subcolectivo = póliza colectiva |
+
+- **`Importe Total` es lo de una persona; `Importe Total Certificado` es lo del trabajador y su
+  familia**, y viene **una sola vez** por certificado. Para el total del fichero se suma solo
+  `Importe Total` por fila: sumar los dos mezclaría conceptos.
+- Se compara contra `Importe Total`, **no** contra `Prima Neta`: sumar solo la neta da 10,60 € menos
+  (106 × 0,10 € de impuestos).
+- **Cabecera en la fila 13, con 23 columnas** (el §3 decía 18): las 5 de más, sin identificar.
+
+### 9.2 Cruce con la hoja `Hoja 1` de la Vinculación
+
+La Vinculación tiene **tres pestañas** con la misma cabecera (fila 6, **datos desde la fila 7**, no la 9
+de [DUDA-0006](../dudas/0006-que-contienen-las-columnas-de-contraste-de-vinculacion.md)).
+La columna `ADESLAS` son **valores, no fórmulas**, y van **en negativo**. Solo `Hoja 1` se parece al
+mes de ADESLAS; **no se sabe qué son `020326` y `COMPR`**.
+
+| De los 71 titulares de ADESLAS | |
+|---|---|
+| Cuadran exactamente (libro = −importe del certificado) | **56** |
+| En el libro con 0 € o vacío | 4 |
+| En el libro con otro importe | 9 |
+| No están en el libro por DNI | 2 |
+| *Además: personas del libro con importe que no son titulares* | *3* |
+
+Las 9 de «otro importe» son de **cinco tipos**: 5 con **+1,00 €**, una con solo el titular descontado
+(familia sin descontar), una a la mitad, una con importe distinto de 112,66 y una de **1 céntimo**.
+Una persona aparece a la vez entre las «no están» y entre las «sin titular»: **su DNI no coincide en
+los dos ficheros**, lo que un cruce solo por DNI da como «no está».
+
+**Qué enseña a las reglas:** el cruce por DNI **sirve** (68 de 71); el signo es un hecho (negativo en
+el libro); hay que fijar una **tolerancia**; y el informe necesita **cuatro clases de diferencia** más
+una sugerencia por nombre para los casos de DNI distinto, **que se muestra y no se aplica**.
+
+### 9.3 La pantalla «Comprobaciones»
+
+Se dibuja con la Responsable de Administración. El usuario **elige la comprobación** de una lista
+**cerrada** —solo el desarrollo la amplía— y **sube los dos documentos**; el sistema **verifica por el
+contenido** que cada uno es del tipo esperado y comprueba su integridad y su mes **antes** de comparar.
+El resultado tiene arriba las cifras y debajo **solo lo que no cuadra**, con un icono para **copiar al
+correo** (por defecto el resumen, sin nombres) y queda **registrado** en un sistema consultable desde
+otra pantalla, donde se marca como resuelto.
+
+| Comprobación | Documento A | Documento B |
+|---|---|---|
+| 1 | Primer export de SAGE | ADESLAS |
+| 2 | Vinculación de gastos de personal | ADESLAS |
+| 3 | Segundo export de SAGE | ADESLAS |
+
+Las tres comparten **un único lector de ADESLAS**. De los exports de SAGE **no se ha visto ninguna
+muestra**. Los requisitos están en [RF-72…RF-78](../../docs_discovery/requisitos_funcionales.md) y
+[RNF-18](../../docs_discovery/requisitos_no_funcionales.md); el trabajo, en
+[OB-40, OB-41 y OB-42](../proximos_pasos.md).
+
+## 10. El export de SAGE (16 noviembre 2026)
+
+*Solo cifras agregadas.* Prueba en local y solo lectura con una muestra del export de SAGE
+(`bbdd_export_sage_laboral`, el que alimenta el volcado a la Vinculación,
+[ADR-0010](../../docs_solutions/docs_design/adr/0010-script-unico-sage-con-menu-y-cruce-por-cabecera.md)).
+
+### 10.1 Formato
+
+`.csv` con separador `,`, UTF-8 sin BOM, 493 personas y 18 columnas: `Empresa`, `Codigo_Empleado`,
+`Nombre_empleado`, `Fecha_alta`, `Porcentaje_de_jornada`, `TOTAL_BRUTO`, `SEGURO_MEDICO`,
+`COBE_Transporte`, `COBE_Alimentacion`, `PRODUCTIVIDAD`, `ANTICIPO_NOM`, `EMBARGO`,
+`Líquido_a_percibir`, `SS_EMP`, `SS_TRABAH`, `IRPF`, `COMIDA_EXENTO`, `TRANSPORTE_EXENTO`. Los importes
+llevan **coma decimal y punto de miles**. **No trae DNI.**
+
+### 10.2 Cómo se llega al DNI hoy
+
+La persona se identifica por **`Empresa` + `Codigo_Empleado`** (el nº solo es único dentro de cada
+empresa). El DNI solo se obtiene **dando un salto por la Vinculación**, que tiene esas dos columnas y el
+DNI:
+
+| | |
+|---|---|
+| Personas de SAGE con pareja en la Vinculación | 471 de 493 |
+| Sin pareja | 22 |
+| De la Vinculación sin pareja en SAGE | 32 |
+| Claves empresa + nº con **dos DNI** en la Vinculación | 1 |
+
+**Pedido el 16 noviembre 2026 a la persona que hace las exportaciones: incluir el DNI en el export.**
+Si se hace, desaparece el salto y su fuente de personas sin pareja, y de paso ayuda a identificar al
+banco (DUDA-0005, vía el nombre). Hasta entonces, el salto es la vía.
+
+### 10.3 Qué importes trae
+
+| Columna | Valores |
+|---|---|
+| `SEGURO_MEDICO` | 59 importes, **todos negativos**, suma −4.816,23 € |
+| `COBE_Alimentacion`, `COBE_Transporte`, `COMIDA_EXENTO`, `TRANSPORTE_EXENTO` | **vacías en las 493 filas** |
+
+**COBEE no llega en esta muestra.** COBEE dice que se concedieron 1.171,50 € de comida a 8 personas, y
+no aparece en SAGE ni, por tanto, en la Vinculación. Hay que saber si es el primer o el segundo export
+del mes (preguntas 12 y 13).
+
+### 10.4 ADESLAS ↔ SAGE
+
+De los 71 titulares de ADESLAS: **54** cuadran (en valor absoluto), **5** con SAGE a 0 o vacío, **3** con
+otro importe y **9** sin pareja por el salto vía la Vinculación.
+
+### 10.5 El libro frente a SAGE
+
+El seguro de `Hoja 1` es igual al de SAGE en **473 de 474** personas que están en los dos, y el neto en
+472 de 474. Las diferencias de §9.2 salen de **fuera del volcado**: los 7 valores positivos del libro (todos de +1,00 €) son
+de personas que **no están en este export**, y el de −67,60 está en SAGE a 0. **Parecen retoques
+manuales o filas de otra procedencia; no está comprobado.**
+
+### 10.6 Para las comprobaciones 1 y 3 de ADESLAS
+
+Son viables con el salto actual. Para COBEE contra SAGE, **no con esta muestra**.
+
+## 11. El proceso mensual y la concordancia de identidad (16 noviembre 2026)
+
+Recoge, **tal como lo planteó el desarrollo**, el diseño que condiciona las partes afectadas. *Solo
+cambian los nombres de las personas, sustituidos por su función, y erratas evidentes.*
+
+### 11.1 Lo planteado
+
+> **Concordancia.** Siempre que haya los dos datos —identificador de trabajador (empresa + nº de SAGE) y
+> DNI— se debe comprobar que **siguen en concordancia**, porque hay veces que un trabajador puede cambiar
+> de empresa por diversos motivos.
+>
+> **Una nueva interfaz, la primera, que se llamará «Proceso Mensual»**, a la que se irán incluyendo
+> pasos: algunos serán **manuales** y otros **ejecutables desde la propia interfaz**. El que sigue podrá
+> ser ejecutable desde ella porque **ambas fuentes de datos son hojas de Google online y gestionadas por
+> este proceso**:
+>
+> - `VAP_Export_SAGE_Laboral`: la [Responsable de Administración] lo vacía y copia los datos cuando
+>   [quien exporta de SAGE] hace la primera exportación.
+> - `VAP_BBDD_Personas`: aquí se actualizan altas y bajas que aplican a diferentes funcionalidades del
+>   sistema. **La información a cruzar está en diferentes hojas de esa hoja de cálculo.**
+>
+> **Pasos de este subgrupo:**
+> 1. Actualizar a mano los datos mensuales de la primera exportación de `VAP_Export_SAGE_Laboral`.
+> 2. Actualizar a mano `VAP_BBDD_Personas` con altas y bajas.
+> 3. Comprobar que `id_trabajador` y DNI coinciden.
+>
+> **Posibles resultados:**
+> - **A.** Todo correcto: se puede proseguir con el resto de pasos.
+> - **B.** Incidencias.
+>   - **B.1.** Hay datos cuyo DNI no coincide, relacionado con otro `id_trabajador`: la Responsable lo
+>     modifica a mano como proceda, en la hoja que proceda.
+>   - **B.2.** Hay datos que no están en uno u otro origen: la Responsable lo modifica a mano como
+>     proceda, en la hoja que proceda.
+>
+> Una vez resueltas todas las incidencias, **se vuelve a comprobar hasta que sale todo correcto.**
+
+### 11.2 Lo que hay que tener en cuenta (observaciones, no decisiones)
+
+- **El `id_personal` es `EMPRESA_nº`** (por ejemplo, `GALA_999`) y coincide con la clave del export de
+  SAGE, que es la pareja empresa + `Codigo_Empleado`. Ahí vive también el DNI y el nombre.
+- **El export de SAGE no trae DNI** ([§10.1](#101-formato)): la incidencia B.1 solo se puede aproximar
+  por el nombre hasta que lo incluya. Pedido el 16 noviembre 2026.
+- **El maestro tiene varias hojas** y no se han visto: hay que saber cuáles intervienen antes de
+  escribir la comprobación.
+- **Es lo mismo que OB-22** (el tablero de los nueve pasos), con otro nombre: **decidido el 16 noviembre
+  2026**. Lo que añade [OB-43](../proximos_pasos.md) es que algunos pasos se ejecutan desde la pantalla.
+- Requisitos: [RF-79, RF-80, RF-81](../../docs_discovery/requisitos_funcionales.md) · historias:
+  [HU-45, HU-46](../../docs_discovery/historias_usuarios.md) · trabajo: [OB-43, OB-44](../proximos_pasos.md).
+
+## 12. El banco: `VAP_Pagos`, la huella y Altas/bajas (16 noviembre 2026)
+
+Es la salida a [DUDA-0005](../dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md): el banco
+solo trae **nombre e IBAN**, y se necesita reconocer a la persona **sin guardar la cuenta ni juntarla
+con el DNI**. **Propuesta del desarrollo, pendiente de validar** con Gerencia y protección de datos, y de
+un ADR ([OB-36](../proximos_pasos.md), [OB-45](../proximos_pasos.md)).
+
+### 12.1 Dónde vive cada dato
+
+| Dato | Dónde vive | Quién lo ve |
+|---|---|---|
+| Nombre, DNI, `id_personal` (`EMPRESA_nº`) | `VAP_BBDD_Personas` (ya existe, con varias pestañas) | Como hoy |
+| **La cuenta (IBAN)** | **En ningún sitio.** Entra por la pantalla o por el fichero del banco, se usa en memoria y se descarta | — |
+| **Huella + `id_personal`** | **`VAP_Pagos`**, libro nuevo. Sin DNI, sin nombre, sin IBAN | Solo el sistema y el desarrollo |
+| **Clave secreta** | Configuración del script de la webapp | Quien edita ese proyecto |
+| Registro de altas, bajas y modificaciones | Hoja nueva de `VAP_BBDD_Personas`. **Sin cuenta ni huella** | Según la decisión de acceso |
+| Fichero del banco | Se sube, se procesa y se borra | Quien lo sube |
+
+**La huella solo vive en `VAP_Pagos`**, nunca en el libro con los DNI: junto al DNI debilitaría la
+separación que se busca. Su auditoría se hace en `VAP_Pagos`.
+
+### 12.2 Qué es la huella
+
+Un código calculado a partir de la cuenta **con la clave secreta**: la misma cuenta da siempre el mismo
+código, del código no se puede volver a la cuenta y sin la clave nadie puede calcularlo. **No incluye el
+identificador ni la empresa**: así un cambio de empresa no la altera y se puede buscar sin saber de quién
+es. Un resumen sin clave **no vale**, porque los IBAN son predecibles.
+
+### 12.3 La operativa
+
+| Cuándo | Qué pasa |
+|---|---|
+| **Una sola vez: carga inicial** | Para las personas ya existentes. Con el fichero completo del banco de cada empresa, el sistema propone a la persona por empresa y nombre, comprueba que el **importe coincide con su líquido en SAGE** y una persona confirma: **en bloque** las de nombre único e importe coincidente, **una a una** las demás |
+| **Alta** | Desde *Altas/bajas*: empresa, identificador de SAGE, nombre, DNI y fecha de alta. La cuenta se da entonces o después; si se da, se calcula la huella y se guarda en `VAP_Pagos` |
+| **Baja** | La persona deja de estar activa, no se borra |
+| **Cambio de cuenta** | Desde la vista del maestro: huella nueva; la antigua deja de valer |
+| **Cambio de empresa** | **Baja en la de origen y alta en la de destino.** La huella no cambia; el historial queda partido |
+| **Cada mes** | El fichero del banco se cruza con `VAP_Pagos` por la huella, **solo entre personas activas**. Lo que no se reconoce o es ambiguo se reporta como **no cruzado**, nunca se asigna |
+
+**Riesgos y cómo se cierran:**
+
+- **Datos a medias** (se escribe en dos libros): primero el evento, después las dos escrituras y luego
+  una comprobación de que concuerdan, con aviso si no.
+- **La cuenta en un registro:** no debe aparecer en el registro de ejecuciones ni en mensajes de error
+  ([RNF-19](../../docs_discovery/requisitos_no_funcionales.md)), y se comprueba con una prueba.
+- **Una confirmación equivocada** asociaría una cuenta a otra persona sin avisar: de ahí el control del
+  importe y que se pueda **anular** una confirmación.
+- **Perder la clave** obliga a repetir la carga inicial: por eso lleva copia de seguridad
+  ([RNF-20](../../docs_discovery/requisitos_no_funcionales.md)).
+
+### 12.4 Pendiente
+
+Las **decisiones de seguridad** (algoritmo, dónde y cómo se guarda la clave, quién abre `VAP_Pagos`,
+copia de seguridad de la clave, plazo de conservación y si se enseñan los últimos dígitos al confirmar), el
+**fichero completo del banco** para medir la carga inicial, si el banco emite **uno por empresa**, y el
+nombre definitivo de los libros. Requisitos: [RF-82…RF-89](../../docs_discovery/requisitos_funcionales.md) ·
+historias: [HU-47, HU-48](../../docs_discovery/historias_usuarios.md) · trabajo:
+[OB-45, OB-46](../proximos_pasos.md).

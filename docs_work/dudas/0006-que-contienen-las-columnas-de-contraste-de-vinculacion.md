@@ -129,3 +129,21 @@ Es la diferencia entre poder empezar a programar y no poder.
 ## Decisión y acciones derivadas
 
 > *(pendiente)*
+
+## Actualización · 16 noviembre 2026
+
+Con el libro de la Vinculación a la vista (*solo cifras*; [fuentes_de_contraste.md](../docs_cruce/fuentes_de_contraste.md) §9 y §10):
+
+- **Los datos empiezan en la fila 7**, no en la 9 (la cabecera está en la fila 6).
+- Tiene **tres pestañas** con la misma cabecera: `Hoja 1`, `020326` y `COMPR`. Solo `Hoja 1` se parece al mes
+  de ADESLAS; **no se sabe qué son las otras dos** ni cuál es la del mes que se contrasta.
+- La columna `ADESLAS` son **valores pegados, no fórmulas, y van en negativo**. En `Hoja 1` hay **68**
+  importes distintos de cero: 61 negativos y **7 positivos, todos de +1,00 €**, cuyo significado no se
+  conoce. De los 71 titulares de ADESLAS, 56 cuadran con el libro (ver la muestra en
+  [fuentes_de_contraste.md](../docs_cruce/fuentes_de_contraste.md) §9.2).
+- Las columnas `COBEE COMIDA` y `COBEE TRANSPORTE` **no tienen ningún importe** en `Hoja 1`: coherente con
+  que el export de SAGE trae esas columnas **vacías** en las 493 personas. En `020326` y `COMPR` hay 140
+  valores en transporte que no se han identificado.
+- La hoja de destino del volcado de SAGE se llama `Hoja 1`, lo que apunta a que es la de trabajo.
+
+Sigue abierta: falta saber el mes, el significado de los +1,00 € y de las otras dos pestañas.

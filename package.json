@@ -9,9 +9,12 @@
     "test": "vitest run",
     "test:vigilar": "vitest",
     "e2e": "playwright test",
+    "lint": "biome check .",
+    "formato": "biome format --write .",
     "sintaxis": "for f in $(find docs_solutions/src -name '*.gs' | tr ' ' '?'); do node --check < \"$f\" || exit 1; done"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.3",
     "@playwright/test": "^1.65.1",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"

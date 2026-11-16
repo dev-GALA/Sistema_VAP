@@ -8,6 +8,32 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 
 ---
 
+## [2026-11-16] · Webapp del proceso mensual (esqueleto), verificación con ficheros reales y requisitos de Comprobaciones, Altas/bajas y `VAP_Pagos`
+
+### Añadido
+- **Webapp del proceso mensual v0.1.0** en [`docs_solutions/src/webapp/`](docs_solutions/src/webapp/README.md): cinco pantallas (Proceso mensual, Comprobaciones, Registro de diferencias, Altas/bajas y Maestro), **solo lectura**, con acceso por rol comprobado en el servidor y la lista de correos en la hoja `config` de su **libro propio**. 396 líneas de `.gs` en tres capas y 315 de HTML. **Sin desplegar.**
+- **ADR-0017** (stack y estructura de la webapp) y **ADR-0018** (libro propio, propietario y accesos), ambos en **Propuesta**; índice de ADR y SSD (§4, §5, §7.7, riesgos R-22 a R-27 y §12).
+- **Pruebas de la webapp:** 97 de Vitest (dominio, casos de uso, integración y una **prueba de arquitectura**) y 9 de Playwright. Se comprobó que detectan seis roturas hechas a propósito. Suite completa: 1.790 de Vitest (41 son defectos conocidos) y 202 de Playwright.
+- **Biome 2.6.3** (`npm run lint`, `npm run formato`), limitado a la webapp y sus pruebas.
+- **Historias HU-42 a HU-48, requisitos RF-72 a RF-89 y RNF-18 a RNF-20** (Comprobaciones, Proceso mensual, concordancia de identidad, Altas/bajas, `VAP_Pagos` y la huella de la cuenta bancaria); objetivos OB-40 a OB-46.
+- **Análisis con ficheros reales** (solo cifras): ADESLAS cuadra consigo mismo, 56 de 71 titulares cuadran con la Vinculación, el export de SAGE no trae DNI y las ayudas de COBEE llegan vacías. En [`fuentes_de_contraste.md`](docs_work/docs_cruce/fuentes_de_contraste.md) §9 a §12 y en las actualizaciones de DUDA-0004, 0005 y 0006.
+
+### Cambiado
+- `problem.md` v0.2: lo visto con ficheros reales, el actor «quien exporta de SAGE», tres restricciones nuevas, dos anti-objetivos nuevos y las preguntas abiertas y resueltas.
+- `valor_dev.md` re-medido: de 255 – 356 h (≈ 21.000 €) a **364 – 521 h (≈ 30.300 €)**. **El salto es sobre todo corrección**: la suite de pruebas del 14 nov no estaba en la cifra. El trabajo del 16 nov son ≈ 49 – 75 h.
+- `tests/soporte/cargar-gs.js` y `tests/e2e/arnes.mjs`: opción `raiz` para cargar otro proyecto (compatible: los 193 e2e existentes siguen pasando).
+- `README.md`, `CLAUDE.md` (recuento de pruebas, `npm run lint`, fila de la estructura estándar) y `proximos_pasos.md` (OB-20, OB-36, OB-40 a OB-46 y el bloque «Pendientes del 16 nov»).
+
+### Corregido
+- **DUDA-0006:** los datos de la Vinculación empiezan en la **fila 7**, no en la 9.
+- Enlaces de `fuentes_de_contraste.md` al `README.md` de `docs_cruce/`, que se borró: ahora apuntan al de `migration_data/`.
+- Un identificador real de persona usado como ejemplo se sustituyó por uno inventado.
+
+### Pendiente (ver `proximos_pasos.md`)
+- Crear el libro `VAP_Webapp`, el proyecto de Apps Script y desplegar; decisiones de seguridad de la webapp y de `VAP_Pagos`; `clasp`; si se abre un sprint nuevo para OB-45; qué hacer con los ficheros reales de `docs_cruce/`.
+
+---
+
 ## [2026-11-14] · Nombre de `proximos_pasos.md`, skills, LICENSE y `.gitignore`
 
 ### Cambiado

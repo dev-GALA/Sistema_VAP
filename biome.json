@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "docs_solutions/src/webapp/**/*.gs",
+      "docs_solutions/src/webapp/appsscript.json",
+      "tests/webapp/**",
+      "tests/e2e/webapp.e2e.mjs"
+    ]
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 120 },
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+  "javascript": {
+    "formatter": { "quoteStyle": "single" },
+    "globals": [
+      "CacheService",
+      "DriveApp",
+      "HtmlService",
+      "LockService",
+      "Logger",
+      "MailApp",
+      "PropertiesService",
+      "ScriptApp",
+      "Session",
+      "SpreadsheetApp",
+      "UrlFetchApp",
+      "Utilities"
+    ]
+  },
+  "overrides": [
+    {
+      "includes": ["docs_solutions/src/webapp/**/*.gs"],
+      "linter": {
+        "rules": {
+          "complexity": { "useOptionalChain": "off" },
+          "correctness": { "noUnusedVariables": "off" }
+        }
+      }
+    }
+  ]
+}

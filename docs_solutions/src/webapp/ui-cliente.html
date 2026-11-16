@@ -1,0 +1,164 @@
+<script>
+(function () {
+  'use strict';
+
+  var ROTULO_ESTADO = {
+    'pendiente': 'Pendiente',
+    'hecho': 'Hecho',
+    'con-incidencias': 'Con incidencias',
+    'desconocido': 'Estado desconocido'
+  };
+  var CLASE_ESTADO = { 'hecho': 'ok', 'con-incidencias': 'error', 'desconocido': 'aviso' };
+  var ROTULO_TIPO = { 'manual': 'Paso manual', 'ejecutable': 'Se ejecuta desde esta pantalla' };
+
+  var pantallas = [];
+
+  // Todo el texto que viene del servidor entra con textContent, nunca como HTML.
+  function crear(etiqueta, clase, texto) {
+    var nodo = document.createElement(etiqueta);
+    if (clase) nodo.className = clase;
+    if (texto !== undefined) nodo.textContent = texto;
+    return nodo;
+  }
+
+  function periodoActual() {
+    var hoy = new Date();
+    return hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2);
+  }
+
+  function vaciar(nodo) {
+    while (nodo.firstChild) nodo.removeChild(nodo.firstChild);
+  }
+
+  function mostrarError(error) {
+    var principal = document.getElementById('principal');
+    vaciar(principal);
+    var alerta = crear('div', 'alerta error', (error && error.message) || 'Ha ocurrido un error.');
+    alerta.setAttribute('role', 'alert');
+    principal.appendChild(alerta);
+  }
+
+  function marcarActiva(id) {
+    var enlaces = document.querySelectorAll('#navegacion a');
+    for (var i = 0; i < enlaces.length; i++) {
+      if (enlaces[i].getAttribute('data-id') === id) enlaces[i].setAttribute('aria-current', 'page');
+      else enlaces[i].removeAttribute('aria-current');
+    }
+  }
+
+  function cabeceraDePantalla(pantalla) {
+    var tarjeta = crear('section', 'tarjeta');
+    tarjeta.id = 'pantalla-' + pantalla.id;
+    tarjeta.appendChild(crear('h1', '', pantalla.titulo));
+    tarjeta.appendChild(crear('p', '', pantalla.resumen));
+    tarjeta.appendChild(crear('p', 'suave pequeno', 'Requisitos: ' + pantalla.requisitos));
+    return tarjeta;
+  }
+
+  function mostrarPendiente(pantalla) {
+    var principal = document.getElementById('principal');
+    vaciar(principal);
+    var tarjeta = cabeceraDePantalla(pantalla);
+    var aviso = crear('div', 'vacio', 'Pendiente · esta pantalla se construye en una versión posterior.');
+    aviso.id = 'pendiente-' + pantalla.id;
+    tarjeta.appendChild(aviso);
+    principal.appendChild(tarjeta);
+  }
+
+  function pintarPaso(paso) {
+    var item = crear('li', 'paso paso-' + paso.estado);
+    var cab = crear('div', 'paso-cab');
+    cab.appendChild(crear('span', 'insignia-paso', String(paso.orden)));
+    cab.appendChild(crear('h3', 'paso-titulo', paso.titulo));
+    cab.appendChild(crear('span', 'chip ' + (CLASE_ESTADO[paso.estado] || ''), ROTULO_ESTADO[paso.estado] || paso.estado));
+    item.appendChild(cab);
+    item.appendChild(crear('p', '', paso.detalle));
+    var meta = ROTULO_TIPO[paso.tipo] || paso.tipo;
+    if (!paso.disponible) meta += ' · aún no disponible';
+    if (paso.actualizadoPor) meta += ' · actualizado por ' + paso.actualizadoPor + ' (' + paso.actualizadoEn + ')';
+    item.appendChild(crear('p', 'suave pequeno', meta));
+    return item;
+  }
+
+  function cargarPasos(periodo, contenedor) {
+    vaciar(contenedor);
+    contenedor.appendChild(crear('div', 'vacio', 'Cargando los pasos…'));
+    google.script.run
+      .withSuccessHandler(function (resultado) {
+        vaciar(contenedor);
+        var lista = crear('ol', 'pasos');
+        lista.id = 'lista-pasos';
+        resultado.pasos.forEach(function (paso) { lista.appendChild(pintarPaso(paso)); });
+        contenedor.appendChild(lista);
+      })
+      .withFailureHandler(function (error) {
+        vaciar(contenedor);
+        var alerta = crear('div', 'alerta error', error.message);
+        alerta.setAttribute('role', 'alert');
+        contenedor.appendChild(alerta);
+      })
+      .apiPasosDelPeriodo(periodo);
+  }
+
+  function mostrarProcesoMensual(pantalla) {
+    var principal = document.getElementById('principal');
+    vaciar(principal);
+    var tarjeta = cabeceraDePantalla(pantalla);
+
+    var campo = crear('label', 'campo');
+    campo.appendChild(crear('span', '', 'Periodo'));
+    var entrada = document.createElement('input');
+    entrada.type = 'month';
+    entrada.id = 'periodo';
+    entrada.value = periodoActual();
+    campo.appendChild(entrada);
+    tarjeta.appendChild(campo);
+    principal.appendChild(tarjeta);
+
+    var contenedor = crear('div', '');
+    contenedor.id = 'contenedor-pasos';
+    principal.appendChild(contenedor);
+
+    entrada.addEventListener('change', function () {
+      if (entrada.value) cargarPasos(entrada.value, contenedor);
+    });
+    cargarPasos(entrada.value, contenedor);
+  }
+
+  function mostrarPantalla(id) {
+    var pantalla = pantallas.filter(function (p) { return p.id === id; })[0];
+    if (!pantalla) return;
+    marcarActiva(id);
+    if (id === 'proceso-mensual') mostrarProcesoMensual(pantalla);
+    else mostrarPendiente(pantalla);
+  }
+
+  function pintarNavegacion() {
+    var nav = document.getElementById('navegacion');
+    vaciar(nav);
+    pantallas.forEach(function (pantalla) {
+      var enlace = crear('a', '', pantalla.titulo);
+      enlace.href = '#' + pantalla.id;
+      enlace.setAttribute('data-id', pantalla.id);
+      enlace.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        mostrarPantalla(pantalla.id);
+      });
+      nav.appendChild(enlace);
+    });
+  }
+
+  function alRecibirContexto(contexto) {
+    if (!contexto.permitido) {
+      mostrarError(new Error('No tienes acceso a esta aplicación.'));
+      return;
+    }
+    pantallas = contexto.pantallas;
+    document.getElementById('usuario').textContent = contexto.correo + ' · ' + contexto.rol;
+    pintarNavegacion();
+    if (pantallas.length > 0) mostrarPantalla(pantallas[0].id);
+  }
+
+  google.script.run.withSuccessHandler(alRecibirContexto).withFailureHandler(mostrarError).apiContexto();
+})();
+</script>

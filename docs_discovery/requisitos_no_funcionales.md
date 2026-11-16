@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.5 — separado de los funcionales |
-| **Fecha** | 7 septiembre 2026 |
+| **Versión** | 0.6 — con RNF-18 a RNF-20 (datos personales del registro, cuenta bancaria y clave de la huella) |
+| **Fecha** | 16 noviembre 2026 (versión 0.5: 7 septiembre 2026) |
 | **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_funcionales.md](requisitos_funcionales.md) |
 
@@ -61,6 +61,9 @@ que hacerlo**: con qué garantías, con qué límites y a qué coste de mantenim
 | **RNF-15** | Cuando el **destino** se direccione por posición fija, cualquier cambio en su estructura deberá detectarse antes de escribir | 🔴 | 🔸 | RF-22 | [R-08](../docs_solutions/docs_design/SSD.md#9-riesgos-y-limitaciones) |
 | **RNF-16** | Cada función tendrá **una sola responsabilidad**, de forma que pueda comprobarse por separado | 🔴 | 🔸 | — *(ver justificación J-06)* | CLAUDE.md · DT-18 |
 | **RNF-17** | Una misma lógica **no se duplicará** entre proyectos: se comparte o se aísla en un solo punto | 🔴 | 🔸 | — *(ver justificación J-07)* | CLAUDE.md · DT-19, DT-20 |
+| **RNF-18** | Los datos personales que conserve el registro de diferencias (nombre y DNI) tendrán **acceso limitado en el servidor** y un **plazo de conservación definido**; los documentos subidos para comparar **no se conservarán** una vez terminada la comprobación | 🔴 | 🔺 | RF-77 · RF-78 | [CLAUDE.md, segunda regla](../CLAUDE.md) · RNF-09 |
+| **RNF-19** | La **cuenta bancaria no se escribirá en ningún registro, mensaje de error ni hoja**: solo existirá en memoria mientras se calcula su huella | 🔴 | 🔺 | RF-86 | [CLAUDE.md, segunda regla](../CLAUDE.md) · RNF-09 |
+| **RNF-20** | La **clave** con la que se calcula la huella estará protegida, con acceso limitado y con **copia de seguridad**, y quien opera la pantalla no podrá abrir el libro de huellas | 🔴 | 🔺 | RF-86 · RF-87 | RNF-09 |
 
 ### Los siete sin relación directa con un RF, y por qué existen
 
@@ -110,13 +113,14 @@ es un requisito que nadie pidió. Estos siete la tienen:
 |---|---|
 | ✅ **Cumplidos** | 5 |
 | 🟡 **Parciales** | 7 |
-| 🔴 **No cumplidos** | 5 |
-| | **17** |
+| 🔴 **No cumplidos** | 8 |
+| | **20** |
 
-**Diez tienen relación directa o indirecta con un RF; siete existen por sí mismos**, con su
+**Trece tienen relación directa o indirecta con un RF; siete existen por sí mismos**, con su
 justificación escrita arriba.
 
 *Los no cumplidos —escritura en bloque, precisión numérica, detección de cambios en destino,
 responsabilidad única y no duplicación— son **deuda técnica ya inventariada**, no funcionalidad
 ausente. Su sitio de seguimiento es
-[`deuda-tecnica.md`](../docs_work/dudas/deuda-tecnica.md).*
+[`deuda-tecnica.md`](../docs_work/dudas/deuda-tecnica.md). **La excepción es RNF-18**: no es deuda, es
+un requisito nuevo que condiciona el registro de diferencias (RF-77) y que aún no se ha construido.*

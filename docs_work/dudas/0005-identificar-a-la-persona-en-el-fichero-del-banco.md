@@ -138,3 +138,23 @@ El nombre sirve para **construir la tabla una vez**, no para cruzar cada mes:
 
 > *(pendiente — decida lo que decida, **esto tiene que acabar en un ADR**: es exactamente el tipo de
 > decisión que dentro de un año nadie recordará por qué se tomó)*
+
+## Actualización · 16 noviembre 2026
+
+La propuesta del desarrollo, **pendiente de validar con Gerencia y protección de datos**, es una cuarta vía
+que combina las opciones 2 y 3: guardar **solo una huella de la cuenta** (nunca la cuenta), en un libro
+aparte, `VAP_Pagos`, junto al `id_personal` y **sin el DNI**.
+
+- La huella se calcula con una **clave secreta** guardada en la configuración del script, y **no incluye el
+  identificador de la persona**, así que un cambio de empresa no la altera.
+- Entra al dar de alta a la persona (pantalla *Altas/bajas*) y, **una sola vez**, en una carga inicial a
+  partir del fichero completo del banco, con confirmación humana.
+- Cada mes, el fichero del banco se cruza por la huella solo entre personas **activas**; lo que no se
+  reconoce o es ambiguo se reporta como **no cruzado**.
+- En la muestra, la identificación **por empresa y nombre** funcionó en 10 de 10 pagos, pero son demasiado
+  pocos para decidir por ellos.
+
+Diseño en [fuentes_de_contraste.md](../docs_cruce/fuentes_de_contraste.md) §12; requisitos RF-86 a RF-89, RNF-19
+y RNF-20; trabajo en OB-36 y OB-45. **Sigue abierta**: falta la decisión y un ADR. Las decisiones de seguridad
+(algoritmo, dónde se guarda la clave, quién abre el libro, copia de la clave, plazo de conservación) se firman
+una a una antes de crear nada.

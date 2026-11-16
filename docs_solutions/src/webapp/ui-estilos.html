@@ -1,0 +1,106 @@
+<style>
+  /* Identidad de los proyectos hermanos (SIFAF): negro, amarillo GALA, blanco y gris; Segoe UI; 14 px.
+     Sin tema oscuro. Origen: carfa/docs_dev/docs_solution/src/web_estilos.html (subconjunto, 16 nov 2026).
+     Si cambia el origen, se actualiza esta copia a mano (ADR-0017). */
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --ink: #000;
+    --bg: #f5f5f5;
+    --surface: #fff;
+    --accent: #fdc300;
+    --muted: #575756;
+    --rule: #e6e6e6;
+    --tag: #f0f0f0;
+    /* Semánticos con contraste AA sobre su fondo; siempre acompañados de texto o icono. */
+    --ok: #2e7d32;
+    --ok-fondo: #c8e6c9;
+    --aviso: #ef6c00;
+    --aviso-fondo: #fdefe0;
+    --aviso-texto: #5a2900;
+    --error: #c62828;
+    --error-fondo: #fbe3e3;
+    --error-texto: #7a1010;
+  }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { background: var(--accent); }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .cabecera :focus-visible { outline-color: var(--accent); }
+
+  /* Barra superior negra con la marca y, a la derecha, correo · rol */
+  .cabecera { position: sticky; top: 0; z-index: 100; background: var(--ink); }
+  .topbar { color: #fff; padding: 0 1.25rem; height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .marca { font-weight: 800; letter-spacing: 0.04em; }
+  .marca span { color: var(--accent); }
+  .usuario { font-size: 12px; opacity: 0.9; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav { display: flex; gap: 2px; padding: 0 1rem; flex-wrap: wrap; background: var(--ink); }
+  .nav a { background: #1a1a1a; color: #ddd; padding: 0.6rem 1rem; font-size: 13px; text-decoration: none; border-bottom: 3px solid transparent; }
+  .nav a:hover { background: #333; color: #fff; }
+  .nav a[aria-current='page'] { background: var(--bg); color: #000; border-bottom-color: var(--accent); font-weight: 600; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 1.25rem; }
+  h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
+  h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+  h3 { font-size: 0.95rem; margin: 0 0 0.4rem; }
+  p { margin: 0 0 0.6rem; }
+  .pie { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 1.25rem; font-size: 12px; color: var(--muted); }
+
+  .tarjeta { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  .suave { color: var(--muted); }
+  .pequeno { font-size: 12px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; }
+  .oculto { display: none !important; }
+
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; background: var(--tag); color: #000; border: 1px solid var(--muted); }
+  .chip.ok { background: var(--ok-fondo); border-color: var(--ok); }
+  .chip.aviso { background: var(--aviso-fondo); color: var(--aviso-texto); border-color: var(--aviso); }
+  .chip.error { background: var(--error-fondo); color: var(--error-texto); border-color: var(--error); }
+
+  button, .boton {
+    font: inherit; font-size: 14px; line-height: 1.2; cursor: pointer; display: inline-block; text-decoration: none;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--ink); border-radius: 4px; padding: 0.45rem 0.8rem;
+  }
+  button:hover:not(:disabled), .boton:hover { background: var(--ink); color: #fff; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  label.campo { display: flex; flex-direction: column; gap: 0.25rem; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  input, select, textarea { font: inherit; padding: 0.45rem 0.6rem; border: 1px solid var(--muted); border-radius: 4px; background: var(--surface); color: var(--ink); min-width: 0; }
+  input:focus, select:focus, textarea:focus { border-color: var(--ink); }
+
+  .alerta { border: 1px solid var(--muted); border-left-width: 4px; border-radius: 6px; padding: 0.55rem 0.8rem; margin-bottom: 0.75rem; background: var(--tag); }
+  .alerta.error { background: var(--error-fondo); color: var(--error-texto); border-color: var(--error); }
+  .alerta.aviso { background: var(--aviso-fondo); color: var(--aviso-texto); border-color: var(--aviso); }
+  .alerta.info { background: var(--tag); border-color: var(--ink); }
+
+  .vacio { border: 1px dashed var(--rule); border-radius: 8px; padding: 2rem 1.25rem; text-align: center; color: var(--muted); background: var(--surface); }
+
+  /* Pantalla sin acceso y estados de error */
+  .estado { border: 1px dashed var(--rule); border-radius: 8px; padding: 2.5rem 1.5rem; text-align: center; color: var(--muted); background: var(--surface); max-width: 460px; margin: 3rem auto; }
+  .estado .marca-grande { font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--ink); }
+  .estado .marca-grande span { color: var(--accent); -webkit-text-stroke: 1px #000; }
+  .estado h1 { color: var(--ink); }
+
+  /* Los pasos del proceso, numerados */
+  ol.pasos { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+  .paso { border: 1px solid var(--rule); border-left: 4px solid var(--rule); border-radius: 8px; padding: 0.8rem 1rem; background: var(--surface); }
+  .paso-hecho { border-left-color: var(--ok); }
+  .paso-con-incidencias { border-left-color: var(--error); }
+  .paso-desconocido { border-left-color: var(--aviso); }
+  .paso-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-bottom: 0.4rem; }
+  .paso-titulo { margin: 0; font-size: 1rem; }
+  .paso-cab .chip { margin-left: auto; }
+  .insignia-paso { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--accent); font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+
+  @media (max-width: 600px) {
+    main { padding: 0.75rem; }
+    .topbar { padding: 0 0.75rem; }
+  }
+</style>
