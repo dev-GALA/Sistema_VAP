@@ -4,14 +4,21 @@
 
   var ROTULO_ESTADO = {
     'pendiente': 'Pendiente',
-    'hecho': 'Hecho',
+    'hecho': 'Realizado',
     'con-incidencias': 'Con incidencias',
     'desconocido': 'Estado desconocido'
   };
   var CLASE_ESTADO = { 'hecho': 'ok', 'con-incidencias': 'error', 'desconocido': 'aviso' };
-  var ROTULO_TIPO = { 'manual': 'Paso manual', 'ejecutable': 'Se ejecuta desde esta pantalla' };
+  var ROTULO_TIPO = { 'manual': 'Manual', 'ejecutable': 'Se ejecuta desde esta pantalla' };
 
   var pantallas = [];
+  // Pantallas del grupo «Pagos» → objeto global que las pinta (cada una vive en su ui-….html).
+  var ENRUTADAS_PAGOS = {
+    'cruzar-pagos': 'PantallaCruzarPagos',
+    'historico-pagos': 'PantallaHistoricoPagos',
+    'maestro-pagos': 'PantallaMaestroPagos',
+    'carga-inicial': 'PantallaCargaInicial'
+  };
 
   // Todo el texto que viene del servidor entra con textContent, nunca como HTML.
   function crear(etiqueta, clase, texto) {
@@ -44,6 +51,10 @@
       if (enlaces[i].getAttribute('data-id') === id) enlaces[i].setAttribute('aria-current', 'page');
       else enlaces[i].removeAttribute('aria-current');
     }
+    var submenus = document.querySelectorAll('#navegacion details');
+    for (var k = 0; k < submenus.length; k++) {
+      submenus[k].classList.toggle('activo', !!submenus[k].querySelector('a[aria-current="page"]'));
+    }
   }
 
   function cabeceraDePantalla(pantalla) {
@@ -65,37 +76,141 @@
     principal.appendChild(tarjeta);
   }
 
-  function pintarPaso(paso) {
+  function boton(texto, alHacerClic) {
+    var b = crear('button', '', texto);
+    b.type = 'button';
+    b.addEventListener('click', alHacerClic);
+    return b;
+  }
+
+  function numeroDe(pasos, id) {
+    var paso = pasos.filter(function (p) { return p.id === id; })[0];
+    return paso ? paso.numero : id;
+  }
+
+  function pintarAcciones(paso, resultado, contexto) {
+    var acciones = crear('div', 'paso-acciones');
+    var pantalla = paso.accion && pantallas.filter(function (p) { return p.id === paso.accion.pantalla; })[0];
+    if (pantalla) acciones.appendChild(boton(paso.accion.rotulo, function () { mostrarPantalla(pantalla.id); }));
+
+    if (paso.tipo === 'manual' && paso.estado !== 'hecho') {
+      var marcar = boton('Marcar como realizado', function () { pedirConfirmacion(paso, resultado.periodo, contexto); });
+      marcar.classList.add('principal');
+      marcar.disabled = !paso.desbloqueado;
+      acciones.appendChild(marcar);
+    }
+    if (paso.tipo === 'ejecutable') {
+      var comprobar = boton('Comprobar', function () {
+        contexto.avisar('Esta comprobación todavía no está construida (OB-44).');
+      });
+      comprobar.disabled = !paso.desbloqueado;
+      acciones.appendChild(comprobar);
+    }
+    if (!paso.desbloqueado) {
+      acciones.appendChild(crear('span', 'suave pequeno', 'Disponible cuando el paso ' + numeroDe(resultado.pasos, paso.requiere) + ' esté realizado.'));
+    }
+    return acciones;
+  }
+
+  function pintarPaso(paso, resultado, contexto) {
     var item = crear('li', 'paso paso-' + paso.estado);
     var cab = crear('div', 'paso-cab');
-    cab.appendChild(crear('span', 'insignia-paso', String(paso.orden)));
+    cab.appendChild(crear('span', 'insignia-paso', paso.numero));
     cab.appendChild(crear('h3', 'paso-titulo', paso.titulo));
-    cab.appendChild(crear('span', 'chip ' + (CLASE_ESTADO[paso.estado] || ''), ROTULO_ESTADO[paso.estado] || paso.estado));
+    var lado = crear('div', 'paso-lado');
+    lado.appendChild(crear('span', 'chip ' + (CLASE_ESTADO[paso.estado] || ''), ROTULO_ESTADO[paso.estado] || paso.estado));
+    lado.appendChild(crear('span', 'paso-tipo suave pequeno', ROTULO_TIPO[paso.tipo] || paso.tipo));
+    cab.appendChild(lado);
     item.appendChild(cab);
     item.appendChild(crear('p', '', paso.detalle));
-    var meta = ROTULO_TIPO[paso.tipo] || paso.tipo;
-    if (!paso.disponible) meta += ' · aún no disponible';
-    if (paso.actualizadoPor) meta += ' · actualizado por ' + paso.actualizadoPor + ' (' + paso.actualizadoEn + ')';
-    item.appendChild(crear('p', 'suave pequeno', meta));
+    if (paso.actualizadoPor) {
+      item.appendChild(crear('p', 'suave pequeno', 'Realizado por ' + paso.actualizadoPor + ' · ' + paso.actualizadoEn));
+    }
+    item.appendChild(pintarAcciones(paso, resultado, contexto));
     return item;
+  }
+
+  function pintarLista(pasos, resultado, contexto) {
+    var lista = crear('ol', 'pasos');
+    pasos.forEach(function (paso) { lista.appendChild(pintarPaso(paso, resultado, contexto)); });
+    return lista;
+  }
+
+  function pintarPasos(resultado, contenedor, contexto) {
+    vaciar(contenedor);
+    resultado.grupos.forEach(function (grupo) {
+      var pasosDelGrupo = resultado.pasos.filter(function (p) { return p.grupo === grupo.id; });
+      if (pasosDelGrupo.length === 0) return;
+      var seccion = crear('section', 'tarjeta grupo');
+      seccion.id = 'grupo-' + grupo.id;
+      seccion.appendChild(crear('h2', 'grupo-titulo', grupo.titulo));
+      seccion.appendChild(pintarLista(pasosDelGrupo, resultado, contexto));
+      contenedor.appendChild(seccion);
+    });
+    var sueltos = resultado.pasos.filter(function (p) { return !p.grupo; });
+    if (sueltos.length > 0) contenedor.appendChild(pintarLista(sueltos, resultado, contexto));
+  }
+
+  function mostrarFallo(contenedor, mensaje) {
+    var alerta = crear('div', 'alerta error', mensaje);
+    alerta.setAttribute('role', 'alert');
+    contenedor.insertBefore(alerta, contenedor.firstChild);
+  }
+
+  function avisarEn(contenedor, mensaje) {
+    var viejo = contenedor.querySelector('.alerta.info');
+    if (viejo) viejo.remove();
+    var alerta = crear('div', 'alerta info', mensaje);
+    alerta.setAttribute('role', 'status');
+    contenedor.insertBefore(alerta, contenedor.firstChild);
+  }
+
+  // Ventana de confirmación propia (<dialog>): window.confirm no se puede probar ni garantizar dentro del
+  // marco de seguridad de Apps Script.
+  function pedirConfirmacion(paso, periodo, contexto) {
+    var dialogo = document.createElement('dialog');
+    dialogo.setAttribute('aria-label', 'Confirmar');
+    dialogo.appendChild(crear('p', '', '¿Marcar «' + paso.titulo + '» como realizado en ' + periodo + '?'));
+    dialogo.appendChild(crear('p', 'suave pequeno', 'Quedará registrado con tu nombre y la hora.'));
+    var fila = crear('div', 'fila');
+    var cancelar = boton('Cancelar', function () { dialogo.close(); dialogo.remove(); });
+    var confirmar = boton('Confirmar', function () {
+      confirmar.disabled = true;
+      cancelar.disabled = true;
+      google.script.run
+        .withSuccessHandler(function (resultado) {
+          dialogo.close();
+          dialogo.remove();
+          contexto.mostrar(resultado);
+        })
+        .withFailureHandler(function (error) {
+          dialogo.close();
+          dialogo.remove();
+          contexto.fallar(error.message);
+        })
+        .apiMarcarPasoRealizado(periodo, paso.id);
+    });
+    confirmar.classList.add('principal');
+    fila.appendChild(cancelar);
+    fila.appendChild(confirmar);
+    dialogo.appendChild(fila);
+    document.body.appendChild(dialogo);
+    dialogo.showModal();
   }
 
   function cargarPasos(periodo, contenedor) {
     vaciar(contenedor);
     contenedor.appendChild(crear('div', 'vacio', 'Cargando los pasos…'));
+    var contexto = {
+      mostrar: function (resultado) { pintarPasos(resultado, contenedor, contexto); },
+      fallar: function (mensaje) { mostrarFallo(contenedor, mensaje); },
+      avisar: function (mensaje) { avisarEn(contenedor, mensaje); }
+    };
     google.script.run
-      .withSuccessHandler(function (resultado) {
-        vaciar(contenedor);
-        var lista = crear('ol', 'pasos');
-        lista.id = 'lista-pasos';
-        resultado.pasos.forEach(function (paso) { lista.appendChild(pintarPaso(paso)); });
-        contenedor.appendChild(lista);
-      })
+      .withSuccessHandler(contexto.mostrar)
       .withFailureHandler(function (error) {
         vaciar(contenedor);
-        var alerta = crear('div', 'alerta error', error.message);
-        alerta.setAttribute('role', 'alert');
-        contenedor.appendChild(alerta);
+        contexto.fallar(error.message);
       })
       .apiPasosDelPeriodo(periodo);
   }
@@ -130,21 +245,45 @@
     if (!pantalla) return;
     marcarActiva(id);
     if (id === 'proceso-mensual') mostrarProcesoMensual(pantalla);
-    else mostrarPendiente(pantalla);
+    else if (id === 'altas-bajas') {
+      window.PantallaPersonal.mostrar(pantalla, { crear: crear, vaciar: vaciar, boton: boton, cabeceraDePantalla: cabeceraDePantalla });
+    } else if (ENRUTADAS_PAGOS[id]) {
+      window[ENRUTADAS_PAGOS[id]].mostrar(pantalla, { crear: crear, vaciar: vaciar, boton: boton, cabeceraDePantalla: cabeceraDePantalla });
+    } else mostrarPendiente(pantalla);
   }
 
+  function enlaceDe(pantalla, alElegir) {
+    var enlace = crear('a', '', pantalla.titulo);
+    enlace.href = '#' + pantalla.id;
+    enlace.setAttribute('data-id', pantalla.id);
+    enlace.addEventListener('click', function (evento) {
+      evento.preventDefault();
+      mostrarPantalla(pantalla.id);
+      if (alElegir) alElegir();
+    });
+    return enlace;
+  }
+
+  // Las pantallas con `grupo` se agrupan en un submenú desplegable, en el lugar de la primera del grupo.
   function pintarNavegacion() {
     var nav = document.getElementById('navegacion');
     vaciar(nav);
+    var submenus = {};
     pantallas.forEach(function (pantalla) {
-      var enlace = crear('a', '', pantalla.titulo);
-      enlace.href = '#' + pantalla.id;
-      enlace.setAttribute('data-id', pantalla.id);
-      enlace.addEventListener('click', function (evento) {
-        evento.preventDefault();
-        mostrarPantalla(pantalla.id);
-      });
-      nav.appendChild(enlace);
+      if (!pantalla.grupo) {
+        nav.appendChild(enlaceDe(pantalla));
+        return;
+      }
+      if (!submenus[pantalla.grupo]) {
+        var detalles = crear('details', 'submenu');
+        detalles.setAttribute('data-grupo', pantalla.grupo);
+        detalles.appendChild(crear('summary', '', pantalla.grupo));
+        detalles.appendChild(crear('div', 'submenu-items'));
+        submenus[pantalla.grupo] = detalles;
+        nav.appendChild(detalles);
+      }
+      var detalle = submenus[pantalla.grupo];
+      detalle.querySelector('.submenu-items').appendChild(enlaceDe(pantalla, function () { detalle.open = false; }));
     });
   }
 

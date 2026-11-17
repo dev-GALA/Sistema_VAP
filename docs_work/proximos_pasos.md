@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.9 |
-| **Fecha** | 16 noviembre 2026 |
+| **Versión** | 0.11 |
+| **Fecha** | 17 noviembre 2026 |
 | **Se apoya en** | [FLUJO.md](flujo_doc/FLUJO.md) · [dudas/](dudas/README_dudas.md) |
 
 ---
@@ -55,7 +55,7 @@ sin más: este documento reparte el trabajo en **objetivos pequeños y cerrables
 | Sprint | Objetivo del sprint | Objetivos | Estado |
 |--------|---------------------|-----------|--------|
 | **0 · Historias y requisitos** | Poner por escrito qué tiene que hacer el sistema y para quién | OB-15, OB-16 | 🟢 **Cerrado** |
-| **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36, OB-40, OB-44, OB-45 *(por colocar)* | 🟡 **En curso** — las cuatro fuentes ya analizadas (ADESLAS y SAGE a fondo; COBEE y banco con muestra incompleta) |
+| **1 · Contrastar el VAP con fuentes externas** | Comprobar lo que calcula el sistema contra ADESLAS, COBEE y el banco | OB-11, OB-12, OB-35, OB-36, OB-40, OB-44, OB-45 *(por colocar)*, OB-47 *(por colocar)* | 🟡 **En curso** — las cuatro fuentes ya analizadas (ADESLAS y SAGE a fondo; COBEE y banco con muestra incompleta) |
 | **2 · Saldar la auditoría** | Cerrar lo que la auditoría de dos pasadas dejó al descubierto | OB-29 … OB-34, OB-37, OB-39 | 🟡 **En curso** — OB-29, OB-32, OB-33 y OB-37 cerrados; OB-31 a medias |
 | **3 · Reorganizar el repositorio** | Ordenar la documentación por la pregunta a la que responde | OB-28 | 🟢 **Cerrado** |
 | **4 · La webapp de coordinación** | Que el cierre se lance, se siga y se mida desde una pantalla | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14, OB-41, OB-42, OB-43, OB-46 | 🟡 **En curso** — esqueleto v0.1.0 escrito y probado; falta crear el libro y desplegarlo |
@@ -262,30 +262,56 @@ se reutiliza, no se duplica ([CLAUDE.md](../CLAUDE.md)).
 
 | | |
 |---|---|
-| **Responde a** | [RF-86…RF-89](../docs_discovery/requisitos_funcionales.md) · [RNF-19 · RNF-20](../docs_discovery/requisitos_no_funcionales.md) · [HU-48](../docs_discovery/historias_usuarios.md) |
-| **Depende de** | OB-36 (la decisión y su ADR) · **las decisiones de seguridad firmadas** · OB-46 para el mantenimiento mes a mes |
+| **Responde a** | [RF-86…RF-89 · RF-97 · RF-98](../docs_discovery/requisitos_funcionales.md) · [RNF-19…RNF-21 · RNF-23](../docs_discovery/requisitos_no_funcionales.md) · [HU-48](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-36 y [ADR-0019](../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) (Propuesta) · **la firma de Gerencia y protección de datos antes de cargar datos reales** · OB-46 para el mantenimiento mes a mes |
 | **Sprint** | ⚠️ **Por colocar.** Decidido el 16 nov 2026 que va **al siguiente sprint**; falta abrirlo (ver nota) |
 
-Un libro nuevo, **`VAP_Pagos`**, con el `id_personal` de cada persona y la **huella** de su cuenta, sin
-IBAN, sin DNI y sin nombre. La clave con la que se calcula vive en la configuración del script. El
-diseño completo está en [fuentes_de_contraste.md §12](docs_cruce/fuentes_de_contraste.md).
+**Alcance acordado el 17 nov 2026:** un **proyecto de Apps Script propio de `VAP_Pagos`** (no ligado al libro; la webapp lo
+llama como servicio) y su **libro**, con `id_personal`, la **huella HMAC-SHA256** de la cuenta, los **últimos 4 dígitos** y
+la fecha, sin IBAN, sin DNI y sin nombre de las personas registradas. La **clave** vive solo en las Script Properties de ese
+proyecto, con **copia en el gestor de contraseñas de GALA**. Diseño en
+[fuentes_de_contraste.md §12](docs_cruce/fuentes_de_contraste.md) y decisiones en
+[DUDA-0005](dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md).
 
-**La carga inicial es de uso único:** con el fichero completo del banco de cada empresa, el sistema
-propone a la persona por empresa y nombre, comprueba que el importe coincide con su líquido en SAGE, y
-**una persona confirma** antes de guardar (en bloque las de nombre único e importe coincidente, una a
-una las demás). Después se retira: el mantenimiento pasa a ser Altas/bajas (OB-46).
+**La carga inicial es de uso único:** se parte del **Excel de altas** (empresa y nombre, DNI y cuenta; lleva los tres
+en claro), se cruza **por DNI** con el maestro, se calcula la huella en memoria y **una persona confirma** antes de guardar
+(en bloque las claras, una a una las dudosas). Al guardar, `VAP_Personas` recibe la marca **`cuenta_en_pagos`** con su fecha
+(RF-97). **El Excel se borra una vez verificada la carga.** Después se retira: el mantenimiento pasa a Altas/bajas (OB-46).
 
-> **Decisiones de seguridad que hay que firmar una a una antes de crear nada:** algoritmo de la huella
-> (propuesta: HMAC-SHA256), **dónde y cómo se guarda la clave**, quién puede abrir `VAP_Pagos`, copia de
-> seguridad de la clave (si se pierde, hay que repetir la carga inicial), plazo de conservación y si la
-> pantalla enseña los últimos dígitos al confirmar.
+> **Los pasos de Google los haces tú**, uno a uno y con captura antes del siguiente: crear el proyecto y el libro, generar la
+> clave, guardarla en el gestor de contraseñas (quién ve la entrada se fija al crearla), desplegar el servicio. Los nombres de los
+> menús de Google **no están verificados**.
 >
-> **Sobre el sprint:** la regla del proyecto es que el sprint nuevo entra **por arriba** y el resto
-> baja, con la consecuencia de renumerar. Cambia cientos de referencias, así que **no se ha hecho** sin
-> tu visto bueno.
+> **Sobre el sprint:** la regla del proyecto es que el sprint nuevo entra **por arriba** y el resto baja, con la consecuencia de
+> renumerar. **No hay un sprint nuevo abierto**, así que OB-45 y OB-47 siguen **por colocar** hasta tu visto bueno.
 
-**Se cierra cuando** `VAP_Pagos` existe con sus permisos, la huella se calcula sin que la cuenta salga
-de memoria, y las cuentas de las personas actuales están cargadas con confirmación.
+**Se cierra cuando** `VAP_Pagos` existe con sus permisos, la huella se calcula sin que la cuenta salga de memoria, la clave
+tiene su copia y las cuentas de las personas actuales están cargadas con confirmación.
+
+### OB-47 · Cruzar Pagos, Histórico y Maestro de Pagos — 🔵
+
+| | |
+|---|---|
+| **Responde a** | [RF-90…RF-96 · RF-98 · RF-99](../docs_discovery/requisitos_funcionales.md) · [RNF-21…RNF-23](../docs_discovery/requisitos_no_funcionales.md) · [HU-49 · HU-50](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-45 (la huella y el libro) · [ADR-0019](../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) · la firma de Gerencia y protección de datos |
+| **Sprint** | ⚠️ **Por colocar**, como OB-45 |
+
+Tres pantallas de la webapp que tiran del servicio de `VAP_Pagos`:
+
+1. **Cruzar Pagos:** se sube la *Vinculación de gastos de personal*; por **empresa** se cargan uno o varios ficheros del banco
+   (**XML `pain.001.001.09`, CSV o Excel**) y se pulsa *Cruce*. El informe sale debajo, **plegable a una línea**, en **dos partes**
+   (coincidentes con estado *Coincidente*/*Incorrecto* y Observaciones solo en los incorrectos; y los que **no existen**, con
+   nombre del banco, huella, últimos 4, importe y entidad). Al terminar todas, **fusionar los informes es obligatorio**. Los
+   incorrectos se pueden **subsanar** sin perder el original. Un informe por mes en `VAP_Pagos`.
+2. **Históricos de Pagos:** buscador por **año y mes** (botón *Cargar*) y después por **DNI o nombre**.
+3. **Maestro de Pagos:** nombre, DNI, últimos 4 dígitos y fecha de última actualización, con buscador que ofrece candidatos al
+   teclear. **Nombre y DNI se leen de `VAP_Personas` al consultar**; la huella no se muestra.
+
+**Por qué por empresa:** Apps Script corta a los 6 minutos. Cada llamada trabaja una empresa y un fichero, con lecturas y
+escrituras en bloque (RNF-22). **Sin medir en Google real.**
+
+**Se cierra cuando** se cruzan los ficheros de todas las empresas, se fusiona el informe, se subsana un incorrecto y se consulta
+el histórico y el maestro, con la cuenta sin llegar a ningún registro.
 
 ### OB-12 · Construir las tres comprobaciones — 🔵
 
@@ -656,7 +682,7 @@ un trimestre con otro no dependa de que nadie haya sobrescrito una hoja.
 
 **Se cierra cuando** están decididos el almacén y qué se escribe en él tras cada cierre.
 
-### OB-20 · El esqueleto de la webapp — 🔵 🟡 **Código hecho, sin desplegar**
+### OB-20 · El esqueleto de la webapp — 🔵 🟡 **Desplegada en pruebas; falta probar con la Responsable**
 
 | | |
 |---|---|
@@ -675,7 +701,36 @@ OB-46 y el maestro) como esqueleto de **solo lectura**: acceso por rol comprobad
 
 **Se cierra cuando** está **desplegada** y la Responsable de Administración entra con su cuenta, se
 identifica quién entra y navega entre las pantallas. Falta: crear el libro `VAP_Webapp`, el proyecto de
-Apps Script y la propiedad `ID_LIBRO_WEBAPP`, y probar en Google real (ver *Pendientes del 16 nov*).
+Apps Script y la propiedad `ID_LIBRO_WEBAPP`, y probar en Google real (ver *Pendientes del 17 nov (tarde)*).
+
+> **17 nov 2026 · v0.3.0 escrita (Altas/bajas), SIN subir.** Alta/baja a mano y por plantilla CSV; escribe en el maestro y la huella en
+> `VAP_Pagos`. **Antes de subirla y de usarla con datos reales** (consecuencias por escrito, `dev-pre-produccion`):
+> (1) ~~ver `VAP_BBDD_Personas`~~ **visto: las pestañas y cabeceras supuestas eran falsas**, ver *Pendientes del 17 nov (tarde)*;
+> (2) crear en `VAP_Webapp` la hoja `registro_personal`, y en `config` las claves `empresas`, `maestro_libro_id`, `pagos_libro_id`;
+> (3) crear la propiedad `CLAVE_HUELLA` **y guardar copia de la clave fuera** (RNF-20: sin ella, las huellas ya guardadas no se pueden recalcular);
+> (4) **ADR de la huella y de «Ejecutar como: propietario»** (el rol de Administración escribe en el maestro y en `VAP_Pagos` con tus permisos);
+> (5) **RF nuevos**: la plantilla con previsualización no tiene requisito (proponer un RF nuevo, el siguiente libre); y el **identificador de SAGE** es opcional en el formulario
+> (RF-82 lo exige en el alta; hace falta para guardar la cuenta); (6) **definir cuándo se obliga** a tener empresa y cuenta para cerrar el mes (hoy:
+> sin empresa el evento queda `sin-aplicar`); (7) **modificar** una persona y el **cambio de empresa** (RF-82/83) no están; (8) prueba en Google real.
+> **Riesgos conocidos:** el maestro se escribe por posición de cabecera pero **sin comprobar duplicados por nombre**, solo por DNI en la pestaña de esa empresa;
+> una baja pone la fecha pero no valida que sea posterior al alta.
+
+> **17 nov 2026 · v0.2.0 desplegada con `clasp`** (proyecto `script_webapp_VAP`, «Ejecutar como»: propietario). Cambios: submenú
+> *Gestión Personal*, grupos de pasos y *Marcar como realizado* (primera escritura, en `estado_pasos`). **Pendiente:**
+> (1) subir esta v0.2.0 (`clasp push` desde `docs_solutions/src/webapp/`, con OK) y comprobar en Google real que la escritura y el
+> bloqueo funcionan; (2) probar con la cuenta de Sara; (3) **orden de los pasos: el export de SAGE (paso 3) va después de la
+> comprobación 1.2, pero OB-44 lo pone antes — decidir** (es solo cambiar `orden`/`requiere` en el catálogo); (4) ADR-0018: recoger
+> «Ejecutar como: propietario» y la escritura; ADR de despliegue con `clasp`; (5) cómo se reflejan los resultados de 1.2 en
+> *Comprobaciones* y *Registro de diferencias*.
+
+> **Para la siguiente sesión de desarrollo (decidido el 17 nov 2026): el catálogo de pasos pasa de código a datos.**
+> Hoy vive en `PASOS_PROCESO_MENSUAL` (`dominio-pasos.gs`). Se leerá de la hoja `config` del libro `VAP_Webapp`,
+> en las columnas `paso_id · orden · titulo · detalle · tipo`, junto a `clave · valor` (decisión del desarrollador;
+> el riesgo de ordenar o filtrar una tabla y arrastrar la otra se aceptó, y se puede mitigar protegiendo A:B).
+> Se niega a abrirse si faltan columnas, hay `paso_id` repetido, `tipo` no es `manual`/`ejecutable` o `orden` no es
+> número; un `paso_id` de `estado_pasos` fuera del catálogo se avisa. Un paso `ejecutable` solo es lanzable si el código
+> lo sabe ejecutar (hoy ninguno). Pruebas primero; actualizar ADR-0018, README de la webapp y SSD.
+> **El libro ya tiene la primera fila rellenada; faltan las otras dos (`actualizar-bbdd-personas`, `comprobar-concordancia`).**
 
 ### OB-21 · Lanzar el mes y registrar sus fechas — 🔵
 
@@ -802,8 +857,8 @@ primer grupo.
 
 | | |
 |---|---|
-| **Responde a** | [RF-82…RF-85](../docs_discovery/requisitos_funcionales.md) · [HU-47](../docs_discovery/historias_usuarios.md) |
-| **Depende de** | OB-45 (donde se guarda la huella) · ver **todas las pestañas** de `VAP_BBDD_Personas` (no se han visto) |
+| **Responde a** | [RF-82…RF-85 · RF-97](../docs_discovery/requisitos_funcionales.md) · [HU-47](../docs_discovery/historias_usuarios.md) |
+| **Depende de** | OB-45 (el servicio donde se guarda la huella) · ver **todas las pestañas** de `VAP_BBDD_Personas` (no se han visto) |
 
 Una pantalla para **dar de alta, de baja y modificar** a una persona, y para ver todo el maestro
 respetando sus pestañas. Un alta pide **empresa, identificador de SAGE, nombre, DNI y fecha de alta**; la
@@ -816,6 +871,11 @@ escrituras es: **evento, cambios en los dos libros, y comprobación de que concu
 > **Con las bajas y altas por cambio de empresa, un mismo DNI aparece dos veces.** [OB-44](#ob-44--comprobar-que-cada-persona-sigue-en-concordancia-entre-sage-y-el-maestro-de-personas--)
 > debe dar por incidencia solo dos filas **activas**. Y `VAP_Pagos` tendrá dos filas con la misma
 > huella (una de baja): la búsqueda mira solo las activas.
+
+> **Cambio del 17 nov 2026:** la v0.3.0 calcula la huella **dentro de la webapp**, con la clave en las propiedades de su
+> proyecto. Con [ADR-0019](../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) **el alta llama al servicio de
+> `VAP_Pagos`**: la webapp le pasa la cuenta en memoria y **deja de tener la clave**. Además, al guardar la cuenta se anota en
+> `VAP_Personas` la marca `cuenta_en_pagos` con su fecha (RF-97), y se guardan los últimos 4 dígitos (RF-98).
 
 **Se cierra cuando** se da de alta, de baja y se modifica desde la pantalla, y cada cambio deja su
 registro sin que un fallo a mitad de camino quede sin avisar.
@@ -1221,7 +1281,7 @@ webapp del proceso mensual, `VAP_Pagos` con la huella y *Altas/bajas*. Esto qued
 | **Decisiones de seguridad de la webapp:** «ejecutar como» (tú o quien accede), quién tiene acceso, segundo editor, frecuencia de la copia | Bloquean aceptar [ADR-0017](../docs_solutions/docs_design/adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) y [ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), ambos en Propuesta. Riesgos R-22 y R-23 | Tú |
 | **`clasp`: ¿se adopta?** | El despliegue sigue siendo copiar y pegar (R-13). Su inicio de sesión es una credencial: se decide cada parámetro antes de usarlo | Tú |
 | **¿Abrir un sprint nuevo para OB-45 (`VAP_Pagos` y la carga inicial)?** | Dijiste «el siguiente sprint». La regla del proyecto es que el sprint nuevo entra **por arriba** y el resto baja, con renumeración de cientos de referencias; **no se ha hecho**. Alternativa: colgarlo del Sprint 1 | Tú |
-| **Decisiones de seguridad de `VAP_Pagos`:** algoritmo de la huella (propuesta HMAC-SHA256), dónde y cómo se guarda la clave, quién abre el libro, copia de la clave, plazo de conservación, si se enseñan los últimos dígitos | Sin ellas no se escribe el ADR de OB-36 y OB-45. Riesgo R-25 | Tú, con Gerencia y protección de datos |
+| ~~**Decisiones de seguridad de `VAP_Pagos`**~~ **Decididas el 17 nov 2026** (menos la firma, el plazo de conservación de los informes y quién ve la entrada del gestor de contraseñas) | Ver [DUDA-0005](dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md) y [ADR-0019](../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md). Riesgo R-25 | Tú, con Gerencia y protección de datos |
 | **Ficheros reales en `docs_work/docs_cruce/`** (ADESLAS, COBEE, banco, SAGE y la Vinculación) | Solo los protege la extensión en `.gitignore` (R-24). El `README.md` de esa carpeta se borró y sus enlaces se repuntaron al de `migration_data/`. ¿Mover los ficheros a `migration_data/`, o declarar `docs_cruce/` ignorada dejando pasar solo los `.md`? | Tú |
 | **Skill `dev-apps-script`** | Las convenciones de Apps Script solo viven en el CLAUDE.md de BUCA. Contenido propuesto: capas y prefijos, ES2019, seguridad (`api…` y `_`), configuración, pruebas, despliegue y límites de la plataforma | Tú; se crea con `dev-nueva-skill` |
 | **Prueba en Google real de la webapp** | **No se puede automatizar:** `Session.getActiveUser()`, permisos y ventana de seguridad de HtmlService. Alternativa: la lista de comprobación manual del README de la webapp, antes de cada despliegue | Tú, con la cuenta de la Responsable |
@@ -1229,6 +1289,90 @@ webapp del proceso mensual, `VAP_Pagos` con la huella y *Altas/bajas*. Esto qued
 | **Remesa completa del banco** (y saber si hay un fichero por empresa) | La muestra trae 10 pagos de 208; la carga inicial de `VAP_Pagos` se mide con el fichero entero | Banco · Administración |
 | **FLUJO.md no refleja la pantalla *Proceso mensual*** | Describe el proceso a mano y la versión desplegada; sigue en espera de OB-30 | Va con OB-30 |
 | **Cifras antiguas en `valor_dev.md`** | Se actualizaron el 16 nov; se vuelven a desfasar con cada requisito nuevo | Mantener |
+
+## Pendientes del 17 nov 2026 (tarde): el modelo de `VAP_BBDD_Personas`
+
+Al ver el maestro real **se comprobó que la v0.3.0/v0.4.0 de Altas/bajas supone una estructura que no es la suya**. Hay
+que rehacer esa parte antes de activarla. **La webapp es segura mientras tanto: se niega a escribir si no está configurada.**
+Se decidió trabajar **«parte por parte»**, con cambios pequeños. RF nuevos: [RF-100 y RF-101](../docs_discovery/requisitos_funcionales.md) (HU-47).
+
+**Cómo es el maestro de verdad** (frente a lo supuesto): una pestaña **por tipo** (`VAP_Staff`, `VAP_Secretarias`, `VAP_Profesores`), no por empresa;
+`Empresa` es una **columna**; el nombre va en **una sola columna** con el formato «APELLIDOS, NOMBRE»; `id_trabajador` = `EMPRESA_IdSage`;
+las pestañas están **protegidas** y las cabeceras **difieren** entre ellas y las leen por nombre los scripts de producción.
+
+### Decisiones tomadas por el usuario (17 nov)
+
+| Tema | Decisión |
+|---|---|
+| **Listas (empresas, tipos de Staff)** | **Una sola fuente**, en `Config` del maestro, como **clave y valor separados por comas** (más editable y rápido). Todos los desplegables y la webapp leen de ahí |
+| `Id_Sage` · `id_trabajador` · `DNI` | Deben estar **en todas** las pestañas. `id_trabajador` se queda: se usa para muchas cosas |
+| **Alta** | **Casilla** (booleano) en todas |
+| **Fecha_Alta y Fecha_Baja** | En **todas** (Staff hoy no tiene `Fecha_Baja`) |
+| **Revisión** | Pasa a **`Observaciones`**, en todas |
+| **Cuenta bancaria** | Columna nueva que **marca que existe la huella** (RF-97) |
+| **Nombre** | Staff: «Nombre» (**sin apellidos**) · Secretarías: quizá **se queda** `Nombre_Secretaria` · Profesores: quizá `Nombre_Profesores`. **Sin cerrar** |
+| **Tipo (Staff)** | Desplegable como el de empresas, **también desde `Config`**, para todo el sistema |
+
+### Sin resolver (por orden: cada una desbloquea la siguiente)
+
+| # | Qué falta | Detalle y opciones | Decide / hace |
+|---|---|---|---|
+| 1 | **Lista correcta de empresas** | `Config` tiene **7** y el desplegable de `VAP_Staff` **9** (nombres cortados en la captura). Hay que pasar la lista exacta, escrita como en los datos (solo nombres de empresa) | **Tú** |
+| 2 | **Desplegable desde una lista con comas** | Sheets **no puede** tomarlo de una celda con comas: hace falta una **celda auxiliar con fórmula** (`TRANSPOSE`+`SPLIT`+`TRIM`; separadores `;` o `,` según la configuración regional). **Fórmula SIN verificar**: se prueba en tu libro. Regla: **ningún nombre con coma** | Tú, guiado |
+| 3 | **La columna E «Empresas» de `Config` (7 valores)** | Quedaría obsoleta. **No se ha comprobado qué otro script la lee** antes de borrarla. Las filas nuevas (clave en A, valor en B) **no deberían molestar** al lector de notificaciones (`getNotificationEmailsByType_`, solo actúa con dos tipos concretos y la columna C verdadera): **no probado** | Yo, en solo lectura, luego tú |
+| 4 | **Lista de `Tipo` de Staff** | Falta su contenido y la clave (`Tipos_Staff`) | **Tú** |
+| 5 | **Nombre en Secretarías y Profesores** | ¿se renombra a `Nombre_Profesores`? Secretarías mantiene `Nombre_Secretaria`, que **leen dos scripts de producción** (Horas Extras y Complementos) y el cruce de BBDD | **Tú** |
+| 6 | **Homogeneización de cabeceras (RF-101)** | **Tarea aparte y coordinada**: adaptar los lectores (`Nombre_Secretaria` en 2 scripts y en el cruce de BBDD, con sus pruebas), renombrar las hojas y **desplegar todo a la vez**, con consecuencias por escrito (`dev-pre-produccion`). Renombrar solo las hojas **rompería producción** | Yo + tú |
+| 7 | **Columna `Fecha_Baja` en Staff y marca de cuenta en las tres pestañas** | Hasta que existan, **la baja en Staff se rechaza**. Pestañas protegidas: las editas tú | **Tú** |
+| 8 | **¿Alias de cabeceras en la webapp mientras tanto?** | Pregunta que quedó **sin responder**: la webapp lee las cabeceras actuales vía una tabla de alias, y se simplifica cuando se homogenice. Alternativa: esperar a RF-101 | **Tú** |
+
+### Qué hay que rehacer en la webapp (después de cerrar los puntos 1–7)
+
+- Escribir en la pestaña **del tipo** (Staff, Secretaría o Profesor); la plantilla CSV gana la columna `tipo`.
+- Elegir la empresa de **la lista única**; el **Id de SAGE pasa a obligatorio** en el alta.
+- Componer `id_trabajador` = `EMPRESA_IdSage` y el nombre «APELLIDOS, NOMBRE» en mayúsculas.
+- **Alta = casilla** (true/false). Baja = `Alta` en false + `Fecha_Baja`, localizando a la persona por **DNI y empresa**.
+- Marcar la columna de cuenta tras guardar la huella. Leer las listas del maestro (`maestro_libro_id`, solo lectura).
+- Quitar el mapa «empresa=pestaña» y el separador `;` de `parsearEmpresas_`. Actualizar pruebas y documentos.
+
+### Otros pendientes de hoy (sin decidir o sin hacer)
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| **Catálogo de pasos: de código a `config`** | Hoy vive en `dominio-pasos.gs`. Lo pediste para la **siguiente sesión de desarrollo** | Yo, con tu OK |
+| **Orden del paso 3 (Export SAGE) frente al 1.2** | OB-44 lo coloca antes; en la pantalla va después | **Tú** |
+| **ADR del despliegue con `clasp`** y **registrar «Ejecutar como: propietario» y las escrituras en ADR-0018** | Decisión tomada y en uso, **sin ADR**. Un ADR nuevo o cambiado necesita tu OK | Yo, con tu OK |
+| **Requisitos de la plantilla con previsualización y cuándo son obligatorios empresa y cuenta** | Para cerrar el mes. Hoy: sin empresa, el evento queda `sin-aplicar` | **Tú** |
+| **Modificar una persona, cambio de empresa y dar cuenta a una persona existente** | RF-82/83. No construido | Yo, tras el modelo |
+| **Probar a Sara de verdad** | Entrar con `sara.casillas` y comprobar que ve y usa todo sin abrir el libro (`Session.getActiveUser()` en Google real) | Tú |
+| **¿Dejar activada la API de Apps Script en tu cuenta?** | La activaste para subir con `clasp`. Decide si se mantiene | **Tú** |
+| **Todo lo que escribe, el bloqueo y el HMAC, en Google real** | Los dobles lo aproximan, no lo sustituyen (`dev-pre-produccion`) | Tú |
+| **`historias_usuarios.md` perdió los finales de línea CRLF** | `git diff` marca el fichero entero (2.243 líneas) aunque el contenido cambia en unas 65. Sin pérdida de contenido; el commit será ruidoso | Tú: ¿se conserva? |
+
+## Pendientes que salen del trabajo del 17 nov 2026
+
+El 17 nov se decidió el diseño de `VAP_Pagos` y del cruce de pagos ([ADR-0019](../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), OB-45, OB-47).
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| ✅ **Resuelto el 17 nov 2026: `*.xml` añadido a `.gitignore`** (antes `docs_work/docs_cruce/OFICINA_C342_REM_2526862515.xml` NO estaba ignorado) | Es una remesa real del banco (nombres e IBAN) y `.gitignore` solo cubre `*.csv`, `*.xlsx`, `*.xls` y `*.ods`. **Un `git add .` la subiría** (R-24). Alternativa: añadir `*.xml` a `.gitignore` y/o moverla a `migration_data/` | **Tú**, antes del commit |
+| **Firma de Gerencia y de protección de datos** | Resumen de una página en [resumen_proteccion_datos.md](resumen_proteccion_datos.md). **No bloquea escribir ni probar con datos inventados; sí bloquea cargar datos reales** | Tú |
+| **Crear el proyecto y el libro `VAP_Pagos`, generar la clave, guardarla en el gestor de contraseñas y desplegar el servicio** | Pasos de Google, no automatizables. Uno a uno y con captura; los nombres de los menús **no están verificados** | **Tú**, guiado |
+| **Identificación entre la webapp y el servicio de `VAP_Pagos`** | No se puede probar en local (permisos y despliegue de Google). Riesgo R-28. Alternativa: lista de comprobación manual escrita antes de desplegar | Tú, con la cuenta real |
+| **Tiempos reales frente al límite de 6 min** | Los dobles no miden la cuota de Google. Alternativa: cruce real con la remesa completa de la empresa más grande | Tú |
+| **Permisos reales y triggers** | Quién abre el libro y el proyecto; no probable en local | Tú |
+| **Lectura de `.xls` y `.xlsx` en el navegador** | XML y CSV se leen sin librerías; **Excel necesita una librería en el navegador**, y toda dependencia nueva lleva su ADR. Si no se llega, el cruce admite XML y CSV y se pide convertir el Excel | Tú: ¿se adopta una librería? |
+| **Duplicación de funciones entre dos proyectos (IBAN)** | La normalización y validación del IBAN viven en la webapp y hacen falta en `VAP_Pagos` (RNF-17). Alternativa: que **solo el servicio** valide la cuenta | Tú |
+| **Plazo de conservación de los informes** · **quién ve la entrada del gestor de contraseñas** · **segundo editor del proyecto** · **frecuencia de la copia del libro** | Abiertas en el ADR-0019; R-22 y R-25 | Tú, con Gerencia |
+| **Borrar los ficheros** | El **Excel de altas** (nombre, DNI y cuenta) tras verificar la carga, y los **ficheros del banco** cuando proceda. El sistema no los borra (RNF-23, R-29) | Tú |
+| ~~**Migrar la webapp v0.3.0 al servicio**~~ ✅ **Hecho en el código (v0.4.0, sin desplegar)** | La webapp ya no calcula huellas ni conoce `CLAVE_HUELLA`; llama al servicio `src/pagos/`. **Al desplegar hay que retirar `CLAVE_HUELLA` de las propiedades de la webapp desplegada (v0.2.0)** si se llegó a poner | Tú, al desplegar |
+| **Código escrito el 17 nov 2026, sin desplegar:** servicio `src/pagos/` (v0.1.0), webapp v0.4.0 con *Cruzar Pagos*, *Históricos*, *Maestro de Pagos* y *Carga inicial* | Cubierto con pruebas en memoria (Vitest, Playwright). **No probado en Google real:** despliegue, token entre proyectos, tiempos, permisos, `Utilities.computeHmacSha256Signature` real | Tú, con `dev-pre-produccion` |
+| 🔎 **El XML del banco trae el DNI de cada beneficiario** (`Cdtr/Id/PrvtId/Othr/Id`, con `Issr` = `DNI`, prefijo `ES`) | El diseño parte de que el banco «no trae DNI» (DUDA-0005). **En el formato XML sí lo trae.** Permitiría proponer a la persona de una cuenta **no existente** (parte 2) por DNI, sin guardarlo en `VAP_Pagos`, y verificar que cuenta y DNI casan. **No se ha implementado**: decide si se usa | Tú |
+| **Fuente de importes esperados (Vinculación): lectura SUPUESTA** | DUDA-0006 sigue abierta. Se lee un libro y una hoja por configuración (`vinculacion_*` en `config`), por DNI. **La variante «subir el archivo de Vinculación desde la pantalla» no está hecha** (necesita leer Excel en el navegador) | Tú |
+| **Carga inicial desde el Excel de altas** | La pantalla lee **CSV** (`empresa;nombre;dni;cuenta`). El Excel de altas hay que guardarlo como CSV (se borra después, como el Excel). No se lee `.xlsx` en el navegador | Tú |
+| **Supuestos del maestro** | `id_personal = Empresa_nº`, y las columnas `cuenta_en_pagos` y `cuenta_en_pagos_fecha` en cada pestaña de `VAP_BBDD_Personas` (no se ha visto el maestro real) | Tú |
+| **La carga inicial no deja evento en `registro_personal`** | RF-84 habla de altas, bajas y modificaciones. La carga inicial queda en `VAP_Pagos` (fecha de actualización) y en la marca del maestro, pero no en el registro de eventos. Decide si se quiere | Tú |
+| **`biome.json` ampliado a `src/pagos` y `tests/pagos`** y **recuentos de `CLAUDE.md`** | Los proyectos nuevos siguen el linter. `CLAUDE.md` (Pruebas) cita 1.790 pruebas de Vitest y 202 de Playwright: ahora son 1.978 (1.937 pasan y 41 documentan defectos) y 239. Además cita la webapp como **v0.3.0**; el código es **v0.4.0** | Tú (`CLAUDE.md` es tuyo) |
 
 ## Mejoras detectadas por las pruebas — **hacer antes del siguiente sprint**
 

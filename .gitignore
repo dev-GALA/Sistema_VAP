@@ -8,6 +8,7 @@ docs_work/migration_data/*
 *.xlsx
 *.xls
 *.ods
+*.xml
 
 # Configuración local de cada máquina
 .claude/settings.local.json
@@ -19,3 +20,6 @@ __pycache__/
 test-results/
 playwright-report/
 .vitest/
+
+# Vínculo local con el proyecto de Apps Script (clasp): no se versiona
+.clasp.json

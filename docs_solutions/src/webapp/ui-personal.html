@@ -1,0 +1,424 @@
+<script>
+// Pantalla «Altas/bajas»: alta o baja a mano y subida de una plantilla con previsualización (HU-47, RF-82).
+// El texto que viene del servidor entra siempre con textContent. La cuenta bancaria NO se conserva en la
+// pantalla: se vacía el campo en cuanto se envía, y la plantilla no puede llevarla (RNF-19).
+(function () {
+  'use strict';
+
+  var COLUMNAS = ['accion', 'nombre', 'apellidos', 'dni', 'fecha', 'empresa', 'id_trabajador'];
+  var OBLIGATORIAS = ['accion', 'nombre', 'apellidos', 'dni', 'fecha'];
+  var CLAVE_DE_COLUMNA = { id_trabajador: 'idTrabajador' };
+  var ROTULO_RESULTADO = {
+    'completo': 'Completo', 'aplicado': 'Aplicado · falta la cuenta', 'sin-aplicar': 'Registrado sin aplicar',
+    'error': 'Error', 'rechazado': 'Rechazado'
+  };
+  var CLASE_RESULTADO = { 'completo': 'ok', 'aplicado': 'aviso', 'sin-aplicar': 'aviso', 'error': 'error', 'rechazado': 'error' };
+
+  var ayudas = null;
+  var opciones = null;
+  var filas = [];
+
+  function crear(etiqueta, clase, texto) { return ayudas.crear(etiqueta, clase, texto); }
+
+  function campo(etiqueta, control) {
+    var contenedor = crear('label', 'campo');
+    contenedor.appendChild(crear('span', '', etiqueta));
+    contenedor.appendChild(control);
+    return contenedor;
+  }
+
+  function entrada(id, tipo) {
+    var e = document.createElement('input');
+    e.id = id;
+    e.type = tipo || 'text';
+    e.autocomplete = 'off';
+    return e;
+  }
+
+  function selector(id, valores) {
+    var s = document.createElement('select');
+    s.id = id;
+    valores.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v[0];
+      o.textContent = v[1];
+      s.appendChild(o);
+    });
+    return s;
+  }
+
+  function opcionesDeEmpresa() {
+    return [['', 'Sin elegir']].concat(opciones.empresas.map(function (e) { return [e, e]; }));
+  }
+
+  function alerta(clase, texto, id) {
+    var a = crear('div', 'alerta ' + clase, texto);
+    if (id) a.id = id;
+    a.setAttribute('role', clase === 'error' ? 'alert' : 'status');
+    return a;
+  }
+
+  // Ventana de confirmación propia (<dialog>): window.confirm no se puede garantizar dentro del marco de Apps Script.
+  function confirmar(texto, alAceptar) {
+    var dialogo = document.createElement('dialog');
+    dialogo.setAttribute('aria-label', 'Confirmar');
+    dialogo.appendChild(crear('p', '', texto));
+    var fila = crear('div', 'fila');
+    var cancelar = ayudas.boton('Cancelar', function () { dialogo.close(); dialogo.remove(); });
+    var aceptar = ayudas.boton('Confirmar', function () { dialogo.close(); dialogo.remove(); alAceptar(); });
+    aceptar.classList.add('principal');
+    fila.appendChild(cancelar);
+    fila.appendChild(aceptar);
+    dialogo.appendChild(fila);
+    document.body.appendChild(dialogo);
+    dialogo.showModal();
+  }
+
+  // ---------- Alta o baja a mano ----------
+
+  function textoDeResultado(r) {
+    if (r.estado === 'completo') return 'Guardado y completo.';
+    if (r.estado === 'rechazado') return 'No se ha guardado: ' + r.detalle;
+    if (r.estado === 'error') return 'No se ha podido completar: ' + r.detalle;
+    return r.detalle;
+  }
+
+  function seccionManual() {
+    var tarjeta = crear('section', 'tarjeta');
+    tarjeta.id = 'seccion-manual';
+    tarjeta.appendChild(crear('h2', '', 'Alta o baja a mano'));
+
+    var accion = selector('f-accion', [['alta', 'Alta'], ['baja', 'Baja']]);
+    var nombre = entrada('f-nombre');
+    var apellidos = entrada('f-apellidos');
+    var dni = entrada('f-dni');
+    var fecha = entrada('f-fecha', 'date');
+    var etiquetaFecha = crear('span', '', 'Fecha de alta');
+    var campoFecha = crear('label', 'campo');
+    campoFecha.appendChild(etiquetaFecha);
+    campoFecha.appendChild(fecha);
+    var id = entrada('f-id');
+    var empresa = selector('f-empresa', opcionesDeEmpresa());
+    var iban = entrada('f-iban');
+    iban.spellcheck = false;
+    iban.disabled = !opciones.cuentaConfigurada;
+
+    var rejilla = crear('div', 'formulario');
+    [campo('Alta o baja', accion), campo('Nombre', nombre), campo('Apellidos', apellidos), campo('DNI', dni), campoFecha,
+      campo('Identificador de SAGE (opcional)', id), campo('Empresa (obligatoria para cerrar el mes)', empresa),
+      campo('Cuenta bancaria (IBAN, opcional)', iban)].forEach(function (c) { rejilla.appendChild(c); });
+    tarjeta.appendChild(rejilla);
+
+    var resultado = crear('div', '');
+    resultado.id = 'resultado-manual';
+    var guardar = ayudas.boton('Guardar', function () { guardarManual(); });
+    guardar.id = 'guardar-manual';
+    guardar.classList.add('principal');
+    guardar.disabled = !opciones.maestroConfigurado;
+    tarjeta.appendChild(guardar);
+    tarjeta.appendChild(resultado);
+
+    accion.addEventListener('change', function () {
+      etiquetaFecha.textContent = accion.value === 'baja' ? 'Fecha de baja' : 'Fecha de alta';
+      iban.disabled = !opciones.cuentaConfigurada || accion.value === 'baja';
+      if (iban.disabled) iban.value = '';
+    });
+
+    function guardarManual() {
+      var registro = {
+        accion: accion.value, nombre: nombre.value, apellidos: apellidos.value, dni: dni.value,
+        fecha: fecha.value, empresa: empresa.value, idTrabajador: id.value, iban: iban.value
+      };
+      iban.value = '';
+      guardar.disabled = true;
+      vaciarNodo(resultado);
+      google.script.run
+        .withSuccessHandler(function (resultados) {
+          guardar.disabled = false;
+          var r = resultados[0];
+          resultado.appendChild(alerta(CLASE_RESULTADO[r.estado] || 'info', textoDeResultado(r)));
+          if (r.estado !== 'rechazado' && r.estado !== 'error') {
+            [nombre, apellidos, dni, fecha, id].forEach(function (c) { c.value = ''; });
+            empresa.value = '';
+          }
+        })
+        .withFailureHandler(function (error) {
+          guardar.disabled = false;
+          resultado.appendChild(alerta('error', error.message));
+        })
+        .apiRegistrarPersonas([registro]);
+    }
+    return tarjeta;
+  }
+
+  function vaciarNodo(nodo) { while (nodo.firstChild) nodo.removeChild(nodo.firstChild); }
+
+  // ---------- Plantilla ----------
+
+  /** CSV con «;» o «,» y comillas dobles. Devuelve una lista de filas (listas de textos). */
+  function analizarCsv(texto) {
+    var limpio = texto.replace(/^﻿/, '');
+    var primera = limpio.split(/\r?\n/)[0] || '';
+    var separador = primera.split(';').length >= primera.split(',').length ? ';' : ',';
+    var resultado = [];
+    var fila = [];
+    var celda = '';
+    var entreComillas = false;
+    for (var i = 0; i < limpio.length; i++) {
+      var c = limpio[i];
+      if (entreComillas) {
+        if (c === '"' && limpio[i + 1] === '"') { celda += '"'; i++; }
+        else if (c === '"') entreComillas = false;
+        else celda += c;
+      } else if (c === '"') entreComillas = true;
+      else if (c === separador) { fila.push(celda); celda = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && limpio[i + 1] === '\n') i++;
+        fila.push(celda); celda = '';
+        resultado.push(fila); fila = [];
+      } else celda += c;
+    }
+    if (celda !== '' || fila.length > 0) { fila.push(celda); resultado.push(fila); }
+    return resultado.filter(function (f) { return f.some(function (x) { return x.trim() !== ''; }); });
+  }
+
+  function registrosDeCsv(texto) {
+    var tabla = analizarCsv(texto);
+    if (tabla.length < 2) throw new Error('La plantilla no tiene filas de datos.');
+    var cabecera = tabla[0].map(function (c) { return c.trim().toLowerCase(); });
+    if (cabecera.some(function (c) { return /iban|cuenta|banc/.test(c); })) {
+      throw new Error('La plantilla no puede llevar la cuenta bancaria: se da a mano, en el formulario.');
+    }
+    var faltan = OBLIGATORIAS.filter(function (c) { return cabecera.indexOf(c) === -1; });
+    if (faltan.length > 0) throw new Error('A la plantilla le faltan las columnas: ' + faltan.join(', ') + '.');
+    return tabla.slice(1).map(function (valores) {
+      var registro = {};
+      COLUMNAS.forEach(function (columna) {
+        var posicion = cabecera.indexOf(columna);
+        registro[CLAVE_DE_COLUMNA[columna] || columna] = posicion === -1 ? '' : (valores[posicion] || '').trim();
+      });
+      return registro;
+    });
+  }
+
+  function seleccionables() {
+    return filas.filter(function (f) { return f.errores.length === 0 && !f.resultado; });
+  }
+
+  function verificadas() {
+    return filas.filter(function (f) { return f.verificado && f.errores.length === 0 && !f.resultado; });
+  }
+
+  function celdaEditable(fila, clave, tipo) {
+    var control;
+    if (clave === 'accion') control = selector('', [['alta', 'Alta'], ['baja', 'Baja'], ['', '—']]);
+    else if (clave === 'empresa') control = selector('', opcionesDeEmpresa());
+    else { control = document.createElement('input'); control.type = 'text'; }
+    control.value = fila.registro[clave] || '';
+    if (clave === 'accion' && control.value !== 'alta' && control.value !== 'baja') control.value = '';
+    control.disabled = !!fila.resultado;
+    control.setAttribute('aria-label', clave);
+    control.addEventListener('change', function () {
+      fila.registro[clave] = control.value;
+      fila.verificado = false;
+      revalidar();
+    });
+    return control;
+  }
+
+  function celdaEstado(fila) {
+    var td = document.createElement('td');
+    if (fila.resultado) {
+      td.appendChild(crear('span', 'chip ' + (CLASE_RESULTADO[fila.resultado.estado] || ''), ROTULO_RESULTADO[fila.resultado.estado] || fila.resultado.estado));
+      if (fila.resultado.detalle) td.appendChild(crear('div', 'suave pequeno', fila.resultado.detalle));
+    } else if (fila.errores.length > 0) {
+      td.appendChild(crear('span', 'chip error', 'Con errores'));
+      fila.errores.forEach(function (e) { td.appendChild(crear('div', 'suave pequeno', e)); });
+    } else {
+      td.appendChild(crear('span', 'chip', fila.verificado ? 'Verificada' : 'Pendiente de verificar'));
+    }
+    return td;
+  }
+
+  function pintarTabla() {
+    var zona = document.getElementById('zona-tabla');
+    vaciarNodo(zona);
+    if (filas.length === 0) return;
+
+    var listas = seleccionables().length;
+    var conErrores = filas.filter(function (f) { return f.errores.length > 0 && !f.resultado; }).length;
+    var aplicadas = filas.filter(function (f) { return f.resultado; }).length;
+    var resumen = crear('p', 'suave', filas.length + ' filas · ' + listas + ' sin errores · ' + conErrores + ' con errores · ' + aplicadas + ' aplicadas');
+    resumen.id = 'resumen-plantilla';
+    zona.appendChild(resumen);
+
+    var envoltorio = crear('div', 'tabla-envoltorio');
+    var tabla = crear('table', 'tabla-plantilla');
+    tabla.id = 'tabla-plantilla';
+    var cabecera = document.createElement('tr');
+    var thTodos = document.createElement('th');
+    var todos = document.createElement('input');
+    todos.type = 'checkbox';
+    todos.id = 'verificar-todos';
+    todos.setAttribute('aria-label', 'Verificar todos');
+    todos.disabled = listas === 0;
+    todos.checked = listas > 0 && verificadas().length === listas;
+    todos.addEventListener('change', function () {
+      seleccionables().forEach(function (f) { f.verificado = todos.checked; });
+      pintarTabla();
+    });
+    thTodos.appendChild(todos);
+    thTodos.appendChild(crear('div', 'pequeno', 'Todos'));
+    cabecera.appendChild(thTodos);
+    ['#', 'Acción', 'Nombre', 'Apellidos', 'DNI', 'Fecha', 'Empresa', 'Id SAGE', 'Estado'].forEach(function (t) {
+      cabecera.appendChild(crear('th', '', t));
+    });
+    var thead = document.createElement('thead');
+    thead.appendChild(cabecera);
+    tabla.appendChild(thead);
+
+    var cuerpo = document.createElement('tbody');
+    filas.forEach(function (fila, i) {
+      var tr = document.createElement('tr');
+      if (fila.errores.length > 0 && !fila.resultado) tr.className = 'fila-error';
+      var tdMarca = document.createElement('td');
+      var marca = document.createElement('input');
+      marca.type = 'checkbox';
+      marca.setAttribute('aria-label', 'Verificar fila ' + (i + 1));
+      marca.checked = !!fila.verificado;
+      marca.disabled = fila.errores.length > 0 || !!fila.resultado;
+      marca.addEventListener('change', function () { fila.verificado = marca.checked; pintarTabla(); });
+      tdMarca.appendChild(marca);
+      tr.appendChild(tdMarca);
+      tr.appendChild(crear('td', '', String(i + 1)));
+      ['accion', 'nombre', 'apellidos', 'dni', 'fecha', 'empresa', 'idTrabajador'].forEach(function (clave) {
+        var td = document.createElement('td');
+        td.appendChild(celdaEditable(fila, clave));
+        tr.appendChild(td);
+      });
+      tr.appendChild(celdaEstado(fila));
+      cuerpo.appendChild(tr);
+    });
+    tabla.appendChild(cuerpo);
+    envoltorio.appendChild(tabla);
+    zona.appendChild(envoltorio);
+
+    var n = verificadas().length;
+    var aplicar = ayudas.boton('Aplicar verificadas (' + n + ')', function () { aplicarVerificadas(); });
+    aplicar.id = 'aplicar-verificados';
+    aplicar.classList.add('principal');
+    aplicar.disabled = n === 0 || !opciones.maestroConfigurado;
+    zona.appendChild(aplicar);
+  }
+
+  function mostrarFalloPlantilla(mensaje) {
+    var zona = document.getElementById('zona-mensaje');
+    vaciarNodo(zona);
+    zona.appendChild(alerta('error', mensaje));
+  }
+
+  function revalidar() {
+    google.script.run
+      .withSuccessHandler(function (resultados) {
+        resultados.forEach(function (r, i) { filas[i].errores = r.errores; if (r.errores.length > 0) filas[i].verificado = false; });
+        pintarTabla();
+      })
+      .withFailureHandler(function (error) { mostrarFalloPlantilla(error.message); })
+      .apiValidarPersonas(filas.map(function (f) { return f.registro; }));
+  }
+
+  function aplicarVerificadas() {
+    var elegidas = verificadas();
+    confirmar('¿Aplicar ' + elegidas.length + ' registros al maestro de personas?', function () {
+      google.script.run
+        .withSuccessHandler(function (resultados) {
+          resultados.forEach(function (r, i) {
+            elegidas[i].resultado = { estado: r.estado, detalle: r.detalle };
+            elegidas[i].verificado = false;
+          });
+          pintarTabla();
+        })
+        .withFailureHandler(function (error) { mostrarFalloPlantilla(error.message); })
+        .apiRegistrarPersonas(elegidas.map(function (f) { return f.registro; }));
+    });
+  }
+
+  function cargarArchivo(archivo) {
+    var zona = document.getElementById('zona-mensaje');
+    vaciarNodo(zona);
+    filas = [];
+    pintarTabla();
+    var lector = new FileReader();
+    lector.onload = function () {
+      try {
+        var registros = registrosDeCsv(String(lector.result));
+        if (registros.length > opciones.maximoPorEnvio) {
+          throw new Error('La plantilla tiene demasiadas filas: el máximo por envío es ' + opciones.maximoPorEnvio + '.');
+        }
+        filas = registros.map(function (registro) { return { registro: registro, errores: [], verificado: false, resultado: null }; });
+        revalidar();
+      } catch (error) {
+        mostrarFalloPlantilla(error.message);
+      }
+    };
+    lector.readAsText(archivo);
+  }
+
+  function seccionPlantilla() {
+    var tarjeta = crear('section', 'tarjeta');
+    tarjeta.id = 'seccion-plantilla';
+    tarjeta.appendChild(crear('h2', '', 'Subir una plantilla'));
+    tarjeta.appendChild(crear('p', '', 'Un archivo CSV con estas columnas en la primera fila, separadas por «;». Después se previsualiza: puedes corregir cada fila y verificarla antes de aplicarla.'));
+    var cabecera = crear('code', 'cabecera-plantilla', COLUMNAS.join(';'));
+    cabecera.id = 'cabecera-plantilla';
+    tarjeta.appendChild(cabecera);
+    tarjeta.appendChild(crear('p', 'suave pequeno', 'Obligatorias: accion, nombre, apellidos, dni y fecha. «accion» es alta o baja. La cuenta bancaria no va en la plantilla: se da a mano en el formulario.'));
+
+    var archivo = document.createElement('input');
+    archivo.type = 'file';
+    archivo.id = 'archivo';
+    archivo.accept = '.csv,.txt,text/csv';
+    archivo.setAttribute('aria-label', 'Archivo de la plantilla');
+    archivo.addEventListener('change', function () { if (archivo.files && archivo.files[0]) cargarArchivo(archivo.files[0]); });
+    tarjeta.appendChild(archivo);
+
+    var mensaje = crear('div', '');
+    mensaje.id = 'zona-mensaje';
+    tarjeta.appendChild(mensaje);
+    var zona = crear('div', '');
+    zona.id = 'zona-tabla';
+    tarjeta.appendChild(zona);
+    return tarjeta;
+  }
+
+  function mostrar(pantalla, ayudasDeLaPantalla) {
+    ayudas = ayudasDeLaPantalla;
+    var principal = document.getElementById('principal');
+    ayudas.vaciar(principal);
+    principal.appendChild(ayudas.cabeceraDePantalla(pantalla));
+    var cargando = crear('div', 'vacio', 'Cargando…');
+    principal.appendChild(cargando);
+    google.script.run
+      .withSuccessHandler(function (o) {
+        opciones = o;
+        filas = [];
+        principal.removeChild(cargando);
+        if (!o.maestroConfigurado) {
+          principal.appendChild(alerta('aviso', 'Falta configurar el maestro de personas y las empresas en la hoja config. Todavía no se puede guardar.', 'aviso-maestro'));
+        }
+        if (!o.cuentaConfigurada) {
+          principal.appendChild(alerta('info', 'La cuenta bancaria todavía no se puede guardar: falta configurar VAP_Pagos o la clave de la huella.', 'aviso-cuenta'));
+        }
+        principal.appendChild(seccionManual());
+        principal.appendChild(seccionPlantilla());
+      })
+      .withFailureHandler(function (error) {
+        principal.removeChild(cargando);
+        principal.appendChild(alerta('error', error.message));
+      })
+      .apiOpcionesPersonal();
+  }
+
+  window.PantallaPersonal = { mostrar: mostrar };
+})();
+</script>

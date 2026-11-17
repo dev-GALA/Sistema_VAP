@@ -4,6 +4,17 @@ import { crearGoogle, formatearFecha, analizarCsv } from './google.js';
 import { evaluarPlantilla } from './plantilla.js';
 import { CODIGO, cargarGs, plano } from './cargar-gs.js';
 
+describe('dobles de Utilities', () => {
+  it('computeHmacSha256Signature devuelve 32 bytes con signo y depende de la clave', () => {
+    const { Utilities } = crearGoogle().global;
+    const a = Utilities.computeHmacSha256Signature('dato', 'clave-1');
+    expect(a).toHaveLength(32);
+    expect(a.every((b) => b >= -128 && b <= 127)).toBe(true);
+    expect(Utilities.computeHmacSha256Signature('dato', 'clave-2')).not.toEqual(a);
+    expect(Utilities.computeHmacSha256Signature('dato', 'clave-1')).toEqual(a);
+  });
+});
+
 describe('dobles de hojas', () => {
   it('getValues devuelve vacíos fuera de lo escrito y setValues exige las mismas dimensiones', () => {
     const g = crearGoogle();

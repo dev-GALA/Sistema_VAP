@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.2 — BORRADOR · con lo visto al probar la verificación con ficheros reales |
-| **Fecha** | 16 noviembre 2026 (versión 0.1: 17 agosto 2026) |
+| **Versión** | 0.3 — BORRADOR · con el cruce de pagos, `VAP_Pagos` y la coherencia del maestro de personas (17 nov 2026) |
+| **Fecha** | 17 noviembre 2026 (versión 0.2: 16 noviembre 2026) |
 | **Autor** | Fran Cañete (fcsainz) |
 | **Estado** | Propuesta inicial para revisión |
 
@@ -413,8 +413,13 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 > - **JS-05** no es solo el alta: abarca **bajas y cambios de empresa o de cuenta**. Un cambio de empresa
 >   se trata como **baja en una y alta en otra**, y su historial queda partido (HU-47; el riesgo R-21 del
 >   SSD ya lo describía para los profesores).
+> - **JS-05 también depende de que el maestro de personas sea coherente** (visto el 17 nov 2026): la lista de empresas está en
+>   **dos sitios que no coinciden** (7 en `Config`, 9 en un desplegable) y las tres pestañas llaman distinto a las mismas columnas, así que
+>   un alta hecha desde una pantalla puede quedar mal en una de ellas (HU-47; RF-100 y RF-101).
 > - **JS-09 y JS-10** necesitan, antes que nada, que la identidad de cada persona concuerde entre SAGE y el
->   maestro de personas (HU-46) y que el pago se reconozca sin guardar la cuenta (HU-48).
+>   maestro de personas (HU-46) y que el pago se reconozca sin guardar la cuenta (HU-48). **JS-10** se sirve
+>   además con el **cruce mensual del fichero del banco**, su informe subsanable (HU-49) y la consulta del
+>   histórico y del Maestro de Pagos (HU-50), decididos el 17 nov 2026.
 
 > 🔍 **Por validar:** ¿faltan situaciones? Las candidatas que se me ocurren y no he escrito: el mes
 > en que un concepto retributivo cambia de criterio, y el momento en que alguien nuevo asume el rol
@@ -509,7 +514,7 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 | **De facto** | **La automatización tiene un techo de aceptación.** Quien opera el cierre maneja datos retributivos muy sensibles y necesita seguir **teniendo el control** de cuándo ocurre cada cosa |
 | **Impuesta** | Los ficheros de ADESLAS, COBEE, banco y SAGE y los libros con nóminas contienen **datos personales** (DNI, IBAN, correo, importes nominativos): no entran en el repositorio ni se copian a la documentación ([CLAUDE.md](../CLAUDE.md), segunda regla) |
 | **Decisión** | La webapp nueva tiene **su propio libro, propiedad de la cuenta del desarrollador** y no de la cuenta compartida del grupo, porque la información es muy delicada ([ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), propuesta) |
-| **Decisión** *(propuesta, pendiente de validar con Gerencia y protección de datos)* | De la cuenta bancaria **solo se guarda una huella**, nunca la cuenta, y **no en el mismo libro que el DNI** (RF-86) |
+| **Decisión** *(17 nov 2026; pendiente de la firma de Gerencia y protección de datos)* | De la cuenta bancaria **solo se guarda una huella** (más los últimos 4 dígitos), nunca la cuenta, y **no en el mismo libro que el DNI**, en un **proyecto de Apps Script propio** que guarda la clave (RF-86, RF-98, RNF-21) |
 
 > **Sobre el techo de automatización.** No es una limitación técnica ni una resistencia al cambio:
 > es una consecuencia razonable de lo que está en juego. Un paso que se dispara solo, en un proceso

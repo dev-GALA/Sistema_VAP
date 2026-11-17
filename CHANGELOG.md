@@ -8,6 +8,57 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 
 ---
 
+## [Sin publicar] · El maestro de personas real obliga a rehacer Altas/bajas (documentado, sin código)
+
+### Descubierto
+- Al ver `VAP_BBDD_Personas`: una pestaña **por tipo** (Staff, Secretarías, Profesores), `Empresa` como columna, nombre en una sola columna («APELLIDOS, NOMBRE») y `id_trabajador` = `EMPRESA_IdSage`. **La v0.3.0 de Altas/bajas supuso otra estructura** y hay que rehacerla; mientras no esté configurada, **no escribe**.
+
+### Añadido
+- **RF-100** (listas únicas de empresas y tipos, en `Config` del maestro, clave y valor separados por comas) y **RF-101** (cabeceras homogéneas, `Alta` como casilla, `Fecha_Alta`/`Fecha_Baja` y `Observaciones` en todas, marca de cuenta), ambos en HU-47, con una condición nueva en sus criterios.
+- `proximos_pasos.md`: bloque **«Pendientes del 17 nov (tarde)»** con las decisiones tomadas, ocho puntos sin resolver y lo que hay que rehacer en la webapp.
+
+### Pendiente
+- Cerrar la lista de empresas (7 en `Config`, 9 en el desplegable de Staff) y el resto de puntos antes de tocar el código.
+
+---
+
+## [Sin publicar] · `VAP_Pagos` y el cruce de pagos: diseño documentado
+
+### Añadido (código, sin desplegar)
+- **Servicio `VAP_Pagos` v0.1.0** (`docs_solutions/src/pagos/`): proyecto de Apps Script propio con la huella HMAC-SHA256 de la cuenta, los últimos 4 dígitos, el cruce por empresa en dos partes (*Coincidente*/*Incorrecto*), la subsanación sin sobrescribir, la fusión obligatoria y el historial. Token en cada llamada. 68 pruebas.
+- **Webapp v0.4.0**: submenú **Pagos** con *Cruzar Pagos*, *Históricos de Pagos*, *Maestro de Pagos* y *Carga inicial de cuentas*; lectura de ficheros del banco **XML (ISO 20022), CSV y TXT** que se rechazan si no cuadran con lo que declaran; marca `cuenta_en_pagos` en el maestro. **La webapp ya no calcula huellas ni conoce la clave.** Pruebas que unen los dos proyectos en memoria y 12 de Playwright.
+- `biome.json` ampliado a los proyectos nuevos.
+
+### Añadido
+- **[ADR-0019](docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md)** (Propuesta): `VAP_Pagos` como **proyecto de Apps Script propio**, huella **HMAC-SHA256** de la cuenta con la clave solo en ese proyecto (copia en el gestor de contraseñas de GALA), últimos 4 dígitos junto a la huella, libro editable por el desarrollador y la Responsable de Administración.
+- **Historias HU-49 y HU-50, requisitos RF-90 a RF-99 y RNF-21 a RNF-23**: cruce de pagos por empresa con XML, CSV o Excel; informe en **dos partes** (*Coincidente*/*Incorrecto* y «no existen»), subsanable sin sobrescribir; histórico por año y mes; Maestro de Pagos; marca `cuenta_en_pagos` en `VAP_Personas`. Objetivo **OB-47**.
+- [`docs_work/resumen_proteccion_datos.md`](docs_work/resumen_proteccion_datos.md): una página para Gerencia y protección de datos.
+- SSD: riesgos **R-28** (conexión entre webapp y `VAP_Pagos` sin verificar) y **R-29** (cuentas en claro en los ficheros del banco hasta que se borren).
+
+### Cambiado
+- **RF-88** y **HU-48**: lo que no se reconoce ya no es «no cruzado», va a la **Parte 2 («no existen»)** del informe. **RNF-20** reescrito (libro con dos editores, clave solo en el proyecto). DUDA-0005, OB-45, OB-46, [ADR-0018](docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) y SSD actualizados.
+- **La clave de la huella deja de estar en la webapp** (decisión; el código de la v0.3.0 aún la tiene en `CLAVE_HUELLA`, anotado en OB-46).
+
+### Pendiente
+- Firma de Gerencia y de protección de datos antes de cargar datos reales. (`*.xml` ya está en `.gitignore`: la remesa real del banco ya no se puede subir por error.)
+
+---
+
+## [2026-11-17] · Webapp desplegada en pruebas, grupos de pasos, submenú y marca de pasos manuales
+
+### Añadido
+- **Webapp v0.2.0 desplegada** (con `clasp`, desde su carpeta; `.clasp.json` por proyecto y fuera de git).
+- **Submenú «Gestión Personal»** (Altas/bajas y Maestro de personal) y **grupos de pasos**: *Acciones 1* (1.1 Actualizar VAP BBDD Personas, 1.2 Comprobar id_trabajador y DNI) y el paso 3 (Export SAGE Laboral).
+- **Marcar un paso manual como realizado**, con confirmación, quién y cuándo (**primera escritura de la webapp**: una fila en `estado_pasos`, bajo bloqueo y comprobada en el servidor). El 1.2 («Comprobar») se activa al realizar el 1.1; la comprobación en sí aún no existe (OB-44).
+
+- **Webapp v0.3.0 · Altas/bajas** (HU-47, HU-48; RF-82, RF-84, RF-85, RF-86, RF-87; RNF-19): alta o baja **a mano** y por **plantilla CSV** con previsualización, corrección y verificación por fila (y «verificar todos»). Escribe en el maestro de personas y, con cuenta, **solo la huella** (HMAC con clave secreta) en `VAP_Pagos`; cada paso queda en `registro_personal` **sin DNI, nombre ni cuenta**. **Se niega a guardar mientras no esté configurado** (empresas, libros y clave en `config` y propiedades del script). Pestañas y cabeceras del maestro **supuestas**, sin ver el libro real.
+- Pruebas: +25 de Playwright y +90 de Vitest (validación de DNI/NIE y IBAN, casos de uso, integración contra libros falsos). Se comprobó que detectan un volcado de la cuenta al registro.
+
+### Cambiado
+- El catálogo de pasos cambia de orden y de textos; «Hecho» se muestra como «Realizado».
+
+---
+
 ## [2026-11-16] · Webapp del proceso mensual (esqueleto), verificación con ficheros reales y requisitos de Comprobaciones, Altas/bajas y `VAP_Pagos`
 
 ### Añadido

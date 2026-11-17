@@ -105,13 +105,17 @@ describe('dominio-acceso · ante la duda, no se entra', () => {
 });
 
 describe('dominio-pantallas · las pantallas son datos', () => {
-  it('son las cinco de la versión 1, en este orden', () => {
+  it('son estas, en este orden (las cinco de la versión 1 y las cuatro de Pagos)', () => {
     expect(plano(valor('PANTALLAS')).map((x) => x.id)).toStrictEqual([
       'proceso-mensual',
       'comprobaciones',
       'diferencias',
       'altas-bajas',
       'maestro',
+      'cruzar-pagos',
+      'historico-pagos',
+      'maestro-pagos',
+      'carga-inicial',
     ]);
   });
 
@@ -123,18 +127,40 @@ describe('dominio-pantallas · las pantallas son datos', () => {
     }
   });
 
-  it('en la versión 1 solo el proceso mensual está disponible', () => {
+  it('están disponibles el proceso mensual, las altas y las cuatro pantallas de Pagos', () => {
     const disponibles = plano(valor('PANTALLAS')).filter((x) => x.disponible);
-    expect(disponibles.map((x) => x.id)).toStrictEqual(['proceso-mensual']);
+    expect(disponibles.map((x) => x.id)).toStrictEqual([
+      'proceso-mensual',
+      'altas-bajas',
+      'cruzar-pagos',
+      'historico-pagos',
+      'maestro-pagos',
+      'carga-inicial',
+    ]);
   });
 
   it.each(['administracion', 'desarrollo'])('el rol %s ve todas', (rol) => {
-    expect(p('pantallasPermitidas_', rol)).toHaveLength(5);
+    expect(p('pantallasPermitidas_', rol)).toHaveLength(9);
   });
 
   it('un rol que no existe no ve ninguna', () => {
     expect(p('pantallasPermitidas_', 'inventado')).toStrictEqual([]);
     expect(p('puedeVerPantalla_', 'inventado', 'proceso-mensual')).toBe(false);
+  });
+
+  it('Altas/bajas y Maestro de personal cuelgan de Gestión Personal; las de pagos, de Pagos; las demás no tienen grupo', () => {
+    const grupos = Object.fromEntries(plano(valor('PANTALLAS')).map((x) => [x.id, x.grupo || '']));
+    expect(grupos).toStrictEqual({
+      'proceso-mensual': '',
+      comprobaciones: '',
+      diferencias: '',
+      'altas-bajas': 'Gestión Personal',
+      maestro: 'Gestión Personal',
+      'cruzar-pagos': 'Pagos',
+      'historico-pagos': 'Pagos',
+      'maestro-pagos': 'Pagos',
+      'carga-inicial': 'Pagos',
+    });
   });
 
   it('una pantalla que no existe no se puede ver', () => {
@@ -188,14 +214,188 @@ describe('dominio-pasos · el estado de cada paso del mes', () => {
     expect(combinar([fila({ estado: 'terminado' })])[0].estado).toBe('desconocido');
   });
 
-  it('el catálogo real arranca con el primer grupo de pasos acordado', () => {
+  it('el catálogo real: grupo Acciones 1 (1.1 y 1.2) y el paso 3 suelto', () => {
     const real = plano(valor('PASOS_PROCESO_MENSUAL'));
-    expect(real.map((x) => x.id)).toStrictEqual([
-      'actualizar-export-sage',
-      'actualizar-bbdd-personas',
-      'comprobar-concordancia',
+    expect(real.map((x) => [x.numero, x.id, x.grupo])).toStrictEqual([
+      ['1.1', 'actualizar-bbdd-personas', 'acciones-1'],
+      ['1.2', 'comprobar-concordancia', 'acciones-1'],
+      ['3', 'actualizar-export-sage', ''],
     ]);
-    expect(real.map((x) => x.tipo)).toStrictEqual(['manual', 'manual', 'ejecutable']);
-    expect(real.map((x) => x.orden)).toStrictEqual([1, 2, 3]);
+    expect(real.map((x) => x.tipo)).toStrictEqual(['manual', 'ejecutable', 'manual']);
+    expect(plano(valor('GRUPOS_PASOS')).map((g) => g.id)).toStrictEqual(['acciones-1']);
+  });
+
+  it('el paso 1.1 lleva a Altas y bajas y el 1.2 exige que el 1.1 esté hecho', () => {
+    const [uno, dos] = plano(valor('PASOS_PROCESO_MENSUAL'));
+    expect(uno.accion).toStrictEqual({ pantalla: 'altas-bajas', rotulo: 'Ir a Altas y bajas' });
+    expect(dos.requiere).toBe('actualizar-bbdd-personas');
+  });
+
+  it('cada paso y cada grupo del catálogo real existen y los ids no se repiten', () => {
+    const real = plano(valor('PASOS_PROCESO_MENSUAL'));
+    const ids = real.map((x) => x.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const grupos = plano(valor('GRUPOS_PASOS')).map((g) => g.id);
+    for (const paso of real) {
+      if (paso.grupo) expect(grupos).toContain(paso.grupo);
+      if (paso.requiere) expect(ids).toContain(paso.requiere);
+    }
+  });
+});
+
+describe('dominio-pasos · desbloqueo y marca de un paso', () => {
+  const catalogo = [
+    { id: 'a', orden: 1, titulo: 'A', tipo: 'manual' },
+    { id: 'b', orden: 2, titulo: 'B', tipo: 'ejecutable', requiere: 'a' },
+  ];
+  const hecho = { periodo: '2026-11', pasoId: 'a', estado: 'hecho', actualizadoPor: 'x', actualizadoEn: 't' };
+
+  it('un paso con requisito está bloqueado hasta que el requisito esté hecho', () => {
+    expect(p('combinarPasosConEstado_', catalogo, [], '2026-11').map((x) => x.desbloqueado)).toStrictEqual([
+      true,
+      false,
+    ]);
+    expect(p('combinarPasosConEstado_', catalogo, [hecho], '2026-11').map((x) => x.desbloqueado)).toStrictEqual([
+      true,
+      true,
+    ]);
+  });
+
+  it('el requisito hecho en OTRO periodo no desbloquea', () => {
+    const otro = { ...hecho, periodo: '2026-10' };
+    expect(p('combinarPasosConEstado_', catalogo, [otro], '2026-11')[1].desbloqueado).toBe(false);
+  });
+
+  it('se puede marcar un paso manual pendiente', () => {
+    expect(p('decidirMarcaPaso_', catalogo, [], '2026-11', 'a')).toStrictEqual({ permitido: true, motivo: 'ok' });
+  });
+
+  it.each([
+    ['no-existe', 'paso-desconocido'],
+    ['b', 'no-es-manual'],
+  ])('no se puede marcar «%s»: %s', (id, motivo) => {
+    expect(p('decidirMarcaPaso_', catalogo, [], '2026-11', id)).toStrictEqual({ permitido: false, motivo });
+  });
+
+  it('un paso ya hecho en ese periodo no se vuelve a marcar', () => {
+    expect(p('decidirMarcaPaso_', catalogo, [hecho], '2026-11', 'a')).toStrictEqual({
+      permitido: false,
+      motivo: 'ya-hecho',
+    });
+  });
+
+  it('un paso manual con requisito sin cumplir no se marca', () => {
+    const cat = [catalogo[0], { id: 'c', orden: 3, titulo: 'C', tipo: 'manual', requiere: 'a' }];
+    expect(p('decidirMarcaPaso_', cat, [], '2026-11', 'c')).toStrictEqual({ permitido: false, motivo: 'bloqueado' });
+  });
+});
+
+describe('dominio-personal · validar un alta o una baja', () => {
+  // Datos INVENTADOS: ninguna persona ni cuenta reales.
+  const EMPRESAS = [
+    { nombre: 'Empresa Uno', pestana: 'Uno' },
+    { nombre: 'Empresa Dos', pestana: 'Empresa Dos' },
+  ];
+  const base = { accion: 'alta', nombre: 'Ana', apellidos: 'Prueba Ficticia', dni: '12345678Z', fecha: '2026-11-03' };
+  const validar = (extra = {}) => p('validarRegistroPersonal_', { ...base, ...extra }, EMPRESAS);
+
+  it('un alta con los cinco campos obligatorios es válida y no necesita empresa ni cuenta', () => {
+    const r = validar();
+    expect(r.errores).toStrictEqual([]);
+    expect(r.normalizado).toMatchObject({ accion: 'alta', dni: '12345678Z', fecha: '2026-11-03', empresa: '' });
+  });
+
+  it('normaliza acción, DNI, fecha y empresa', () => {
+    const r = validar({
+      accion: ' BAJA ',
+      dni: '12.345.678-z'.replace(/\./g, ''),
+      fecha: '03/11/2026',
+      empresa: 'empresa uno',
+    });
+    expect(r.errores).toStrictEqual([]);
+    expect(r.normalizado).toMatchObject({
+      accion: 'baja',
+      dni: '12345678Z',
+      fecha: '2026-11-03',
+      empresa: 'Empresa Uno',
+    });
+  });
+
+  it.each([
+    [{ accion: '' }, 'acción'],
+    [{ accion: 'modificar' }, 'acción'],
+    [{ nombre: '  ' }, 'el nombre'],
+    [{ apellidos: '' }, 'los apellidos'],
+    [{ dni: '' }, 'Falta el DNI'],
+    [{ dni: '12345678A' }, 'DNI no es válido'],
+    [{ fecha: '' }, 'Falta la fecha'],
+    [{ fecha: '2026-02-30' }, 'fecha no es válida'],
+    [{ fecha: 'ayer' }, 'fecha no es válida'],
+    [{ empresa: 'Otra' }, 'empresa no es una de las configuradas'],
+    [{ idTrabajador: 'con espacios' }, 'identificador no es válido'],
+    [{ nombre: 'x'.repeat(101) }, 'demasiado largo'],
+  ])('rechaza %j', (extra, texto) => {
+    const { errores } = validar(extra);
+    expect(errores.join(' ')).toContain(texto);
+  });
+
+  it('NIE válido y letra de control comprobada', () => {
+    expect(p('esDniValido_', 'X1234567L')).toBe(true);
+    expect(p('esDniValido_', 'X1234567A')).toBe(false);
+    expect(p('esDniValido_', '1234567Z')).toBe(false);
+  });
+
+  it('la fecha de un mes con 31 días en uno de 30 no existe', () => {
+    expect(p('normalizarFecha_', '31/04/2026')).toBe('');
+    expect(p('normalizarFecha_', '29/02/2028')).toBe('2028-02-29');
+    expect(p('normalizarFecha_', '29/02/2026')).toBe('');
+  });
+
+  describe('cuenta bancaria', () => {
+    const IBAN = 'ES91 2100 0418 4502 0005 1332';
+    it('un IBAN válido con identificador se normaliza', () => {
+      const r = validar({ iban: IBAN, idTrabajador: 'T-001' });
+      expect(r.errores).toStrictEqual([]);
+      expect(r.normalizado.iban).toBe('ES9121000418450200051332');
+    });
+    it('sin identificador no se acepta: la huella se guarda junto a él', () => {
+      expect(validar({ iban: IBAN }).errores.join(' ')).toContain('identificador de SAGE');
+    });
+    it('un IBAN con el dígito de control mal se rechaza', () => {
+      expect(validar({ iban: 'ES9021000418450200051332', idTrabajador: 'T1' }).errores.join(' ')).toContain('cuenta');
+    });
+    it('solo vale en un alta', () => {
+      expect(validar({ accion: 'baja', iban: IBAN, idTrabajador: 'T1' }).errores.join(' ')).toContain(
+        'solo se da en un alta',
+      );
+    });
+    it('LOS ERRORES NUNCA REPITEN EL VALOR de la cuenta ni del DNI', () => {
+      const r = validar({ iban: 'ES9021000418450200051332', dni: '99999999Q', idTrabajador: 'T1' });
+      const texto = r.errores.join(' ');
+      expect(texto).not.toContain('ES9021');
+      expect(texto).not.toContain('99999999');
+    });
+    it.each(['ES9121000418450200051332', 'GB82WEST12345698765432'])('acepta %s', (iban) => {
+      expect(p('esIbanValido_', iban)).toBe(true);
+    });
+  });
+
+  describe('empresas de config', () => {
+    it('separa por punto y coma y admite pestaña con «=»', () => {
+      expect(p('parsearEmpresas_', 'Empresa Uno=Uno; Empresa Dos ;; Gala, S.L.')).toStrictEqual([
+        { nombre: 'Empresa Uno', pestana: 'Uno' },
+        { nombre: 'Empresa Dos', pestana: 'Empresa Dos' },
+        { nombre: 'Gala, S.L.', pestana: 'Gala, S.L.' },
+      ]);
+    });
+    it('vacío o ausente no da empresas', () => {
+      expect(p('parsearEmpresas_', '')).toStrictEqual([]);
+      expect(p('parsearEmpresas_', undefined)).toStrictEqual([]);
+    });
+  });
+
+  it('detecta un DNI repetido dentro del mismo envío (misma empresa y acción)', () => {
+    const n = (dni, empresa = 'A', accion = 'alta') => ({ dni, empresa, accion });
+    expect(p('indicesConDniRepetido_', [n('1'), n('2'), n('1'), n('1', 'B'), n('1', 'A', 'baja')])).toStrictEqual([2]);
   });
 });

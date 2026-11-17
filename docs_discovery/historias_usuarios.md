@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.5 — BORRADOR · con las historias de Comprobaciones, Proceso mensual y Altas/bajas (HU-42 a HU-48) |
-| **Fecha** | 16 noviembre 2026 (versión 0.4: 18 agosto 2026) |
+| **Versión** | 0.6 — BORRADOR · con las historias de Comprobaciones, Proceso mensual, Altas/bajas y Pagos (HU-42 a HU-50) |
+| **Fecha** | 17 noviembre 2026 (versión 0.5: 16 noviembre 2026) |
 | **Se deriva de** | [problem.md](problem.md) · [../docs_work/FLUJO.md](../docs_work/flujo_doc/FLUJO.md) · [../docs_work/dudas/](../docs_work/dudas/README_dudas.md) |
 | **Responde a** | [Sprint 0 · OB-15](../docs_work/proximos_pasos.md) |
 
@@ -200,6 +200,9 @@ mantenerlo al día sin tocar las hojas a mano y dejando constancia de cada cambi
   cambió y el valor anterior y el nuevo, **sin la cuenta ni su huella**.
 - **Dado** que un cambio afecta a más de un libro, **entonces** no puede quedar a medias sin que se
   avise.
+- **Dado** que elijo una empresa o un tipo, **entonces** la lista sale **de un único sitio** (`Config` del
+  maestro), la misma para todas las pestañas y para la pantalla, y las pestañas comparten **las mismas
+  cabeceras** (RF-100, RF-101).
 
 > **Con este modelo, un mismo DNI puede figurar dos veces** (una fila de baja y otra de alta). La
 > concordancia de [HU-46](#hu-46--comprobar-que-cada-persona-sigue-en-concordancia-entre-sage-y-el-maestro-de-personas)
@@ -652,7 +655,7 @@ afectada.
 - **Dado** que hay diferencias de redondeo, **entonces** se aplica una tolerancia definida y las
   que caen dentro no se reportan como error.
 - **Dado** que la identificación del banco no coincide con la del sistema, **entonces** esas líneas
-  aparecen como *no cruzadas* en lugar de como *correctas*.
+  aparecen como *no existentes* (Parte 2 del informe, HU-49) en lugar de como *correctas*.
 
 > **Es la única comprobación que mira el resultado final.** Cierra el circuito entre lo que el
 > sistema calcula y lo que la persona recibe — hoy nadie verifica ese tramo.
@@ -762,17 +765,64 @@ lista de IBAN.
 | 🔴 Pendiente | 🔺 Imprescindible | JS-10 |
 
 - **Dado** el fichero del banco, **entonces** cada cuenta se reconoce por su **huella** entre las
-  personas **activas**, y la que no se reconoce o es ambigua aparece como **no cruzada**.
+  personas **activas**, y la que no se reconoce o es ambigua **no se descarta**: aparece en la **Parte 2
+  («no existen»)** del informe, con su nombre del banco, sus últimos 4 dígitos, el importe y la entidad.
 - **Dado** que una persona cambia de empresa, **entonces** su cuenta se sigue reconociendo.
 - **Dado** que alguien cambia de cuenta, **entonces** la antigua deja de valer y la nueva se reconoce.
 - **Dado** que arranco el sistema con las personas ya existentes, **entonces** puedo cargar sus cuentas
   **una sola vez** desde el fichero del banco, con una propuesta por empresa y nombre, comprobando el
   importe y con **confirmación mía** antes de guardar.
 - **Dado** que se usa el sistema, **entonces** la cuenta no aparece en ningún registro, mensaje ni hoja.
+- **Dado** que una cuenta queda registrada, **entonces** `VAP_Personas` lo anota (**`cuenta_en_pagos`** y su
+  fecha), sin huella, y `VAP_Pagos` guarda además los **últimos 4 dígitos** para poder comprobarla.
 
 > **La huella vive solo en `VAP_Pagos`**, junto al identificador de la persona, y **no en el maestro**
-> con los DNI. Se calcula con una clave secreta guardada en la configuración del script, y **no incluye
-> el identificador**, así que un cambio de empresa no la altera.
+> con los DNI. Se calcula con una clave secreta guardada en el **proyecto propio de `VAP_Pagos`**, y **no
+> incluye el identificador**, así que un cambio de empresa no la altera.
+
+### HU-49 · Cruzar los pagos del banco y subsanar el informe
+
+**Como** Responsable de Administración, **quiero** subir el fichero del banco de cada empresa y obtener un
+informe de qué se ha pagado a cada persona, con lo incorrecto a la vista y la posibilidad de subsanarlo,
+**para** detectar un pago equivocado antes de que lo detecte la persona afectada.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔺 Imprescindible | JS-10 |
+
+- **Dado** una empresa, **entonces** puedo cargar **uno o varios** ficheros del banco en **XML, CSV o Excel**
+  y pulsar *Cruce*; el informe de esa empresa aparece debajo y se puede **plegar a una línea**.
+- **Dado** que he cruzado todas las empresas, **entonces** debo **fusionar los informes en uno** antes de dar
+  el paso por hecho.
+- **Dado** el informe, **entonces** veo en la **Parte 1** los pagos que coinciden con `VAP_Pagos`
+  (*Coincidente* o *Incorrecto*, con Observaciones solo en los incorrectos) y en la **Parte 2** los que no
+  existen en `VAP_Pagos`. **Ningún pago se queda sin fila.**
+- **Dado** que el importe del banco no coincide con el de la Vinculación, **entonces** es *Incorrecto* y sus
+  Observaciones dicen importes, referencias y fuente.
+- **Dado** un pago *Incorrecto*, **entonces** puedo **volver a él y subsanarlo** sin perder el resultado
+  original: la resolución queda con quién, cuándo y el motivo.
+- **Dado** un volumen grande de ficheros, **entonces** el cruce se hace **por empresa**, sin acercarse al
+  límite de 6 minutos de la plataforma.
+
+> **El fichero del banco contiene cuentas y nombres en claro.** El sistema no lo guarda; quien lo sube lo
+> elimina cuando proceda (RNF-23).
+
+### HU-50 · Consultar el histórico y el maestro de pagos
+
+**Como** Responsable de Administración, **quiero** consultar qué se pagó a una persona en un mes y ver el
+maestro de cuentas registradas **desde la webapp, en una sola pantalla**, **para** responder a una duda sin
+abrir el libro ni mirar tres tablas.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🔴 Pendiente | 🔸 Importante | JS-10 |
+
+- **Dado** el histórico, **entonces** elijo **año y mes**, pulso *Cargar* y veo el informe de ese mes; después
+  puedo **buscar por DNI o nombre**.
+- **Dado** el Maestro de Pagos, **entonces** veo nombre, DNI, últimos 4 dígitos y fecha de última
+  actualización, y un buscador que **ofrece candidatos mientras escribo**.
+- **Dado** que veo un nombre o un DNI, **entonces** se han leído de `VAP_Personas` en ese momento: **no se
+  guardan en `VAP_Pagos`**. **La huella no se muestra.**
 
 ---
 
@@ -990,7 +1040,7 @@ De cada *job story* de [`problem.md`](problem.md) a las historias que la cubren:
 | **JS-07** | Dar el mes por cerrado | HU-22, HU-32 |
 | **JS-08** | Dar la salida del mes | HU-26, HU-27, HU-45 |
 | **JS-09** | Confiar en lo que se descuenta | HU-23, HU-24, HU-42, HU-43, HU-44, HU-46 |
-| **JS-10** | Confirmar que lo pagado es lo calculado | HU-25, HU-42, HU-43, HU-44, HU-48 |
+| **JS-10** | Confirmar que lo pagado es lo calculado | HU-25, HU-42, HU-43, HU-44, HU-48, HU-49, HU-50 |
 | **JS-11** | Saber si este mes ha sido normal | HU-33, HU-34, HU-35 |
 
 **Las once *job stories* están cubiertas.** Y en sentido contrario, las historias que **no** salen
@@ -1008,7 +1058,7 @@ concepto retributivo nuevo sin rehacer el proceso* (`problem.md` §4.3) → ahor
 |---|---|---|
 | ✅ **Implementadas** | HU-01 … HU-10, HU-14 … HU-17, HU-21, HU-36 … HU-40 | **20** |
 | 🟡 **Parciales** | HU-11, HU-12, HU-18, HU-20, HU-31, HU-41, HU-45 | **7** |
-| 🔴 **Pendientes** | HU-19, HU-22 … HU-30, HU-32 … HU-35, HU-42 … HU-44, HU-46 … HU-48 | **20** |
+| 🔴 **Pendientes** | HU-19, HU-22 … HU-30, HU-32 … HU-35, HU-42 … HU-44, HU-46 … HU-50 | **22** |
 | ⚪ **En decisión** | HU-13 | **1** |
 
 **Lo que enseña este reparto:** lo implementado está en **maestro de personal, captura y
@@ -1044,7 +1094,7 @@ Dicho eso, la prioridad indica **cuánto duele que falte**; **cuándo se hace** 
 |--------|-----------|-----------|
 | **1** · La webapp de coordinación | HU-26 … HU-30, HU-33 … HU-35, HU-45, HU-47 | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14, OB-43, OB-46 |
 | **2** · Saldar la deuda | HU-18, HU-19, HU-20 | OB-17 … OB-19, OB-23 … OB-27 |
-| **3** · Verificación de datos | HU-23, HU-24, HU-25, HU-42, HU-43, HU-44, HU-46, HU-48 | OB-01 … OB-06, OB-11, OB-12, OB-40 … OB-42, OB-44, OB-45 |
+| **3** · Verificación de datos | HU-23, HU-24, HU-25, HU-42, HU-43, HU-44, HU-46, HU-48, HU-49, HU-50 | OB-01 … OB-06, OB-11, OB-12, OB-40 … OB-42, OB-44, OB-45, OB-47 |
 | **Sin sprint asignado** | HU-11, HU-12, HU-13, HU-22, HU-31, HU-32, HU-41 | — |
 
 **El Sprint 3 existe por estas tres historias.** HU-18, HU-19 y HU-20 no construyen nada nuevo:

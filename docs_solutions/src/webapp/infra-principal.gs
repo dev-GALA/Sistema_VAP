@@ -2,7 +2,7 @@
 // Google (ADR-0017). Solo `doGet` y las funciones `api…` son llamables desde el navegador, y TODAS
 // comprueban el acceso en el servidor.
 
-const VERSION_WEBAPP = '0.1.0';
+const VERSION_WEBAPP = '0.4.0';
 const TITULO_WEBAPP = 'VAP · Proceso mensual';
 
 const MENSAJE_SIN_ACCESO = 'No tienes acceso a esta aplicación. Si deberías tenerlo, avisa a desarrollo.';
@@ -18,7 +18,23 @@ function correoActual_() {
 }
 
 function dependencias_() {
-  return { correoActual: correoActual_, leerUsuarios: leerUsuarios_, leerEstadoPasos: leerEstadoPasos_ };
+  return {
+    correoActual: correoActual_,
+    leerUsuarios: leerUsuarios_,
+    leerEstadoPasos: leerEstadoPasos_,
+    ahora: ahora_,
+    conBloqueo: conBloqueo_,
+    anadirEstadoPaso: anadirEstadoPaso_,
+    leerConfiguracion: leerConfiguracion_,
+    servicioPagosConfigurado: hayServicioPagos_,
+    llamarServicioPagos: llamarServicioPagos_,
+    leerFilasDelMaestro: leerFilasDelMaestro_,
+    leerFuenteDeImportes: leerFuenteDeImportes_,
+    marcarCuentaEnMaestro: marcarCuentaEnMaestro_,
+    nuevoId: Utilities.getUuid,
+    anadirEvento: anadirEventoPersonal_,
+    aplicarEnMaestro: aplicarEnMaestro_,
+  };
 }
 
 function paginaAviso_(titulo, mensaje, correo) {
@@ -53,4 +69,56 @@ function apiContexto() {
 
 function apiPasosDelPeriodo(periodo) {
   return pasosDelPeriodo_(dependencias_(), periodo);
+}
+
+function apiMarcarPasoRealizado(periodo, pasoId) {
+  return marcarPasoRealizado_(dependencias_(), periodo, pasoId);
+}
+
+function apiOpcionesPersonal() {
+  return opcionesPersonal_(dependencias_());
+}
+
+function apiValidarPersonas(registros) {
+  return validarPersonas_(dependencias_(), registros);
+}
+
+function apiRegistrarPersonas(registros) {
+  return registrarPersonas_(dependencias_(), registros);
+}
+
+function apiOpcionesPagos() {
+  return opcionesPagos_(dependencias_());
+}
+
+function apiCruzarPagos(datos) {
+  return cruzarPagos_(dependencias_(), datos || {});
+}
+
+function apiInformePagos(periodo, empresa) {
+  return informePagos_(dependencias_(), periodo, empresa);
+}
+
+function apiSubsanarPago(datos) {
+  return subsanarPago_(dependencias_(), datos || {});
+}
+
+function apiFusionarInformes(periodo) {
+  return fusionarInformes_(dependencias_(), periodo);
+}
+
+function apiMaestroPagos() {
+  return maestroPagos_(dependencias_());
+}
+
+function apiHistorialPersonaPagos(idPersonal) {
+  return historialPersonaPagos_(dependencias_(), idPersonal);
+}
+
+function apiValidarCargaInicial(filas) {
+  return validarCargaInicial_(dependencias_(), filas);
+}
+
+function apiConfirmarCargaInicial(filas) {
+  return confirmarCargaInicial_(dependencias_(), filas);
 }

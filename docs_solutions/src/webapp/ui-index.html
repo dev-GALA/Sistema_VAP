@@ -19,8 +19,13 @@
     <div class="vacio" id="cargando">Cargando…</div>
   </main>
 
-  <footer class="pie">VAP · webapp v<?= version ?> · Esqueleto: solo lectura.</footer>
+  <footer class="pie">VAP · webapp v<?= version ?> · Proceso mensual: los pasos manuales se marcan aquí; el resto, solo lectura.</footer>
 
+  <?!= include_('ui-personal') ?>
+  <?!= include_('ui-pagos') ?>
+  <?!= include_('ui-historico-pagos') ?>
+  <?!= include_('ui-maestro-pagos') ?>
+  <?!= include_('ui-carga-inicial') ?>
   <?!= include_('ui-cliente') ?>
 </body>
 </html>

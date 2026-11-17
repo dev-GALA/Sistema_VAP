@@ -462,7 +462,7 @@ es. Un resumen sin clave **no vale**, porque los IBAN son predecibles.
 | **Baja** | La persona deja de estar activa, no se borra |
 | **Cambio de cuenta** | Desde la vista del maestro: huella nueva; la antigua deja de valer |
 | **Cambio de empresa** | **Baja en la de origen y alta en la de destino.** La huella no cambia; el historial queda partido |
-| **Cada mes** | El fichero del banco se cruza con `VAP_Pagos` por la huella, **solo entre personas activas**. Lo que no se reconoce o es ambiguo se reporta como **no cruzado**, nunca se asigna |
+| **Cada mes** | El fichero del banco (XML, CSV o Excel) se cruza con `VAP_Pagos` por la huella, **solo entre personas activas**. Lo que no se reconoce o es ambiguo va a la **Parte 2 («no existen»)** del informe, nunca se asigna (decidido el 17 nov 2026, [DUDA-0005](../dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md)) |
 
 **Riesgos y cómo se cierran:**
 

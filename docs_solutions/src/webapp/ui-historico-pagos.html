@@ -1,0 +1,138 @@
+<script>
+// Pantalla «Históricos de Pagos» (HU-50 · RF-95): el informe de un mes y lo que cobró una persona.
+// El texto que viene del servidor entra siempre con textContent.
+(function () {
+  'use strict';
+
+  var MESES = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  var NOMBRE_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var ayudas = null;
+  var comun = null;
+  var personas = null;
+
+  function opcionesDeAnio() {
+    var actual = new Date().getFullYear();
+    var anios = [];
+    for (var a = actual; a >= actual - 5; a--) anios.push([String(a), String(a)]);
+    return anios;
+  }
+
+  function cargarInforme(periodo, zona) {
+    ayudas.vaciar(zona);
+    zona.appendChild(ayudas.crear('div', 'vacio', 'Cargando el informe de ' + periodo + '…'));
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ayudas.vaciar(zona);
+        if (r.filas.length === 0) {
+          zona.appendChild(ayudas.crear('div', 'vacio', 'No hay informe de pagos para ' + periodo + '.'));
+          return;
+        }
+        var empresas = {};
+        r.filas.forEach(function (f) { (empresas[f.empresa] = empresas[f.empresa] || []).push(f); });
+        Object.keys(empresas).forEach(function (e) { zona.appendChild(comun.informePlegable(ayudas, e, empresas[e], null)); });
+        if (r.resumen && r.resumen.faltan && r.resumen.faltan.length > 0) {
+          zona.appendChild(comun.alerta(ayudas, 'aviso', 'Sin informe: ' + r.resumen.faltan.join(', ') + '.'));
+        }
+      })
+      .withFailureHandler(function (error) {
+        ayudas.vaciar(zona);
+        zona.appendChild(comun.alerta(ayudas, 'error', error.message));
+      })
+      .apiInformePagos(periodo, '');
+  }
+
+  function pintarHistorial(zona, persona, filas) {
+    ayudas.vaciar(zona);
+    var tarjeta = ayudas.crear('section', 'tarjeta');
+    tarjeta.id = 'historial-persona';
+    tarjeta.appendChild(ayudas.crear('h2', '', persona.nombre + ' · ' + persona.dni));
+    var cuerpo = filas.map(function (f) {
+      return {
+        valores: [f.periodo, f.empresa, f.importeBanco, f.importeEsperado, f.banco, comun.chipEstado(ayudas, f), f.observaciones, comun.resolucionDe(f)],
+        clase: f.estado === 'Incorrecto' && !f.resolucion ? 'fila-error' : ''
+      };
+    });
+    tarjeta.appendChild(comun.tabla(ayudas, ['Periodo', 'Empresa', 'Importe banco', 'Importe esperado', 'Banco', 'Estado', 'Observaciones', 'Resolución'], cuerpo, 'Esta persona no consta en ningún informe.'));
+    zona.appendChild(tarjeta);
+  }
+
+  function elegirPersona(persona, zona) {
+    ayudas.vaciar(zona);
+    zona.appendChild(ayudas.crear('div', 'vacio', 'Cargando…'));
+    google.script.run
+      .withSuccessHandler(function (filas) { pintarHistorial(zona, persona, filas); })
+      .withFailureHandler(function (error) { ayudas.vaciar(zona); zona.appendChild(comun.alerta(ayudas, 'error', error.message)); })
+      .apiHistorialPersonaPagos(persona.idPersonal);
+  }
+
+  function pintarCandidatos(lista, texto, zonaHistorial) {
+    ayudas.vaciar(lista);
+    var candidatos = comun.coincidencias(texto, personas || [], 8);
+    if (texto.replace(/\s/g, '') !== '' && candidatos.length === 0) {
+      lista.appendChild(ayudas.crear('li', 'suave pequeno', 'Ningún candidato.'));
+      return;
+    }
+    candidatos.forEach(function (p) {
+      var item = ayudas.crear('li', '');
+      var b = ayudas.boton(p.nombre + ' · ' + p.dni + ' · ' + p.empresa, function () { elegirPersona(p, zonaHistorial); });
+      item.appendChild(b);
+      lista.appendChild(item);
+    });
+  }
+
+  function mostrar(pantalla, ayudasDeLaPantalla) {
+    ayudas = ayudasDeLaPantalla;
+    comun = window.PagosComun;
+    personas = null;
+    var principal = document.getElementById('principal');
+    ayudas.vaciar(principal);
+    principal.appendChild(ayudas.cabeceraDePantalla(pantalla));
+
+    var porMes = ayudas.crear('section', 'tarjeta');
+    porMes.appendChild(ayudas.crear('h2', '', 'Informe de un mes'));
+    var formulario = ayudas.crear('div', 'formulario');
+    var hoy = new Date();
+    var anio = comun.selector('historico-anio', opcionesDeAnio());
+    var mes = comun.selector('historico-mes', MESES.map(function (m, i) { return [m, NOMBRE_MES[i]]; }));
+    mes.value = MESES[hoy.getMonth()];
+    formulario.appendChild(comun.campo(ayudas, 'Año', anio));
+    formulario.appendChild(comun.campo(ayudas, 'Mes', mes));
+    porMes.appendChild(formulario);
+    var zonaInforme = ayudas.crear('div', '');
+    zonaInforme.id = 'zona-informe-mes';
+    var cargar = ayudas.boton('Cargar', function () { cargarInforme(anio.value + '-' + mes.value, zonaInforme); });
+    cargar.id = 'boton-cargar-mes';
+    cargar.classList.add('principal');
+    porMes.appendChild(cargar);
+    principal.appendChild(porMes);
+    principal.appendChild(zonaInforme);
+
+    var porPersona = ayudas.crear('section', 'tarjeta');
+    porPersona.appendChild(ayudas.crear('h2', '', 'Pagos de una persona'));
+    var buscador = comun.entrada('historico-buscador', 'search');
+    buscador.setAttribute('aria-label', 'Buscar por DNI o nombre');
+    porPersona.appendChild(comun.campo(ayudas, 'Buscar por DNI o nombre', buscador));
+    var lista = ayudas.crear('ul', 'candidatos');
+    lista.id = 'historico-candidatos';
+    porPersona.appendChild(lista);
+    var zonaHistorial = ayudas.crear('div', '');
+    zonaHistorial.id = 'zona-historial';
+    principal.appendChild(porPersona);
+    principal.appendChild(zonaHistorial);
+
+    var avisoCarga = ayudas.crear('p', 'suave pequeno', 'Cargando la lista de personas…');
+    porPersona.appendChild(avisoCarga);
+    google.script.run
+      .withSuccessHandler(function (lista) {
+        personas = lista;
+        avisoCarga.textContent = lista.length + ' personas con cuenta registrada.';
+        pintarCandidatos(document.getElementById('historico-candidatos'), buscador.value, zonaHistorial);
+      })
+      .withFailureHandler(function (error) { avisoCarga.textContent = error.message; })
+      .apiMaestroPagos();
+    buscador.addEventListener('input', function () { pintarCandidatos(lista, buscador.value, zonaHistorial); });
+  }
+
+  window.PantallaHistoricoPagos = { mostrar: mostrar };
+})();
+</script>

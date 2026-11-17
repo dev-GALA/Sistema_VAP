@@ -35,7 +35,7 @@ Es la respuesta de diseño a OB-07 (dónde vive el estado del cierre), en lo que
 5. **El libro no guarda DNI, cuentas bancarias ni huellas.** Las diferencias de las comprobaciones, cuando
    existan, guardarán solo el identificador de la persona (RNF-18).
 6. **El identificador del libro vive en las propiedades del script** (`ID_LIBRO_WEBAPP`), no en el código.
-7. **Los otros libros se leerán en solo lectura**, por su identificador y desde la configuración.
+7. **La webapp escribe en `estado_pasos`** (una fila por marca, con bloqueo, desde la v0.2.0) y, desde la v0.3.0, en **`registro_personal`** (eventos de altas y bajas, sin DNI, nombre ni cuenta), en el **maestro de personas** (altas y bajas) y, **a través del servicio de `VAP_Pagos`** ([ADR-0019](0019-vap-pagos-como-servicio-propio-con-huella-hmac.md)), en **`VAP_Pagos`** (solo la huella de la cuenta, nunca la cuenta). **La clave de la huella ya no vive en la webapp** (hasta la v0.3.0 estaba en `CLAVE_HUELLA`, en sus propiedades): vive solo en el proyecto de `VAP_Pagos`. **Los otros libros se leerán en solo lectura**, por su identificador y desde la configuración.
 8. **Resiliencia:** un segundo editor del libro y del proyecto, un procedimiento para transferir la
    propiedad, y una copia de seguridad periódica del libro.
 

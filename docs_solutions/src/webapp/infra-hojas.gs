@@ -1,4 +1,4 @@
-// Adaptador de lectura del libro propio de la webapp (ADR-0018). Solo lee: la versión 1 no escribe.
+// Adaptador del libro propio de la webapp (ADR-0018). Lee `config` y `estado_pasos`; solo escribe en `estado_pasos`.
 // Las columnas se localizan por el NOMBRE de su cabecera, no por posición (RNF-02).
 
 function esFecha_(valor) {
@@ -10,6 +10,14 @@ function esFecha_(valor) {
 function periodoDeCelda_(valor) {
   if (esFecha_(valor)) return Utilities.formatDate(valor, Session.getScriptTimeZone(), 'yyyy-MM');
   return String(valor).trim();
+}
+
+// Lo mismo con la hora: «2026-11-17 12:30» se vuelve fecha al escribirlo en la hoja. Se devuelve como texto.
+const FORMATO_FECHA_HORA = 'yyyy-MM-dd HH:mm';
+
+function fechaHoraDeCelda_(valor) {
+  if (esFecha_(valor)) return Utilities.formatDate(valor, Session.getScriptTimeZone(), FORMATO_FECHA_HORA);
+  return String(valor === null || valor === undefined ? '' : valor).trim();
 }
 
 function textoDeCelda_(valor) {
@@ -77,6 +85,46 @@ function leerEstadoPasos_() {
     pasoId: textoDeCelda_(fila.pasoId),
     estado: textoDeCelda_(fila.estado).toLowerCase(),
     actualizadoPor: textoDeCelda_(fila.actualizadoPor),
-    actualizadoEn: textoDeCelda_(fila.actualizadoEn),
+    actualizadoEn: fechaHoraDeCelda_(fila.actualizadoEn),
   }));
+}
+
+/**
+ * Añade una fila al final de la hoja `nombreHoja` de `libro`, colocando cada valor según el NOMBRE de su
+ * cabecera (no por posición). `columnas` asocia el nombre lógico con el de la cabecera; `fila` trae los valores.
+ */
+function anadirFila_(libro, nombreHoja, columnas, fila) {
+  const hoja = libro.getSheetByName(nombreHoja);
+  if (!hoja) throw errorDeConfiguracion_(`Falta la hoja «${nombreHoja}».`);
+  const cabecera = hoja
+    .getRange(1, 1, 1, hoja.getLastColumn())
+    .getValues()[0]
+    .map((c) => textoDeCelda_(c).toLowerCase());
+  const valores = cabecera.map((nombre) => {
+    const clave = Object.keys(columnas).filter((k) => columnas[k] === nombre)[0];
+    return clave ? fila[clave] : '';
+  });
+  hoja.appendRow(valores);
+}
+
+/** Añade una fila al final de `estado_pasos`. */
+function anadirEstadoPaso_(fila) {
+  anadirFila_(SpreadsheetApp.openById(idLibroWebapp_()), HOJA_ESTADO_PASOS, COLUMNAS_ESTADO_PASOS, fila);
+}
+
+const ESPERA_BLOQUEO_MS = 10000;
+
+/** Ejecuta `accion` con el bloqueo del script: nadie más escribe a la vez. Siempre lo libera. */
+function conBloqueo_(accion) {
+  const bloqueo = LockService.getScriptLock();
+  bloqueo.waitLock(ESPERA_BLOQUEO_MS);
+  try {
+    return accion();
+  } finally {
+    bloqueo.releaseLock();
+  }
+}
+
+function ahora_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), FORMATO_FECHA_HORA);
 }

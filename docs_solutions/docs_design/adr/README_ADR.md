@@ -37,6 +37,7 @@ Formato: ver [`0000-plantilla.md`](0000-plantilla.md). Equivalencia con la antig
 | [0016](0016-un-unico-libro-de-vinculacion.md) | Un único libro de Vinculación como destino de todos los volcados | Aceptada · sin aplicar | — |
 | [0017](0017-webapp-del-proceso-mensual-stack-y-estructura.md) | Webapp del proceso mensual: stack y estructura del código | Propuesta | — |
 | [0018](0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) | Libro propio de la webapp, propietario y accesos | Propuesta | — |
+| [0019](0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) | `VAP_Pagos` como servicio propio con la huella HMAC de la cuenta | Propuesta | — |
 
 ## Notas del índice
 

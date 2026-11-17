@@ -1,0 +1,52 @@
+<script>
+// Pantalla «Maestro de Pagos» (HU-50 · RF-96 · RF-98): quién tiene cuenta registrada. SIN huella: el servidor
+// no la envía. El texto que viene del servidor entra siempre con textContent.
+(function () {
+  'use strict';
+
+  var ayudas = null;
+  var comun = null;
+  var personas = [];
+
+  function pintarTabla(zona, resumen, texto) {
+    ayudas.vaciar(zona);
+    var visibles = texto.replace(/\s/g, '') === '' ? personas : comun.coincidencias(texto, personas);
+    resumen.textContent = visibles.length + ' de ' + personas.length + ' personas.';
+    var cuerpo = visibles.map(function (p) { return { valores: [p.nombre, p.dni, p.empresa, p.ultimos4, p.actualizadoEn] }; });
+    zona.appendChild(comun.tabla(ayudas, ['Nombre', 'DNI', 'Empresa', 'Últimos 4', 'Última actualización'], cuerpo, 'Ninguna persona coincide.'));
+  }
+
+  function mostrar(pantalla, ayudasDeLaPantalla) {
+    ayudas = ayudasDeLaPantalla;
+    comun = window.PagosComun;
+    personas = [];
+    var principal = document.getElementById('principal');
+    ayudas.vaciar(principal);
+    var tarjeta = ayudas.cabeceraDePantalla(pantalla);
+    var buscador = comun.entrada('maestro-buscador', 'search');
+    buscador.setAttribute('aria-label', 'Buscar por DNI o nombre');
+    tarjeta.appendChild(comun.campo(ayudas, 'Buscar por DNI o nombre', buscador));
+    var resumen = ayudas.crear('p', 'suave pequeno', 'Cargando…');
+    resumen.id = 'maestro-resumen';
+    tarjeta.appendChild(resumen);
+    principal.appendChild(tarjeta);
+    var zona = ayudas.crear('div', '');
+    zona.id = 'zona-maestro';
+    principal.appendChild(zona);
+
+    google.script.run
+      .withSuccessHandler(function (lista) {
+        personas = lista.slice().sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es'); });
+        pintarTabla(zona, resumen, buscador.value);
+      })
+      .withFailureHandler(function (error) {
+        resumen.textContent = '';
+        zona.appendChild(comun.alerta(ayudas, 'error', error.message));
+      })
+      .apiMaestroPagos();
+    buscador.addEventListener('input', function () { pintarTabla(zona, resumen, buscador.value); });
+  }
+
+  window.PantallaMaestroPagos = { mostrar: mostrar };
+})();
+</script>

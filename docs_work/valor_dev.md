@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Código | `VALOR-DEV` |
-| Versión | 0.2 |
-| Fecha | 2026-11-16 |
+| Versión | 0.3 |
+| Fecha | 2026-11-17 |
 | Estado | 🟡 Vivo — se revisa con cada cambio que añada valor registrable |
 | Propietario | Dpto. Data y Tecnología |
 
@@ -177,13 +177,13 @@ material delante. Las horas incluyen el análisis y las decisiones, no solo la e
 Estimación central: **≈ 442 h** (unas 55 jornadas). Margen declarado: **±35 %**. No se valoran las skills
 de `.claude/skills/` (viven fuera del repo en origen) ni `backup_old_js/` (copias históricas).
 
-### Tamaño medido (2026-11-16)
+### Tamaño medido (2026-11-17)
 
 | Capa | Líneas |
 |---|---|
-| Apps Script (`.gs`, 16 archivos, 9 de la webapp) | 4.845 |
-| Interfaz (`.html`, 9 archivos, 4 de la webapp) | 1.773 |
-| Pruebas y arnés (`tests/`) | 12.045 |
+| Apps Script (`.gs`, 33 archivos, entre ellos la webapp y `VAP_Pagos`) | 7.128 |
+| Interfaz (`.html`, 14 archivos) | 3.191 |
+| Pruebas y arnés (`tests/`) | 15.044 |
 | Python (verificador y sus pruebas) | 356 |
 | Documentación (discovery, SSD, plan, flujo: 5.207; ADR: 933; dudas, actas y fuentes de contraste: 2.474) | ≈ 8.600 |
 
@@ -399,3 +399,4 @@ urgente mientras el proceso manual siga siendo recuperable en la memoria de quie
 |---|---|---|
 | 2026-11-14 | Creación del documento. Parte A con inventario de 14 artefactos (255 – 356 h, ≈ 21.000 €); tarifas heredadas de `gala_buca`. Parte B con partidas B1 a B9 ancladas a JS/RD, **sin cifras**: faltan línea base y costes-hora. | Redactado con Claude; pendiente de revisión del responsable |
 | 2026-11-16 | Revisión de cierre. **Re-medido** el tamaño (código 4.845 + 1.773 líneas; pruebas 12.045) y **añadidos** A15 (webapp v0.1.0) y las ampliaciones de A1 a A5, A12 y A13: de 255 – 356 h (≈ 21.000 €) a 364 – 521 h (≈ 30.300 €). **El salto es sobre todo corrección:** la suite de pruebas del 14 nov no estaba en la cifra (A12 pasa de 14 – 20 h a 74 – 110 h); el trabajo del 16 nov son ≈ 49 – 75 h (A1, A2, A3, A4, A5, A13 y A15). Horas estimadas por quien redacta, sin contraste. Parte B sin cambios de fórmula; se añade la primera medida de descuadres (una muestra). | Redactado con Claude; pendiente de revisión del responsable |
+| 2026-11-17 | Revisión de cierre. **Re-medido solo el tamaño** (código 7.128 + 3.191 líneas; pruebas 15.044) tras la webapp v0.4.0 y el servicio `VAP_Pagos` (sin desplegar). **Las horas y los euros NO se han re-estimado**: siguen siendo los del 16 nov y **infravaloran** el código nuevo (marca de pasos, Altas/bajas, cruce de pagos, 1.937 pruebas). Además, **Altas/bajas está por rehacer** contra el maestro real (ver `proximos_pasos.md`), así que su valor no debe contarse como terminado. Pendiente: re-estimar con los criterios de A15. | Redactado con Claude; pendiente de revisión del responsable |

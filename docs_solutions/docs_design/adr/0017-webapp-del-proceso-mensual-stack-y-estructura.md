@@ -35,7 +35,7 @@ estas reglas:
 3. **Solo las funciones `api…` y `doGet` son llamables desde el navegador**, y **cada una comprueba el rol
    en el servidor**. Todas las demás terminan en `_`, que Apps Script no expone.
 4. **Versión 1: el esqueleto con todas las pantallas** —Proceso mensual, Comprobaciones, Registro de
-   diferencias, Altas/bajas y Maestro de personal—, con el acceso por rol y **solo lectura**. Ninguna
+   diferencias, Altas/bajas y Maestro de personal—, con el acceso por rol. Empezó en solo lectura; desde la v0.2.0 *Proceso mensual* escribe una fila en `estado_pasos` al marcar un paso manual. Ninguna
    pantalla escribe todavía.
 5. **Pruebas:** Vitest para dominio, casos de uso e infraestructura sobre los dobles de Google que ya existen
    en `tests/soporte/`; el arnés y Playwright para las pantallas; y una **prueba de arquitectura** nueva que

@@ -63,7 +63,7 @@ Sistema_VAP
 ├── docs_solutions/                 # LA SOLUCIÓN — cómo está construido, y con qué código
 │   ├── docs_design/                # EL DISEÑO
 │   │   ├── SSD.md                  # Especificación + diseño del sistema
-│   │   └── adr/                    # Decisiones de arquitectura (ADR-0001 … ADR-0018; 0017 y 0018 en Propuesta)
+│   │   └── adr/                    # Decisiones de arquitectura (ADR-0001 … ADR-0019; 0017, 0018 y 0019 en Propuesta)
 │   └── src/                        # CÓDIGO — una carpeta por proyecto de Apps Script
 │       ├── scripts_generales/      # Scripts transversales (no atados a un único colectivo)
 │       │   └── VAP_script_export_SAGE.gs   # Salario base + Export Neto/Bruto (menú "VAP_Acciones")
@@ -96,6 +96,7 @@ Sistema_VAP
 ├── biome.json                      # Linter y formato, solo para docs_solutions/src/webapp y tests/webapp
 ├── docs_work/                      # EL PROCESO — lo que se revisa con quien opera el sistema
 │   ├── proximos_pasos.md         # Qué toca ahora, en sprints, y qué lo bloquea
+│   ├── resumen_proteccion_datos.md # Una página para Gerencia y protección de datos: qué se guarda de las cuentas bancarias
 │   ├── dudas/                      # Cuestiones sin resolver + deuda técnica
 │   ├── migration_data/             # Datos de trabajo (ignorada por git: exports reales, nunca al repo)
 │   ├── docs_cruce/                 # Fuentes de contraste: solo `fuentes_de_contraste.md` va al repo (los ficheros reales, no)
@@ -238,6 +239,8 @@ diferencias**, **Altas/bajas** y **Maestro de personal**. Hoy existe el **esquel
 el acceso por rol (la lista de correos vive en la hoja `config` de su **libro propio**) y la pantalla *Proceso
 mensual* con sus primeros pasos. Decisiones: [ADR-0017](docs_solutions/docs_design/adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md)
 y [ADR-0018](docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md), **en Propuesta**.
+La huella de la cuenta bancaria y el cruce de pagos con el banco los da un **proyecto propio, `VAP_Pagos`**
+([ADR-0019](docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), **en Propuesta**).
 **Aún no está desplegada**: qué crear en Google y cómo probarla, en
 [docs_solutions/src/webapp/README.md](docs_solutions/src/webapp/README.md).
 

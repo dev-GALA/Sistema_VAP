@@ -41,6 +41,7 @@ describe('estructura · cada archivo declara su capa', () => {
     for (const f of ARCHIVOS) {
       const valido =
         f === 'appsscript.json' ||
+        f === '.clasp.json' ||
         /^(dominio|app|infra)-[a-z-]+\.gs$/.test(f) ||
         /^ui-[a-z-]+\.html$/.test(f) ||
         f === 'README.md';

@@ -1,0 +1,222 @@
+<script>
+// Pantalla «Carga inicial de cuentas» (HU-48 · RF-89): de USO ÚNICO. Lee un CSV en el navegador, el servidor
+// propone la persona de cada fila y una persona CONFIRMA antes de guardar. El contenido del fichero (con las
+// cuentas) solo vive en la memoria de esta pantalla: nunca se muestra y se vacía al terminar (RNF-19).
+// El texto que viene del servidor entra siempre con textContent.
+(function () {
+  'use strict';
+
+  var TROZO = 200;
+  var COLUMNAS = ['empresa', 'nombre', 'dni', 'cuenta'];
+  var ROTULO = {
+    'lista': 'Lista para guardar', 'sin-persona': 'Sin persona en el maestro', 'ambigua': 'Persona ambigua',
+    'cuenta-invalida': 'Cuenta no válida', 'repetida': 'Repetida en el fichero', 'ya-registrada': 'Ya tiene cuenta registrada'
+  };
+  var ORDEN = ['lista', 'ya-registrada', 'ambigua', 'sin-persona', 'cuenta-invalida', 'repetida'];
+  var CLASE = { 'lista': 'ok', 'ya-registrada': 'aviso', 'ambigua': 'error', 'sin-persona': 'error', 'cuenta-invalida': 'error', 'repetida': 'error' };
+
+  var ayudas = null;
+  var comun = null;
+  var filas = [];
+  var propuestas = [];
+
+  function sinAcentosMinusculas(texto) { return comun.sinAcentos(texto).trim(); }
+
+  // CSV con comillas; separador «;» o «,» según la primera línea. Devuelve { filas } o { error }.
+  function leerCsv(texto) {
+    var lineas = String(texto).replace(/^﻿/, '').split(/\r?\n/).filter(function (l) { return l.trim() !== ''; });
+    if (lineas.length === 0) return { error: 'El fichero está vacío.' };
+    var separador = lineas[0].split(';').length >= lineas[0].split(',').length ? ';' : ',';
+    function partir(linea) {
+      var campos = [];
+      var actual = '';
+      var entreComillas = false;
+      for (var i = 0; i < linea.length; i++) {
+        var c = linea.charAt(i);
+        if (entreComillas) {
+          if (c === '"' && linea.charAt(i + 1) === '"') { actual += '"'; i++; }
+          else if (c === '"') entreComillas = false;
+          else actual += c;
+        } else if (c === '"') entreComillas = true;
+        else if (c === separador) { campos.push(actual); actual = ''; }
+        else actual += c;
+      }
+      campos.push(actual);
+      return campos;
+    }
+    var cabecera = partir(lineas[0]).map(sinAcentosMinusculas);
+    var faltan = COLUMNAS.filter(function (c) { return cabecera.indexOf(c) === -1; });
+    if (faltan.length > 0) return { error: 'Faltan las columnas: ' + faltan.join(', ') + '.' };
+    var resultado = lineas.slice(1).map(function (linea) {
+      var valores = partir(linea);
+      var fila = {};
+      COLUMNAS.forEach(function (c) { fila[c] = String(valores[cabecera.indexOf(c)] || '').trim(); });
+      return fila;
+    });
+    return { filas: resultado };
+  }
+
+  function porTrozos(lista, funcion, alTerminar, alFallar) {
+    var resultados = [];
+    function siguiente(desde) {
+      if (desde >= lista.length) { alTerminar(resultados); return; }
+      var trozo = lista.slice(desde, desde + TROZO);
+      funcion(trozo, function (r) {
+        r.forEach(function (x) { x.indice = desde + x.indice; resultados.push(x); });
+        siguiente(desde + TROZO);
+      }, alFallar);
+    }
+    siguiente(0);
+  }
+
+  function recuento(zona) {
+    var contador = {};
+    propuestas.forEach(function (p) { contador[p.estado] = (contador[p.estado] || 0) + 1; });
+    var lista = ayudas.crear('ul', 'recuento');
+    ORDEN.forEach(function (e) {
+      if (!contador[e]) return;
+      var item = ayudas.crear('li', '');
+      item.appendChild(ayudas.crear('span', 'chip ' + CLASE[e], ROTULO[e]));
+      item.appendChild(document.createTextNode(' ' + contador[e]));
+      item.setAttribute('data-estado', e);
+      lista.appendChild(item);
+    });
+    zona.appendChild(lista);
+  }
+
+  function vaciarMemoria() {
+    filas = [];
+    propuestas = [];
+  }
+
+  function confirmar(zona, marcadas) {
+    var elegidas = propuestas.filter(function (p) { return p.estado === 'lista' || marcadas[p.indice]; });
+    if (elegidas.length === 0) { zona.appendChild(comun.alerta(ayudas, 'error', 'No hay nada que confirmar.')); return; }
+    var dialogo = document.createElement('dialog');
+    dialogo.id = 'dialogo-carga';
+    dialogo.setAttribute('aria-label', 'Confirmar la carga');
+    dialogo.appendChild(ayudas.crear('p', '', '¿Guardar la cuenta de ' + elegidas.length + ' personas?'));
+    dialogo.appendChild(ayudas.crear('p', 'suave pequeno', 'Se guarda solo una huella de cada cuenta. La carga inicial es de uso único.'));
+    var botones = ayudas.crear('div', 'fila');
+    var cancelar = ayudas.boton('Cancelar', function () { dialogo.close(); dialogo.remove(); });
+    var guardar = ayudas.boton('Guardar', function () {
+      guardar.disabled = true;
+      cancelar.disabled = true;
+      var aEnviar = elegidas.map(function (p) {
+        var f = filas[p.indice];
+        return { empresa: f.empresa, nombre: f.nombre, dni: f.dni, cuenta: f.cuenta };
+      });
+      porTrozos(aEnviar, function (trozo, ok, ko) {
+        google.script.run.withSuccessHandler(ok).withFailureHandler(ko).apiConfirmarCargaInicial(trozo);
+      }, function (resultados) {
+        dialogo.close();
+        dialogo.remove();
+        vaciarMemoria();
+        var guardadas = resultados.filter(function (r) { return r.estado === 'guardada'; }).length;
+        var errores = resultados.filter(function (r) { return r.estado === 'error'; });
+        ayudas.vaciar(zona);
+        zona.appendChild(comun.alerta(ayudas, errores.length > 0 ? 'aviso' : 'info', 'Guardadas ' + guardadas + ' cuentas' + (errores.length > 0 ? ' · con error ' + errores.length : '') + '.', 'resultado-carga'));
+        errores.forEach(function (e) { zona.appendChild(comun.alerta(ayudas, 'error', 'Fila ' + (e.indice + 2) + ': ' + e.detalle)); });
+      }, function (error) {
+        dialogo.close();
+        dialogo.remove();
+        zona.appendChild(comun.alerta(ayudas, 'error', error.message));
+      });
+    });
+    guardar.classList.add('principal');
+    botones.appendChild(cancelar);
+    botones.appendChild(guardar);
+    dialogo.appendChild(botones);
+    document.body.appendChild(dialogo);
+    dialogo.showModal();
+  }
+
+  function pintarPropuestas(zona) {
+    ayudas.vaciar(zona);
+    var marcadas = {};
+    zona.appendChild(ayudas.crear('h2', '', 'Resultado de la comprobación'));
+    recuento(zona);
+    var pendientes = propuestas.filter(function (p) { return p.estado !== 'lista'; });
+    var cuerpo = pendientes.map(function (p) {
+      var f = filas[p.indice];
+      var accion = '';
+      if (p.estado === 'ya-registrada') {
+        var casilla = document.createElement('input');
+        casilla.type = 'checkbox';
+        casilla.setAttribute('aria-label', 'Sustituir la cuenta de ' + f.nombre);
+        casilla.addEventListener('change', function () { marcadas[p.indice] = casilla.checked; });
+        accion = { nodoHijo: casilla };
+      } else accion = 'Corrige el CSV y vuelve a cargarlo.';
+      return {
+        valores: [f.nombre, f.dni, p.empresa || f.empresa, p.ultimos4 || '', { nodoHijo: ayudas.crear('span', 'chip ' + CLASE[p.estado], ROTULO[p.estado]) }, accion],
+        clase: p.estado === 'ya-registrada' ? '' : 'fila-error'
+      };
+    });
+    if (cuerpo.length > 0) {
+      zona.appendChild(ayudas.crear('h3', '', 'A revisar una a una'));
+      zona.appendChild(comun.tabla(ayudas, ['Nombre', 'DNI', 'Empresa', 'Últimos 4', 'Estado', 'Sustituir'], cuerpo));
+    }
+    var listas = propuestas.filter(function (p) { return p.estado === 'lista'; }).length;
+    var boton = ayudas.boton('Confirmar las ' + listas + ' listas (y las marcadas)', function () { confirmar(zona, marcadas); });
+    boton.id = 'boton-confirmar-carga';
+    boton.classList.add('principal');
+    boton.disabled = listas === 0;
+    zona.appendChild(boton);
+  }
+
+  function procesar(texto, zona, mensaje) {
+    var leido = leerCsv(texto);
+    if (leido.error) { mensaje.appendChild(comun.alerta(ayudas, 'error', leido.error)); return; }
+    filas = leido.filas;
+    if (filas.length === 0) { mensaje.appendChild(comun.alerta(ayudas, 'error', 'El fichero no tiene filas.')); return; }
+    mensaje.appendChild(comun.alerta(ayudas, 'info', 'Comprobando ' + filas.length + ' filas…'));
+    porTrozos(filas, function (trozo, ok, ko) {
+      google.script.run.withSuccessHandler(ok).withFailureHandler(ko).apiValidarCargaInicial(trozo);
+    }, function (resultados) {
+      propuestas = resultados;
+      ayudas.vaciar(mensaje);
+      pintarPropuestas(zona);
+    }, function (error) {
+      vaciarMemoria();
+      ayudas.vaciar(mensaje);
+      mensaje.appendChild(comun.alerta(ayudas, 'error', error.message));
+    });
+  }
+
+  function mostrar(pantalla, ayudasDeLaPantalla) {
+    ayudas = ayudasDeLaPantalla;
+    comun = window.PagosComun;
+    vaciarMemoria();
+    var principal = document.getElementById('principal');
+    ayudas.vaciar(principal);
+    var tarjeta = ayudas.cabeceraDePantalla(pantalla);
+    tarjeta.appendChild(comun.alerta(ayudas, 'aviso', 'Carga de uso único. Cuando se haya comprobado que todo funciona, borra el fichero con las cuentas.', 'aviso-uso-unico'));
+    tarjeta.appendChild(ayudas.crear('p', 'suave pequeno', 'CSV con las columnas empresa; nombre; dni; cuenta (separador ; o ,). Se lee en tu navegador y no se guarda.'));
+    var archivo = comun.entrada('carga-archivo', 'file');
+    archivo.accept = '.csv,.txt,text/csv';
+    tarjeta.appendChild(comun.campo(ayudas, 'Fichero CSV', archivo));
+    principal.appendChild(tarjeta);
+    var mensaje = ayudas.crear('div', '');
+    mensaje.id = 'zona-mensaje-carga';
+    var zona = ayudas.crear('div', 'tarjeta');
+    zona.id = 'zona-carga';
+    principal.appendChild(mensaje);
+    principal.appendChild(zona);
+    archivo.addEventListener('change', function () {
+      ayudas.vaciar(mensaje);
+      ayudas.vaciar(zona);
+      if (!archivo.files || !archivo.files[0]) return;
+      var lector = new FileReader();
+      lector.onload = function () {
+        var texto = String(lector.result);
+        archivo.value = '';
+        procesar(texto, zona, mensaje);
+      };
+      lector.onerror = function () { mensaje.appendChild(comun.alerta(ayudas, 'error', 'No se pudo leer el fichero.')); };
+      lector.readAsText(archivo.files[0]);
+    });
+  }
+
+  window.PantallaCargaInicial = { mostrar: mostrar };
+})();
+</script>

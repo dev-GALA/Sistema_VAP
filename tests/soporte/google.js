@@ -2,6 +2,7 @@
 // Fieles en los DATOS (hojas, propiedades, bloqueos, correos, disparadores) y permisivos en lo VISUAL
 // (colores, anchos, formatos: se registran en `estado.formato` pero no se comprueban).
 // Todo es determinista (FIRST · Repeatable): la hora y los UUID los fija quien prueba.
+import { createHmac } from 'node:crypto';
 import { evaluarPlantilla } from './plantilla.js';
 
 const letraAColumna = (letras) => [...letras].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0);
@@ -320,6 +321,9 @@ export function crearGoogle(opciones = {}) {
     sleep: (ms) => estado.esperas.push(ms),
     formatDate: (fecha, huso, patron) => formatearFecha(fecha, huso, patron),
     parseCsv: (texto, delimitador = ',') => analizarCsv(texto, delimitador),
+    // Como en Google, devuelve bytes CON signo (-128…127).
+    computeHmacSha256Signature: (valor, clave) =>
+      [...createHmac('sha256', String(clave)).update(String(valor)).digest()].map((b) => (b > 127 ? b - 256 : b)),
     newBlob: (datos, tipo, nombre) => ficheros.blob(nombre, datos, tipo),
   };
 
@@ -427,8 +431,20 @@ export function crearGoogle(opciones = {}) {
     },
   };
 
+  const ContentService = {
+    MimeType: { JSON: 'JSON', TEXT: 'TEXT' },
+    createTextOutput(texto) {
+      const salida = {
+        setMimeType(tipo) { salida._tipo = tipo; return salida; },
+        getContent: () => texto,
+        getMimeType: () => salida._tipo,
+      };
+      return salida;
+    },
+  };
+
   const global = {
-    SpreadsheetApp, Utilities, ScriptApp, HtmlService, MailApp, UrlFetchApp,
+    SpreadsheetApp, Utilities, ScriptApp, HtmlService, MailApp, UrlFetchApp, ContentService,
     DriveApp: ficheros.DriveApp,
     Logger: { log: (...a) => estado.logs.push(a.join(' ')) },
     Session: {

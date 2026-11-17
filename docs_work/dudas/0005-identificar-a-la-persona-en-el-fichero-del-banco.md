@@ -158,3 +158,31 @@ Diseño en [fuentes_de_contraste.md](../docs_cruce/fuentes_de_contraste.md) §12
 y RNF-20; trabajo en OB-36 y OB-45. **Sigue abierta**: falta la decisión y un ADR. Las decisiones de seguridad
 (algoritmo, dónde se guarda la clave, quién abre el libro, copia de la clave, plazo de conservación) se firman
 una a una antes de crear nada.
+
+## Actualización · 17 noviembre 2026
+
+Con el desarrollador, **una a una**, se tomaron estas decisiones. Siguen **pendientes de la firma de Gerencia y de
+protección de datos**: eso **no bloquea el ADR** ([ADR-0019](../../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md),
+Propuesta) **pero sí cargar datos reales**.
+
+| Tema | Decisión |
+|---|---|
+| **Algoritmo** | **HMAC-SHA256** con clave secreta, sobre el IBAN normalizado, sin el identificador ni la empresa |
+| **Dónde vive el código y la clave** | **Opción A:** `VAP_Pagos` es un **proyecto de Apps Script propio e independiente**, **no ligado al libro**; la webapp lo llama como servicio. La clave está en sus **Script Properties** y **solo el propietario edita el proyecto**. (La opción B, librería, parece leer las propiedades del proyecto que llama: sin verificar. La C, todo en la webapp, deja la clave a la vista de quien edita la webapp) |
+| **Copia de la clave** | En el **gestor de contraseñas de GALA**. Quién ve esa entrada se fija **al crearla**. La clave la genera el desarrollador: no pasa por el chat ni por el repositorio |
+| **Quién edita el libro `VAP_Pagos`** | **El desarrollador y la Responsable de Administración (Sara Casillas)**, ambos editores. **Uso normal solo por la webapp**; la edición directa es excepcional |
+| **Consecuencia para protección de datos** | Quien edite el libro **puede ver huellas, últimos 4 dígitos y nombres de los «no existentes»**. Va en el resumen que se les pasa ([resumen_proteccion_datos.md](../resumen_proteccion_datos.md)) |
+| **Últimos 4 dígitos** | **De la cuenta** (no de la huella), **guardados junto a la huella**, para comprobar de qué cuenta salió |
+| **Marca en `VAP_Personas`** | Columna **`cuenta_en_pagos`** (sí/no) y su **fecha**, **sin huella** |
+| **Informe del cruce** | **Dos partes.** **Parte 1:** pagos que coinciden con `VAP_Pagos` (`id_personal`, importe, estado **Coincidente** o **Incorrecto**, y **Observaciones solo si es Incorrecto**, con importes, referencias, fuente y el resto de datos). **Parte 2:** pagos que **no existen** (nombre del banco, huella, últimos 4 dígitos, importe y entidad). **Todo pago deja fila: no existe el estado «no cruzado»**. Subsanable sin sobrescribir el original |
+| **Nombre del beneficiario** | **Se guarda, solo en la Parte 2.** Es la única pista para subsanar un pago cuya cuenta no se reconoce |
+| **Formatos del banco** | **XML (ISO 20022 `pain.001.001.09`), CSV y Excel**, **uno o varios ficheros por empresa** |
+| **Ficheros del banco** | **Los borra el usuario a mano cuando proceda**; sin borrado automático. **Las cuentas en claro quedan en Drive hasta entonces** |
+| **Excel de altas** (nombre, DNI y cuenta) | Se **borra** una vez hecha la carga inicial y **verificado que todo funciona** |
+| **Maestro y consulta** | Muestran **nombre y DNI leyéndolos de `VAP_Personas` en el momento**: **no se guardan en `VAP_Pagos`**. **La huella no se muestra** |
+| **Tiempo** | El cruce se hace **por empresa, en llamadas separadas**, con fusión final obligatoria (límite de 6 min de Apps Script) |
+
+**Quedan abiertas:** la **firma** de Gerencia y de protección de datos (y si el tratamiento figura en el registro de
+actividades), el **plazo de conservación de los informes**, **quién ve la entrada del gestor de contraseñas**, el
+**segundo editor del proyecto** y la **frecuencia de la copia del libro**. **Requisitos:** RF-86 a RF-99 y RNF-19 a RNF-23.
+Trabajo en OB-45, OB-46 y OB-47.

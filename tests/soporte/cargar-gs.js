@@ -11,6 +11,8 @@ export const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SRC = join(RAIZ, 'docs_solutions', 'src');
 // La webapp del proceso mensual (ADR-0017) es un proyecto más de `src/`; se carga con `{ raiz: SRC_WEBAPP }`.
 export const SRC_WEBAPP = join(SRC, 'webapp');
+// VAP_Pagos (ADR-0019): el servicio que guarda la clave y las huellas; otro proyecto de Apps Script.
+export const SRC_PAGOS = join(SRC, 'pagos');
 
 export const CODIGO = {
   exportSage: 'scripts_generales/VAP_script_export_SAGE.gs',

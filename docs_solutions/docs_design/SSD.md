@@ -136,7 +136,7 @@ VAP
 | Export SAGE | `VAP_Export_Sage` (pestaña `bbdd_export_sage_laboral`) | Origen de cálculos y volcados de nóminas; hojas `logs`/`errores` de auditoría |
 | Carpeta export XLSX | (ID en `EXPORT_FOLDER_ID`) | Destino de los Excel mensuales generados |
 | Libro de la webapp | `VAP_Webapp` *(nombre provisional, por crear)* | Hojas `config` (clave/valor, con los correos de cada rol) y `estado_pasos`. Propiedad de la cuenta del desarrollador. **No guarda DNI, cuentas ni huellas** ([ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md)) |
-| Libro de pagos | `VAP_Pagos` *(planificado, [OB-45](../../docs_work/proximos_pasos.md))* | `id_personal` + huella de la cuenta bancaria, sin IBAN, sin DNI y sin nombre. La clave de la huella vive en la configuración del script. Pendiente de validar con Gerencia y protección de datos |
+| Libro de pagos | `VAP_Pagos` *(planificado, [OB-45](../../docs_work/proximos_pasos.md) y [OB-47](../../docs_work/proximos_pasos.md))* + **proyecto de Apps Script propio**, no ligado al libro | `id_personal`, huella de la cuenta (HMAC-SHA256), **últimos 4 dígitos** y fecha, sin IBAN, sin DNI y sin nombre de las personas registradas; **informes de cruce por mes** (Parte 1 coincidentes, Parte 2 no existentes **con el nombre del beneficiario del banco**) y sus resoluciones. La clave vive **solo en las propiedades de ese proyecto**, con copia en el gestor de contraseñas de GALA. Lo editan el desarrollador y la Responsable de Administración ([ADR-0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), Propuesta; pendiente de validar con Gerencia y protección de datos) |
 
 > **Nota:** los IDs de spreadsheets, formularios y carpetas de Drive están **hardcodeados**
 > en cada script (habitual en Apps Script). Tenerlo en cuenta si el repositorio se hace público.
@@ -682,9 +682,11 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-22 | **La webapp depende de la cuenta de una persona**: el libro y el proyecto son de la cuenta del desarrollador | Medio | [ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md): segundo editor, transferencia de la propiedad y copia de seguridad. **Aún por concretar** |
 | R-23 | **`Session.getActiveUser()` puede no identificar al usuario** según cómo se despliegue, y entonces la webapp **deniega a todos** | Medio | No verificado en el dominio. Se prueba a mano entrando con la cuenta de la Responsable de Administración antes de dar la webapp por buena |
 | R-24 | **Los ficheros reales de ADESLAS, COBEE, banco y SAGE, y el libro de la Vinculación, están en `docs_work/docs_cruce/`**, protegidos solo por la extensión en `.gitignore` | Alto | Pendiente de decidir: moverlos a `migration_data/` (ignorada entera) o declarar la carpeta ignorada dejando pasar solo los `.md`. Ver [proximos_pasos.md](../../docs_work/proximos_pasos.md) |
-| R-25 | **La clave de la huella de `VAP_Pagos`**: perderla obliga a repetir la carga inicial, y su custodia es una decisión de seguridad | Alto | Propuesta, sin construir: copia de seguridad de la clave y acceso limitado ([RNF-20](../../docs_discovery/requisitos_no_funcionales.md)) |
+| R-25 | **La clave de la huella de `VAP_Pagos`**: perderla obliga a repetir la carga inicial, y su custodia es una decisión de seguridad | Alto | Decidido el 17 nov 2026 ([ADR-0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), Propuesta): solo en el proyecto de `VAP_Pagos`, copia en el gestor de contraseñas de GALA y acceso limitado al propietario ([RNF-20](../../docs_discovery/requisitos_no_funcionales.md)). Sin construir en real |
 | R-26 | **Retoques manuales en la Vinculación tras el volcado**: el libro puede no reflejar lo que trae SAGE (en la muestra, 1 valor distinto y 7 filas que no están en el export) | Medio | Lo detectan las comprobaciones ([HU-23](../../docs_discovery/historias_usuarios.md)); hoy nada lo avisa |
 | R-27 | **Las ayudas de COBEE no llegan a SAGE ni a la Vinculación** (columnas vacías en las 493 personas de la muestra) | Alto | Pregunta abierta: ¿es el primer o el segundo export? ([fuentes_de_contraste.md](../../docs_work/docs_cruce/fuentes_de_contraste.md) §7) |
+| R-28 | **La conexión entre la webapp y el proyecto de `VAP_Pagos`** (identificación entre proyectos) no se ha probado en Google real, y la cuenta viaja en memoria entre los dos | Medio | Comprobación manual escrita antes de desplegar; prueba automática de que la cuenta no llega a ningún registro ([RNF-19](../../docs_discovery/requisitos_no_funcionales.md), [RNF-21](../../docs_discovery/requisitos_no_funcionales.md)) |
+| R-29 | **Los ficheros del banco y el Excel de altas contienen cuentas y nombres en claro** y quedan en Drive hasta que el usuario los borre | Alto | Los borra el usuario a mano ([RNF-23](../../docs_discovery/requisitos_no_funcionales.md)); el sistema no los guarda. Sin borrado automático por decisión del 17 nov 2026 |
 | R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [RNF-08](../../docs_discovery/requisitos_no_funcionales.md) |
 
 ## 10. Glosario
@@ -700,11 +702,12 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | `Batch_ID` | Identificador único de un envío de complementos |
 | `Run ID` | Identificador que correlaciona una ejecución del script SAGE entre `logs`/`errores`/LOG |
 | Webapp | Aplicación web generada con Google Apps Script |
+| Huella | Código HMAC-SHA256 de una cuenta bancaria calculado con una clave secreta: permite reconocer la cuenta sin guardarla ([ADR-0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md)) |
 | HH.EE. | Horas Extras |
 
 ## 11. Referencias
 
-- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0018)
+- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0019)
 - **Requisitos y su estado:** [`requisitos_funcionales.md`](../../docs_discovery/requisitos_funcionales.md) · [`requisitos_no_funcionales.md`](../../docs_discovery/requisitos_no_funcionales.md)
 - **Trabajo en curso:** [`proximos_pasos.md`](../../docs_work/proximos_pasos.md)
 - **Cambios cronológicos:** [`../../CHANGELOG.md`](../../CHANGELOG.md)
@@ -741,8 +744,9 @@ tiene, o la decisión no llegó a aplicarse, o falta escribir el requisito:
 | [0016](adr/0016-un-unico-libro-de-vinculacion.md) | Un único libro de Vinculación | RF-20, RF-22, RF-25 *(pendiente de aplicar)* |
 | [0017](adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) | Webapp del proceso mensual: stack y estructura *(propuesta)* | RF-72, RF-73, RF-79, RF-82, RNF-09, RNF-11, RNF-16, RNF-17 |
 | [0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) | Libro propio de la webapp, propietario y accesos *(propuesta)* | RF-42, RF-43, RF-79, RNF-09, RNF-12 |
+| [0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) | `VAP_Pagos` como servicio propio con la huella HMAC de la cuenta *(propuesta)* | RF-86 a RF-99, RNF-09, RNF-12, RNF-13, RNF-19 a RNF-23 |
 
-**Los 16 ADR aceptados declaran requisito, y las dos propuestas (0017 y 0018) también.** **Requisitos nuevos sin ADR todavía:** RF-80, RF-81 (concordancia de identidad, [OB-44](../../docs_work/proximos_pasos.md)), RF-83 a RF-85 (altas, bajas y su registro, [OB-46](../../docs_work/proximos_pasos.md)) y RF-86 a RF-89 con RNF-19 y RNF-20 (`VAP_Pagos` y la huella, [OB-45](../../docs_work/proximos_pasos.md) y [OB-36](../../docs_work/proximos_pasos.md)): necesitan decisiones de seguridad firmadas antes de escribir su ADR. Dos matices: el 0016 está decidido pero **sin aplicar**, y
+**Los 16 ADR aceptados declaran requisito, y las tres propuestas (0017, 0018 y 0019) también.** **Requisitos nuevos sin ADR todavía:** RF-80, RF-81 (concordancia de identidad, [OB-44](../../docs_work/proximos_pasos.md)), RF-83 a RF-85 (altas, bajas y su registro, [OB-46](../../docs_work/proximos_pasos.md)) y los de `VAP_Pagos` y el cruce de pagos (RF-86 a RF-99, RNF-19 a RNF-23) **ya tienen su ADR, el [0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), en Propuesta** (trabajo en [OB-45](../../docs_work/proximos_pasos.md), [OB-47](../../docs_work/proximos_pasos.md) y [OB-36](../../docs_work/proximos_pasos.md)); falta la validación de Gerencia y de protección de datos. Dos matices: el 0016 está decidido pero **sin aplicar**, y
 **RF-21 describe lo que el ADR-0015 retira** (está marcado ✅ pero el cálculo ya no existe): es una
 contradicción abierta, anotada en [OB-39](../../docs_work/proximos_pasos.md).
 
@@ -777,9 +781,11 @@ Los riesgos de [`SSD.md` §9](SSD.md#9-riesgos-y-limitaciones) y el requisito qu
 | R-22 | La webapp depende de la cuenta de una persona | RNF-12 | 🔴 Por concretar ([ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md)) |
 | R-23 | Google puede no identificar al usuario | RNF-09 | 🟡 Deniega por defecto; sin verificar en real |
 | R-24 | Ficheros reales con datos personales protegidos solo por extensión | RNF-09, RNF-18 | 🔴 Decisión pendiente |
-| R-25 | Custodia y pérdida de la clave de la huella | RNF-20 | 🔴 No construido |
+| R-25 | Custodia y pérdida de la clave de la huella | RNF-20 | 🔴 Decidido, sin construir |
 | R-26 | Retoques manuales tras el volcado | RF-31, RF-75 | 🔴 No (lo detectaría la comprobación) |
 | R-27 | COBEE no llega a SAGE ni al libro | RF-32 | 🔴 Pregunta abierta |
+| R-28 | Conexión webapp ↔ `VAP_Pagos` sin verificar | RNF-21, RNF-19 | 🔴 No construido |
+| R-29 | Cuentas en claro en ficheros del banco hasta que se borren | RNF-23 | 🔴 No construido |
 
 > **Tres riesgos no tenían requisito y ahora lo tienen** (RF-70, RF-71, RNF-15). Y **tres riesgos
 > nuevos** salieron de esta confrontación y se han añadido al SSD: R-18, R-19 y R-20 — los tres de

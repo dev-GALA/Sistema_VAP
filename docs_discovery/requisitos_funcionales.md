@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.6 — con RF-72 a RF-89 (Comprobaciones, Proceso mensual, Altas/bajas y `VAP_Pagos`) |
-| **Fecha** | 16 noviembre 2026 (versión 0.5: 7 septiembre 2026) |
+| **Versión** | 0.8 — con RF-100 y RF-101 (listas únicas y cabeceras homogéneas del maestro de personas) |
+| **Fecha** | 17 noviembre 2026 (versión 0.6: 16 noviembre 2026) |
 | **Se deriva de** | [historias_usuarios.md](historias_usuarios.md) |
 | **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_no_funcionales.md](requisitos_no_funcionales.md) |
@@ -174,10 +174,22 @@ se puede dar por incumplido.
 | **RF-78** | Al repetir una comprobación, el sistema **cerrará** las diferencias que ya no aparezcan indicando que desaparecieron al comprobar de nuevo, y **no duplicará** las que siguen abiertas | 🔴 | 🔸 | HU-44 |
 | **RF-80** | Al empezar el mes, el sistema comprobará entre el export de SAGE y el maestro de personas que cada identificador (empresa y nº de empleado) y su DNI **siguen en concordancia**, y listará como incidencia los DNI relacionados con otro identificador y las personas que están en un origen y no en el otro; el paso solo se dará por superado cuando no queden incidencias | 🔴 | 🔺 | HU-46 |
 | **RF-81** | Siempre que una comprobación disponga a la vez del identificador (empresa y nº) y del DNI de una persona, el sistema verificará que **siguen en concordancia** antes de usarlos, porque una persona puede cambiar de empresa | 🔴 | 🔸 | HU-46 |
-| **RF-86** | Del dato bancario de cada persona el sistema guardará **solo una huella**, calculada con una **clave secreta** guardada en la configuración del script, junto al identificador de la persona y **en un libro aparte** (`VAP_Pagos`); **nunca la cuenta** | 🔴 | 🔺 | HU-48 |
+| **RF-86** | Del dato bancario de cada persona el sistema guardará **solo una huella**, calculada con una **clave secreta** guardada en la configuración del **proyecto propio de `VAP_Pagos`**, junto al identificador de la persona y **en un libro aparte** (`VAP_Pagos`); **nunca la cuenta** | 🔴 | 🔺 | HU-48 |
 | **RF-87** | La huella **no incluirá el identificador de la persona ni su empresa**, de modo que un cambio de empresa no la altere y pueda buscarse sin saber de quién es | 🔴 | 🔺 | HU-48 |
-| **RF-88** | Al contrastar el fichero del banco, el sistema buscará la huella de cada cuenta **solo entre las personas activas** y reportará como **no cruzada** la que no encuentre o sea ambigua | 🔴 | 🔺 | HU-25, HU-48 |
+| **RF-88** | Al contrastar el fichero del banco, el sistema buscará la huella de cada pago **solo entre las personas activas**; el pago cuya cuenta **no se reconozca o sea ambigua** no se descarta ni se asigna a nadie: queda en la **Parte 2 («no existen»)** del informe (RF-91) | 🔴 | 🔺 | HU-25, HU-48 |
 | **RF-89** | Para las personas ya existentes, el sistema ofrecerá una **carga inicial de uso único** que proponga la persona por empresa y nombre, compruebe el importe y **exija confirmación humana** antes de guardar | 🔴 | 🔺 | HU-48 |
+| **RF-90** | El cruce admitirá el fichero del banco en **XML (ISO 20022 `pain.001.001.09`), CSV o Excel**, **uno o varios ficheros por empresa**: el usuario elige la empresa, carga los ficheros y pulsa *Cruce* | 🔴 | 🔺 | HU-49 |
+| **RF-91** | Cada cruce generará un **informe en dos partes**: **Parte 1**, los pagos cuya cuenta coincide con una huella de `VAP_Pagos` (`id_personal`, importe y estado *Coincidente* o *Incorrecto*, con **Observaciones solo si es Incorrecto**: importes, referencias, fuente y el resto de datos para entender el problema); **Parte 2**, los pagos que **no existen** en `VAP_Pagos` (nombre del banco, huella, últimos 4 dígitos, importe y entidad bancaria). **Todo pago deja una fila**: no existe el estado «no cruzado» | 🔴 | 🔺 | HU-49 |
+| **RF-92** | El cruce se hará **por empresa, en llamadas separadas**, para no superar el límite de 6 minutos de Apps Script; terminadas todas, **fusionar los informes en uno** será un paso **obligado** | 🔴 | 🔺 | HU-49 |
+| **RF-93** | Un pago *Incorrecto* se podrá **subsanar sin sobrescribir el resultado original**: la subsanación añade una **resolución** con quién, cuándo y el motivo | 🔴 | 🔸 | HU-49 |
+| **RF-94** | Los informes se guardarán en `VAP_Pagos`, **un informe por mes** | 🔴 | 🔸 | HU-49, HU-50 |
+| **RF-95** | El **histórico de pagos** se podrá consultar por **año y mes** (botón *Cargar*) y, después, buscando por **DNI o nombre** | 🔴 | 🔸 | HU-50 |
+| **RF-96** | El **Maestro de Pagos** mostrará nombre, DNI, últimos 4 dígitos de la cuenta y fecha de última actualización, con un buscador por persona que **ofrezca candidatos al teclear**. El nombre y el DNI se **leen de `VAP_Personas` en el momento de consultar** y **nunca se guardan en `VAP_Pagos`**; **la huella no se muestra** | 🔴 | 🔸 | HU-50 |
+| **RF-97** | Cuando la cuenta de una persona queda registrada en `VAP_Pagos`, `VAP_Personas` guardará la marca **`cuenta_en_pagos`** (sí/no) con su **fecha**, **sin la huella ni la cuenta** | 🔴 | 🔺 | HU-47, HU-48 |
+| **RF-98** | Junto a cada huella se guardarán los **últimos 4 dígitos** de la cuenta, para que una persona pueda comprobar de qué cuenta salió | 🔴 | 🔸 | HU-48, HU-50 |
+| **RF-99** | El cruce **comparará el importe del banco con el de la Vinculación de gastos de personal** de la persona y el mes, y marcará *Incorrecto* si no coinciden dentro de la tolerancia definida (RF-33) | 🔴 | 🔺 | HU-25, HU-49 |
+| **RF-100** | Las **listas de valores** del maestro de personas (**empresas** y **tipos de Staff**) vivirán **una sola vez**, en la hoja `Config` del maestro, como **clave y valor separados por comas**. Los desplegables de todas las pestañas y la webapp **leerán de ahí**; ningún nombre de lista puede llevar coma | 🔴 | 🔸 | HU-47 |
+| **RF-101** | Las pestañas de `VAP_BBDD_Personas` tendrán **cabeceras homogéneas**: `Id_Sage` · `id_trabajador` · nombre · `DNI` · `Tipo` · `Empresa` · `Alta` (**casilla**) · `Fecha_Alta` · `Fecha_Baja` · `Observaciones` · marca de cuenta registrada. El cambio de nombre de una cabecera **se coordina con los scripts que la leen**, que hoy dependen de los nombres actuales | 🔴 | 🔸 | HU-47 |
 
 > **RF-34 es el que evita el peor fallo posible en una verificación:** que una persona que no casa
 > por identificador desaparezca del informe y se cuente como correcta. Lo *no comprobado* nunca debe
@@ -274,9 +286,9 @@ se puede dar por incumplido.
 |---|---|---|
 | ✅ **Cumplidos** | 25 | 5 |
 | 🟡 **Parciales** | 9 | 7 |
-| 🔴 **No cumplidos** | 54 | 8 |
+| 🔴 **No cumplidos** | 64 | 11 |
 | ⚪ **En decisión** | 1 | — |
-| | **89** | **20** |
+| | **99** | **23** |
 
 *Los dos requisitos no funcionales sin cumplir —escritura en bloque y precisión numérica— son deuda
 técnica ya inventariada, no funcionalidad ausente.*
@@ -289,7 +301,7 @@ técnica ya inventariada, no funcionalidad ausente.*
 | B · Captura de datos | 11 | 17 |
 | C · Consolidación | 10 | 16 |
 | D · Ajuste y cierre | 1 | 4 |
-| E · Verificación | **0** | 18 |
+| E · Verificación | **0** | 28 |
 | F · Coordinación del cierre | **0** | 11 |
 | G · Trazabilidad y consulta | **0** | 8 |
 | H · Medición e informes | **0** | 6 |
@@ -305,7 +317,7 @@ técnica ya inventariada, no funcionalidad ausente.*
 
 ## 3.bis Trazabilidad hacia las historias
 
-Cada requisito indica de qué historia sale. En sentido contrario, **las 48 historias tienen al menos
+Cada requisito indica de qué historia sale. En sentido contrario, **las 50 historias tienen al menos
 un requisito que las implementa**:
 
 | Historia | | Requisitos |
@@ -334,7 +346,7 @@ un requisito que las implementa**:
 | **HU-22** | Dar el mes por cerrado | RF-28, RF-29, RF-30 |
 | **HU-23** | Comprobar el seguro médico | RF-31, RF-34, RF-35, RF-74, RF-75 |
 | **HU-24** | Comprobar las ayudas de comida y transporte | RF-32, RF-34, RF-35 |
-| **HU-25** | Comprobar que lo pagado es lo calculado | RF-33, RF-34, RF-35, RF-74, RF-88 |
+| **HU-25** | Comprobar que lo pagado es lo calculado | RF-33, RF-34, RF-35, RF-74, RF-88, RF-99 |
 | **HU-26** | Lanzar el cierre del mes | RF-36, RF-37 |
 | **HU-27** | Enterarme de que tengo que reportar | RF-38 |
 | **HU-28** | Ver quién ha reportado y quién no | RF-39, RF-40, RF-41 |
@@ -356,8 +368,10 @@ un requisito que las implementa**:
 | **HU-44** | Dejar constancia de las diferencias y marcarlas como resueltas | RF-77, RF-78 |
 | **HU-45** | Seguir el proceso mensual paso a paso desde una pantalla | RF-79 |
 | **HU-46** | Comprobar que cada persona sigue en concordancia entre SAGE y el maestro de personas | RF-80, RF-81 |
-| **HU-47** | Dar de alta, baja y modificar a una persona desde una pantalla | RF-82, RF-83, RF-84, RF-85 |
-| **HU-48** | Reconocer a la persona en el fichero del banco sin guardar su cuenta | RF-86, RF-87, RF-88, RF-89 |
+| **HU-47** | Dar de alta, baja y modificar a una persona desde una pantalla | RF-82, RF-83, RF-84, RF-85, RF-97, RF-100, RF-101 |
+| **HU-48** | Reconocer a la persona en el fichero del banco sin guardar su cuenta | RF-86, RF-87, RF-88, RF-89, RF-97, RF-98 |
+| **HU-49** | Cruzar los pagos del banco y subsanar el informe | RF-90, RF-91, RF-92, RF-93, RF-94, RF-99 |
+| **HU-50** | Consultar el histórico y el maestro de pagos | RF-94, RF-95, RF-96, RF-98 |
 
 > Comprobado sobre el propio documento: **ninguna historia se ha quedado sin requisito**, y ningún
 > requisito existe sin una historia que lo justifique. Si en el futuro aparece un requisito sin
@@ -410,9 +424,7 @@ cumplirse**, y por eso son muchos más: la diferencia son los que **aún no tien
    que revisarlos al recibirlos. **Ya se han leído ADESLAS y la Vinculación** (ver
    [fuentes_de_contraste.md](../docs_work/docs_cruce/fuentes_de_contraste.md)); faltan COBEE completo, el banco y los dos exports de SAGE.
 4. **RF-75** — no se puede concretar hasta ver una muestra del primer y del segundo export de SAGE.
-5. **RF-86 … RF-89** — **decisiones de seguridad por firmar antes de construir**: algoritmo de la huella,
-   dónde y cómo se guarda la clave, quién abre `VAP_Pagos`, copia de seguridad de la clave, plazo de
-   conservación y si se enseñan los últimos dígitos al confirmar. Van a un ADR.
+5. **RF-86 … RF-99** — **decididas el 17 nov 2026** (HMAC-SHA256, clave en el proyecto propio de `VAP_Pagos`, copia en el gestor de contraseñas, últimos 4 dígitos guardados, libro editable por dos personas): ver [DUDA-0005](../docs_work/dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md) y [ADR-0019](../docs_solutions/docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) (Propuesta). **Falta la firma de Gerencia y de protección de datos**, que no bloquea el diseño pero **sí cargar datos reales**.
 6. **RF-80** — la incidencia «DNI con otro identificador» necesita el **DNI en el export de SAGE**
    (pedido el 16 nov 2026); sin él solo se aproxima por el nombre.
 7. **RF-79** — ✅ **decidido el 16 nov 2026**: el *proceso mensual* y el tablero de los nueve pasos

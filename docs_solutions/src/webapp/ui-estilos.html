@@ -44,6 +44,15 @@
   .nav { display: flex; gap: 2px; padding: 0 1rem; flex-wrap: wrap; background: var(--ink); }
   .nav a { background: #1a1a1a; color: #ddd; padding: 0.6rem 1rem; font-size: 13px; text-decoration: none; border-bottom: 3px solid transparent; }
   .nav a:hover { background: #333; color: #fff; }
+  /* Submenú «Gestión Personal»: un desplegable en la misma barra */
+  .submenu { position: relative; }
+  .submenu summary { list-style: none; cursor: pointer; background: #1a1a1a; color: #ddd; padding: 0.6rem 1rem; font-size: 13px; border-bottom: 3px solid transparent; }
+  .submenu summary::-webkit-details-marker { display: none; }
+  .submenu summary::after { content: ' ▾'; }
+  .submenu summary:hover, .submenu[open] summary { background: #333; color: #fff; }
+  .submenu.activo summary { background: var(--bg); color: #000; border-bottom-color: var(--accent); font-weight: 600; }
+  .submenu-items { position: absolute; left: 0; top: 100%; min-width: 100%; background: #1a1a1a; display: flex; flex-direction: column; z-index: 110; }
+  .submenu-items a { white-space: nowrap; }
   .nav a[aria-current='page'] { background: var(--bg); color: #000; border-bottom-color: var(--accent); font-weight: 600; }
 
   main { max-width: 1180px; margin: 0 auto; padding: 1.25rem; }
@@ -96,8 +105,34 @@
   .paso-desconocido { border-left-color: var(--aviso); }
   .paso-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin-bottom: 0.4rem; }
   .paso-titulo { margin: 0; font-size: 1rem; }
-  .paso-cab .chip { margin-left: auto; }
-  .insignia-paso { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--accent); font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+  .paso-lado { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .paso-acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 0.5rem; }
+  button.principal { background: var(--accent); border-color: var(--ink); font-weight: 600; }
+  button.principal:hover:not(:disabled) { background: var(--ink); color: var(--accent); }
+  .grupo-titulo { margin-bottom: 0.75rem; }
+  .grupo ol.pasos { margin-bottom: 0; }
+  #contenedor-pasos > ol.pasos { margin-bottom: 1rem; }
+  dialog { border: 1px solid var(--ink); border-radius: 8px; padding: 1.25rem; max-width: 420px; }
+  dialog::backdrop { background: rgba(0,0,0,0.45); }
+  dialog .fila { justify-content: flex-end; margin-top: 0.75rem; }
+  .insignia-paso { flex: none; min-width: 28px; height: 28px; padding: 0 8px; border-radius: 14px; background: var(--ink); color: var(--accent); font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* Altas/bajas */
+  .formulario { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem 1rem; margin-bottom: 0.75rem; }
+  .cabecera-plantilla { display: block; background: var(--tag); border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.6rem; margin-bottom: 0.6rem; overflow-x: auto; }
+  .tabla-envoltorio { overflow-x: auto; margin-bottom: 0.75rem; }
+  .tabla-plantilla { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .tabla-plantilla th, .tabla-plantilla td { border-bottom: 1px solid var(--rule); padding: 0.3rem 0.4rem; text-align: left; vertical-align: top; }
+  .tabla-plantilla input[type='text'], .tabla-plantilla select { width: 100%; min-width: 90px; padding: 0.25rem 0.35rem; }
+  .tabla-plantilla .fila-error { background: var(--error-fondo); }
+
+  /* Pantallas de Pagos */
+  details.informe-empresa > summary { cursor: pointer; font-weight: 700; }
+  .parte-informe { margin-top: 0.75rem; }
+  .parte-informe h3 { margin: 0 0 0.4rem; font-size: 0.95rem; }
+  ul.candidatos, ul.recuento { list-style: none; margin: 0 0 0.75rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 0.75rem; }
+  ul.candidatos li { flex: 0 1 auto; }
+  dialog textarea { width: 100%; box-sizing: border-box; }
 
   @media (max-width: 600px) {
     main { padding: 0.75rem; }

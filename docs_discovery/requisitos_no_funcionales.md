@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.6 — con RNF-18 a RNF-20 (datos personales del registro, cuenta bancaria y clave de la huella) |
-| **Fecha** | 16 noviembre 2026 (versión 0.5: 7 septiembre 2026) |
+| **Versión** | 0.7 — con RNF-18 a RNF-23 (datos personales del registro, cuenta bancaria, clave de la huella, proyecto propio de `VAP_Pagos`, tiempo y ficheros del banco) |
+| **Fecha** | 17 noviembre 2026 (versión 0.6: 16 noviembre 2026) |
 | **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_funcionales.md](requisitos_funcionales.md) |
 
@@ -63,7 +63,10 @@ que hacerlo**: con qué garantías, con qué límites y a qué coste de mantenim
 | **RNF-17** | Una misma lógica **no se duplicará** entre proyectos: se comparte o se aísla en un solo punto | 🔴 | 🔸 | — *(ver justificación J-07)* | CLAUDE.md · DT-19, DT-20 |
 | **RNF-18** | Los datos personales que conserve el registro de diferencias (nombre y DNI) tendrán **acceso limitado en el servidor** y un **plazo de conservación definido**; los documentos subidos para comparar **no se conservarán** una vez terminada la comprobación | 🔴 | 🔺 | RF-77 · RF-78 | [CLAUDE.md, segunda regla](../CLAUDE.md) · RNF-09 |
 | **RNF-19** | La **cuenta bancaria no se escribirá en ningún registro, mensaje de error ni hoja**: solo existirá en memoria mientras se calcula su huella | 🔴 | 🔺 | RF-86 | [CLAUDE.md, segunda regla](../CLAUDE.md) · RNF-09 |
-| **RNF-20** | La **clave** con la que se calcula la huella estará protegida, con acceso limitado y con **copia de seguridad**, y quien opera la pantalla no podrá abrir el libro de huellas | 🔴 | 🔺 | RF-86 · RF-87 | RNF-09 |
+| **RNF-20** | La **clave** con la que se calcula la huella vivirá **solo en las propiedades del proyecto de Apps Script de `VAP_Pagos`**, con acceso limitado a su propietario y **copia de seguridad en el gestor de contraseñas de GALA**. El **libro** `VAP_Pagos` lo editan el desarrollador y la Responsable de Administración, y **ambos pueden ver huellas, últimos 4 dígitos y nombres de los «no existentes»**: es una consecuencia aceptada y se declara a protección de datos | 🔴 | 🔺 | RF-86 · RF-87 · RF-91 · RF-98 | RNF-09 · RNF-21 |
+| **RNF-21** | `VAP_Pagos` será un **proyecto de Apps Script independiente**, **no ligado al libro** ni a la webapp, que guarda la clave y **solo el propietario edita**; la webapp lo llama como servicio y **solo le pasa la cuenta en memoria** | 🔴 | 🔺 | RF-86 · RF-90 | RNF-09 · RNF-12 · RNF-19 |
+| **RNF-22** | Ninguna operación de `VAP_Pagos` se acercará al **límite de 6 minutos** de Apps Script: el trabajo se hace **por empresa y por fichero**, con **lecturas y escrituras en bloque** y no fila a fila | 🔴 | 🔺 | RF-92 · RF-90 | RNF-13 |
+| **RNF-23** | Los **ficheros del banco** (con cuentas y nombres en claro) **los elimina el usuario** cuando proceda y **el sistema no los guarda**; la webapp los lee en el navegador y no los escribe en ningún sitio | 🔴 | 🔺 | RF-90 | RNF-18 · RNF-19 |
 
 ### Los siete sin relación directa con un RF, y por qué existen
 
@@ -113,10 +116,10 @@ es un requisito que nadie pidió. Estos siete la tienen:
 |---|---|
 | ✅ **Cumplidos** | 5 |
 | 🟡 **Parciales** | 7 |
-| 🔴 **No cumplidos** | 8 |
-| | **20** |
+| 🔴 **No cumplidos** | 11 |
+| | **23** |
 
-**Trece tienen relación directa o indirecta con un RF; siete existen por sí mismos**, con su
+**Dieciséis tienen relación directa o indirecta con un RF; siete existen por sí mismos**, con su
 justificación escrita arriba.
 
 *Los no cumplidos —escritura en bloque, precisión numérica, detección de cambios en destino,

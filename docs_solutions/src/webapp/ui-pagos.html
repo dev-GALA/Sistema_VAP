@@ -1,0 +1,403 @@
+<script>
+// Pantalla «Cruzar Pagos» (HU-49 · RF-90 … RF-94 · RF-99) y utilidades comunes de las pantallas de Pagos.
+// El texto que viene del servidor entra siempre con textContent. Los ficheros del banco se leen en el navegador
+// como TEXTO, se envían de una vez y NO se conservan: el selector se vacía en cuanto se envían (RNF-19 · RNF-23).
+(function () {
+  'use strict';
+
+  var ROTULO_RESOLUCION = {
+    'asignado': 'Asignado a otra persona', 'aceptado': 'Aceptado', 'corregido-en-origen': 'Corregido en origen',
+    'descartado': 'Descartado'
+  };
+
+  // ---- utilidades compartidas con Históricos y Maestro de Pagos ----------------------------------------------
+
+  function alerta(ayudas, clase, texto, id) {
+    var a = ayudas.crear('div', 'alerta ' + clase, texto);
+    if (id) a.id = id;
+    a.setAttribute('role', clase === 'error' ? 'alert' : 'status');
+    return a;
+  }
+
+  function campo(ayudas, etiqueta, control) {
+    var contenedor = ayudas.crear('label', 'campo');
+    contenedor.appendChild(ayudas.crear('span', '', etiqueta));
+    contenedor.appendChild(control);
+    return contenedor;
+  }
+
+  function entrada(id, tipo) {
+    var e = document.createElement('input');
+    e.id = id;
+    e.type = tipo || 'text';
+    e.autocomplete = 'off';
+    return e;
+  }
+
+  function selector(id, valores) {
+    var s = document.createElement('select');
+    s.id = id;
+    valores.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v[0];
+      o.textContent = v[1];
+      s.appendChild(o);
+    });
+    return s;
+  }
+
+  function sinAcentos(texto) {
+    return String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  // Candidatos por DNI o nombre a medida que se teclea: todas las palabras escritas deben aparecer.
+  function coincidencias(texto, personas, maximo) {
+    var palabras = sinAcentos(texto).split(/\s+/).filter(function (p) { return p !== ''; });
+    if (palabras.length === 0) return [];
+    var salida = personas.filter(function (p) {
+      var pajar = sinAcentos(p.nombre) + ' ' + sinAcentos(p.dni) + ' ' + sinAcentos(p.idPersonal);
+      return palabras.every(function (palabra) { return pajar.indexOf(palabra) !== -1; });
+    });
+    return maximo ? salida.slice(0, maximo) : salida;
+  }
+
+  function tabla(ayudas, cabeceras, filas, rotuloVacio) {
+    var envoltorio = ayudas.crear('div', 'tabla-envoltorio');
+    if (filas.length === 0) {
+      envoltorio.appendChild(ayudas.crear('p', 'suave pequeno', rotuloVacio || 'Sin filas.'));
+      return envoltorio;
+    }
+    var t = ayudas.crear('table', 'tabla-plantilla');
+    var cabecera = ayudas.crear('tr', '');
+    cabeceras.forEach(function (c) {
+      var th = ayudas.crear('th', '', c);
+      th.scope = 'col';
+      cabecera.appendChild(th);
+    });
+    var thead = ayudas.crear('thead', '');
+    thead.appendChild(cabecera);
+    t.appendChild(thead);
+    var cuerpo = ayudas.crear('tbody', '');
+    filas.forEach(function (celdas) {
+      var tr = ayudas.crear('tr', celdas.clase || '');
+      celdas.valores.forEach(function (v) {
+        var td = ayudas.crear('td', '');
+        if (v && v.nodoHijo) td.appendChild(v.nodoHijo);
+        else td.textContent = v === undefined || v === null ? '' : String(v);
+        tr.appendChild(td);
+      });
+      cuerpo.appendChild(tr);
+    });
+    t.appendChild(cuerpo);
+    envoltorio.appendChild(t);
+    return envoltorio;
+  }
+
+  function personaDe(fila) {
+    var texto = fila.nombre || fila.idPersonal || '—';
+    if (fila.dni) texto += ' · ' + fila.dni;
+    return texto;
+  }
+
+  function resolucionDe(fila) {
+    if (!fila.resolucion) return '';
+    var texto = (ROTULO_RESOLUCION[fila.resolucion] || fila.resolucion);
+    if (fila.asignadaA) texto += ' (' + fila.asignadaA + ')';
+    if (fila.motivoResolucion) texto += ' · ' + fila.motivoResolucion;
+    if (fila.resueltoPor) texto += ' · ' + fila.resueltoPor + ' ' + (fila.resueltoEn || '');
+    return texto;
+  }
+
+  function chipEstado(ayudas, fila) {
+    var chip = ayudas.crear('span', 'chip ' + (fila.estado === 'Coincidente' ? 'ok' : 'error'), fila.estado);
+    return { nodoHijo: chip };
+  }
+
+  // Dos partes: las que constan en VAP_Pagos y las que no. `alSubsanar(fila)` es opcional.
+  function partesDelInforme(ayudas, filas, alSubsanar) {
+    var contenedor = ayudas.crear('div', 'partes-informe');
+    [['coincide', 'Coinciden con VAP_Pagos'], ['no-existe', 'No existen en VAP_Pagos']].forEach(function (parte) {
+      var delaParte = filas.filter(function (f) { return f.parte === parte[0]; });
+      var seccion = ayudas.crear('section', 'parte-informe');
+      seccion.setAttribute('data-parte', parte[0]);
+      seccion.appendChild(ayudas.crear('h3', '', parte[1] + ' (' + delaParte.length + ')'));
+      var cabeceras = ['Persona', 'Últimos 4', 'Importe banco', 'Importe esperado', 'Banco', 'Referencia', 'Estado', 'Observaciones', 'Resolución'];
+      if (alSubsanar) cabeceras.push('');
+      var cuerpo = delaParte.map(function (f) {
+        var valores = [personaDe(f), f.ultimos4, f.importeBanco, f.importeEsperado, f.banco, f.referencia, chipEstado(ayudas, f), f.observaciones, resolucionDe(f)];
+        if (alSubsanar) {
+          var accion = '';
+          if (f.estado === 'Incorrecto') {
+            var b = ayudas.boton(f.resolucion ? 'Cambiar' : 'Subsanar', function () { alSubsanar(f); });
+            b.setAttribute('aria-label', (f.resolucion ? 'Cambiar la subsanación de ' : 'Subsanar ') + personaDe(f));
+            accion = { nodoHijo: b };
+          }
+          valores.push(accion);
+        }
+        return { valores: valores, clase: f.estado === 'Incorrecto' && !f.resolucion ? 'fila-error' : '' };
+      });
+      seccion.appendChild(tabla(ayudas, cabeceras, cuerpo, 'Ninguna fila en esta parte.'));
+      contenedor.appendChild(seccion);
+    });
+    return contenedor;
+  }
+
+  function resumenDeTexto(r) {
+    return 'Coincidentes ' + r.coincidentes + ' · Incorrectos ' + r.incorrectos;
+  }
+
+  function informePlegable(ayudas, empresa, filas, alSubsanar) {
+    var coincidentes = filas.filter(function (f) { return f.estado === 'Coincidente'; }).length;
+    var detalles = ayudas.crear('details', 'tarjeta informe-empresa');
+    detalles.setAttribute('data-empresa', empresa);
+    detalles.open = true;
+    detalles.appendChild(ayudas.crear('summary', '', empresa + ' — ' + resumenDeTexto({ coincidentes: coincidentes, incorrectos: filas.length - coincidentes })));
+    detalles.appendChild(partesDelInforme(ayudas, filas, alSubsanar));
+    return detalles;
+  }
+
+  window.PagosComun = {
+    alerta: alerta, campo: campo, entrada: entrada, selector: selector, coincidencias: coincidencias, tabla: tabla,
+    personaDe: personaDe, resolucionDe: resolucionDe, chipEstado: chipEstado, partesDelInforme: partesDelInforme,
+    informePlegable: informePlegable, resumenDeTexto: resumenDeTexto, sinAcentos: sinAcentos
+  };
+
+  // ---- Cruzar Pagos ------------------------------------------------------------------------------------------
+
+  var ayudas = null;
+  var opciones = null;
+  var empresasMostradas = {};
+
+  function periodoActual() {
+    var hoy = new Date();
+    return hoy.getFullYear() + '-' + ('0' + (hoy.getMonth() + 1)).slice(-2);
+  }
+
+  function leerFicheros(lista, alTerminar, alFallar) {
+    var resultado = [];
+    var pendientes = lista.length;
+    var fallo = false;
+    Array.prototype.forEach.call(lista, function (archivo, i) {
+      var lector = new FileReader();
+      lector.onload = function () {
+        resultado[i] = { nombre: archivo.name, texto: String(lector.result) };
+        pendientes -= 1;
+        if (pendientes === 0 && !fallo) alTerminar(resultado);
+      };
+      lector.onerror = function () {
+        if (fallo) return;
+        fallo = true;
+        alFallar('No se pudo leer el fichero «' + archivo.name + '».');
+      };
+      lector.readAsText(archivo);
+    });
+  }
+
+  function pintarResumenDeFusion(zona, resumen) {
+    ayudas.vaciar(zona);
+    if (!resumen) return;
+    if (resumen.faltan && resumen.faltan.length > 0) {
+      zona.appendChild(alerta(ayudas, 'aviso', 'Faltan los informes de: ' + resumen.faltan.join(', ') + '.', 'aviso-faltan'));
+    }
+    if (resumen.sinResolver > 0) {
+      zona.appendChild(alerta(ayudas, 'info', 'Quedan ' + resumen.sinResolver + ' filas Incorrecto sin subsanar.', 'aviso-sin-resolver'));
+    }
+  }
+
+  function refrescarFusion(periodo) {
+    google.script.run
+      .withSuccessHandler(function (r) { pintarResumenDeFusion(document.getElementById('zona-fusion-resumen'), r.resumen); })
+      .withFailureHandler(function () {})
+      .apiInformePagos(periodo, '');
+  }
+
+  function abrirSubsanar(fila, alTerminar) {
+    var dialogo = document.createElement('dialog');
+    dialogo.id = 'dialogo-subsanar';
+    dialogo.setAttribute('aria-label', 'Subsanar pago');
+    dialogo.appendChild(ayudas.crear('h2', '', 'Subsanar'));
+    dialogo.appendChild(ayudas.crear('p', 'suave pequeno', fila.observaciones || ''));
+    var resolucion = selector('subsanar-resolucion', [
+      ['aceptado', ROTULO_RESOLUCION.aceptado], ['asignado', ROTULO_RESOLUCION.asignado],
+      ['corregido-en-origen', ROTULO_RESOLUCION['corregido-en-origen']], ['descartado', ROTULO_RESOLUCION.descartado]
+    ]);
+    dialogo.appendChild(campo(ayudas, 'Resolución', resolucion));
+    var persona = entrada('subsanar-persona');
+    var campoPersona = campo(ayudas, 'Identificador de la persona', persona);
+    campoPersona.hidden = true;
+    dialogo.appendChild(campoPersona);
+    resolucion.addEventListener('change', function () { campoPersona.hidden = resolucion.value !== 'asignado'; });
+    var motivo = document.createElement('textarea');
+    motivo.id = 'subsanar-motivo';
+    motivo.rows = 3;
+    motivo.required = true;
+    dialogo.appendChild(campo(ayudas, 'Motivo (obligatorio)', motivo));
+    var zona = ayudas.crear('div', '');
+    dialogo.appendChild(zona);
+    var filaBotones = ayudas.crear('div', 'fila');
+    var cancelar = ayudas.boton('Cancelar', function () { dialogo.close(); dialogo.remove(); });
+    var guardar = ayudas.boton('Guardar subsanación', function () {
+      ayudas.vaciar(zona);
+      if (motivo.value.replace(/\s/g, '') === '') { zona.appendChild(alerta(ayudas, 'error', 'El motivo es obligatorio.')); return; }
+      if (resolucion.value === 'asignado' && persona.value.replace(/\s/g, '') === '') {
+        zona.appendChild(alerta(ayudas, 'error', 'Indica a qué persona se asigna el pago.'));
+        return;
+      }
+      guardar.disabled = true;
+      cancelar.disabled = true;
+      google.script.run
+        .withSuccessHandler(function () { dialogo.close(); dialogo.remove(); alTerminar(); })
+        .withFailureHandler(function (error) {
+          guardar.disabled = false;
+          cancelar.disabled = false;
+          zona.appendChild(alerta(ayudas, 'error', error.message));
+        })
+        .apiSubsanarPago({
+          periodo: fila.periodo, filaId: fila.filaId, resolucion: resolucion.value,
+          asignadaA: resolucion.value === 'asignado' ? persona.value.trim() : '', motivo: motivo.value.trim()
+        });
+    });
+    guardar.classList.add('principal');
+    filaBotones.appendChild(cancelar);
+    filaBotones.appendChild(guardar);
+    dialogo.appendChild(filaBotones);
+    document.body.appendChild(dialogo);
+    dialogo.showModal();
+  }
+
+  function pintarEmpresa(contenedor, periodo, empresa, filas) {
+    var viejo = contenedor.querySelector('details[data-empresa="' + empresa.replace(/"/g, '') + '"]');
+    var nuevo = informePlegable(ayudas, empresa, filas, function (fila) {
+      abrirSubsanar(fila, function () { recargarEmpresa(contenedor, periodo, empresa); });
+    });
+    if (viejo) contenedor.replaceChild(nuevo, viejo);
+    else contenedor.appendChild(nuevo);
+  }
+
+  function recargarEmpresa(contenedor, periodo, empresa) {
+    google.script.run
+      .withSuccessHandler(function (r) { pintarEmpresa(contenedor, periodo, empresa, r.filas); refrescarFusion(periodo); })
+      .withFailureHandler(function (error) { contenedor.insertBefore(alerta(ayudas, 'error', error.message), contenedor.firstChild); })
+      .apiInformePagos(periodo, empresa);
+  }
+
+  function formularioDeCruce(zonaInformes, zonaMensaje, zonaFusion) {
+    var tarjeta = ayudas.crear('section', 'tarjeta');
+    tarjeta.id = 'tarjeta-cruce';
+    tarjeta.appendChild(ayudas.crear('h2', '', 'Cruzar una empresa'));
+    tarjeta.appendChild(ayudas.crear('p', 'suave pequeno', 'Un envío por empresa. Los ficheros (XML, CSV o texto) se leen en tu navegador y no se guardan; bórralos tú cuando proceda.'));
+    var formulario = ayudas.crear('div', 'formulario');
+    var periodo = entrada('cruce-periodo', 'month');
+    periodo.value = periodoActual();
+    formulario.appendChild(campo(ayudas, 'Periodo', periodo));
+    var empresa = selector('cruce-empresa', [['', 'Elige empresa']].concat(opciones.empresas.map(function (e) { return [e, e]; })));
+    formulario.appendChild(campo(ayudas, 'Empresa', empresa));
+    var archivos = entrada('cruce-ficheros', 'file');
+    archivos.multiple = true;
+    archivos.accept = (opciones.formatosAceptados || ['.xml', '.csv', '.txt']).join(',');
+    formulario.appendChild(campo(ayudas, 'Ficheros del banco', archivos));
+    tarjeta.appendChild(formulario);
+
+    var cruzar = ayudas.boton('Cruzar', function () {
+      ayudas.vaciar(zonaMensaje);
+      if (!periodo.value) { zonaMensaje.appendChild(alerta(ayudas, 'error', 'Elige el periodo.')); return; }
+      if (!empresa.value) { zonaMensaje.appendChild(alerta(ayudas, 'error', 'Elige la empresa.')); return; }
+      if (!archivos.files || archivos.files.length === 0) { zonaMensaje.appendChild(alerta(ayudas, 'error', 'Elige al menos un fichero.')); return; }
+      var periodoElegido = periodo.value;
+      var empresaElegida = empresa.value;
+      cruzar.disabled = true;
+      zonaMensaje.appendChild(alerta(ayudas, 'info', 'Cruzando ' + empresaElegida + '…'));
+      leerFicheros(archivos.files, function (ficheros) {
+        archivos.value = ''; // el contenido ya está en memoria solo para este envío
+        google.script.run
+          .withSuccessHandler(function (r) {
+            ficheros = null;
+            ayudas.vaciar(zonaMensaje);
+            zonaMensaje.appendChild(alerta(ayudas, 'info', empresaElegida + ': ' + r.total + ' filas · ' + resumenDeTexto(r) + '.'));
+            pintarEmpresa(zonaInformes, periodoElegido, empresaElegida, r.filas);
+            empresasMostradas[empresaElegida] = true;
+            cruzar.disabled = false;
+            refrescarFusion(periodoElegido);
+          })
+          .withFailureHandler(function (error) {
+            ficheros = null;
+            ayudas.vaciar(zonaMensaje);
+            zonaMensaje.appendChild(alerta(ayudas, 'error', error.message));
+            cruzar.disabled = false;
+          })
+          .apiCruzarPagos({ periodo: periodoElegido, empresa: empresaElegida, ficheros: ficheros });
+      }, function (mensaje) {
+        ayudas.vaciar(zonaMensaje);
+        zonaMensaje.appendChild(alerta(ayudas, 'error', mensaje));
+        cruzar.disabled = false;
+      });
+    });
+    cruzar.id = 'boton-cruzar';
+    cruzar.classList.add('principal');
+    cruzar.disabled = !(opciones.servicioConfigurado && opciones.fuenteImportesConfigurada);
+    tarjeta.appendChild(cruzar);
+
+    var fusionar = ayudas.boton('Fusionar informes', function () {
+      ayudas.vaciar(zonaFusion);
+      fusionar.disabled = true;
+      google.script.run
+        .withSuccessHandler(function (resumen) {
+          fusionar.disabled = false;
+          zonaFusion.appendChild(alerta(ayudas, 'info', 'Informes fusionados: ' + resumen.empresas.length + ' empresas.', 'aviso-fusionado'));
+          pintarResumenDeFusion(document.getElementById('zona-fusion-resumen'), resumen);
+        })
+        .withFailureHandler(function (error) {
+          fusionar.disabled = false;
+          zonaFusion.appendChild(alerta(ayudas, 'error', error.message));
+        })
+        .apiFusionarInformes(periodo.value);
+    });
+    fusionar.id = 'boton-fusionar';
+    fusionar.disabled = !opciones.servicioConfigurado;
+    return { tarjeta: tarjeta, fusionar: fusionar };
+  }
+
+  function mostrar(pantalla, ayudasDeLaPantalla) {
+    ayudas = ayudasDeLaPantalla;
+    empresasMostradas = {};
+    var principal = document.getElementById('principal');
+    ayudas.vaciar(principal);
+    principal.appendChild(ayudas.cabeceraDePantalla(pantalla));
+    var cargando = ayudas.crear('div', 'vacio', 'Cargando…');
+    principal.appendChild(cargando);
+    google.script.run
+      .withSuccessHandler(function (o) {
+        opciones = o;
+        principal.removeChild(cargando);
+        if (!o.servicioConfigurado) principal.appendChild(alerta(ayudas, 'aviso', 'El servicio VAP_Pagos todavía no está configurado: no se puede cruzar.', 'aviso-servicio'));
+        if (!o.fuenteImportesConfigurada) principal.appendChild(alerta(ayudas, 'aviso', 'Falta configurar la fuente de los importes esperados: no se puede cruzar.', 'aviso-fuente'));
+        var zonaMensaje = ayudas.crear('div', '');
+        zonaMensaje.id = 'zona-mensaje-cruce';
+        var zonaInformes = ayudas.crear('div', '');
+        zonaInformes.id = 'zona-informes';
+        var zonaFusion = ayudas.crear('div', '');
+        zonaFusion.id = 'zona-fusion';
+        var zonaFusionResumen = ayudas.crear('div', '');
+        zonaFusionResumen.id = 'zona-fusion-resumen';
+        var f = formularioDeCruce(zonaInformes, zonaMensaje, zonaFusion);
+        principal.appendChild(f.tarjeta);
+        principal.appendChild(zonaMensaje);
+        principal.appendChild(zonaInformes);
+        var tarjetaFusion = ayudas.crear('section', 'tarjeta');
+        tarjetaFusion.appendChild(ayudas.crear('h2', '', 'Fusionar los informes'));
+        tarjetaFusion.appendChild(ayudas.crear('p', 'suave pequeno', 'Paso obligado al terminar todas las empresas del periodo.'));
+        tarjetaFusion.appendChild(f.fusionar);
+        tarjetaFusion.appendChild(zonaFusion);
+        tarjetaFusion.appendChild(zonaFusionResumen);
+        principal.appendChild(tarjetaFusion);
+      })
+      .withFailureHandler(function (error) {
+        principal.removeChild(cargando);
+        principal.appendChild(alerta(ayudas, 'error', error.message));
+      })
+      .apiOpcionesPagos();
+  }
+
+  window.PantallaCruzarPagos = { mostrar: mostrar };
+})();
+</script>
