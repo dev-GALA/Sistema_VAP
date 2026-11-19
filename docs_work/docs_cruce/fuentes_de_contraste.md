@@ -381,6 +381,11 @@ Son viables con el salto actual. Para COBEE contra SAGE, **no con esta muestra**
 Recoge, **tal como lo planteó el desarrollo**, el diseño que condiciona las partes afectadas. *Solo
 cambian los nombres de las personas, sustituidos por su función, y erratas evidentes.*
 
+> **Actualización del 19 nov 2026.** La comprobación de concordancia es **mensual**, en el orden **maestro de personas → export de SAGE → cruce**;
+> hoy es **opcional** y **será obligatoria**. Una persona puede estar en **dos empresas** (sobre todo en Staff) y entonces figura en **dos filas**, cada una
+> con su `id_trabajador`. Una misma empresa se escribe de **tres formas** según el origen (maestro «MOTOR INTEGRAL», export de SAGE «CTM MOTOR», otra hoja
+> «CTM MOTOR INTEGRAL SLU»): hace falta una tabla de equivalencias (riesgo R-30 del SSD; `proximos_pasos.md`, «Pendientes del 19 nov 2026»).
+
 ### 11.1 Lo planteado
 
 > **Concordancia.** Siempre que haya los dos datos —identificador de trabajador (empresa + nº de SAGE) y

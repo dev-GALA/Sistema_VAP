@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.6 — BORRADOR · con las historias de Comprobaciones, Proceso mensual, Altas/bajas y Pagos (HU-42 a HU-50) |
-| **Fecha** | 17 noviembre 2026 (versión 0.5: 16 noviembre 2026) |
+| **Versión** | 0.7 — BORRADOR · con la comprobación mensual (orden y obligatoriedad futura), la persona en dos empresas y la lista única de empresas (HU-46, HU-47) |
+| **Fecha** | 19 noviembre 2026 (versión 0.6: 17 noviembre 2026) |
 | **Se deriva de** | [problem.md](problem.md) · [../docs_work/FLUJO.md](../docs_work/flujo_doc/FLUJO.md) · [../docs_work/dudas/](../docs_work/dudas/README_dudas.md) |
 | **Responde a** | [Sprint 0 · OB-15](../docs_work/proximos_pasos.md) |
 
@@ -206,7 +206,14 @@ mantenerlo al día sin tocar las hojas a mano y dejando constancia de cada cambi
 
 > **Con este modelo, un mismo DNI puede figurar dos veces** (una fila de baja y otra de alta). La
 > concordancia de [HU-46](#hu-46--comprobar-que-cada-persona-sigue-en-concordancia-entre-sage-y-el-maestro-de-personas)
-> solo debe dar por incidencia **dos filas activas** con el mismo DNI.
+> solo debe dar por incidencia **dos filas activas** con el mismo DNI **en la misma empresa**.
+>
+> **Matiz del 19 nov 2026:** una persona **puede estar de alta a la vez en dos empresas** (sobre todo en Staff; la pestaña
+> real ya lo señala con «De alta en N empresas a la vez»). Eso **no es un error por sí solo**: son dos filas, cada una con su
+> `id_trabajador` (`EMPRESA_IdSage`), y el DNI las une. Qué se avisa y qué se da por incidencia en cada tipo de pestaña
+> **está sin decidir** (ver `proximos_pasos.md`, «Pendientes del 19 nov 2026»).
+>
+> **Lista de empresas (19 nov 2026):** cerrada en 11 y puesta en `Config` del maestro; las tres pestañas ya la leen (RF-100).
 
 ---
 
@@ -749,6 +756,13 @@ esté reflejado.
 - **Dado** que una persona cambia de empresa, **entonces** la comprobación lo detecta en lugar de dar
   por buena la relación anterior.
 - **Dado** que reviso el resultado, **entonces** no se ha modificado ninguna hoja: solo informa.
+- **Dado** el cierre de un mes, **entonces** la comprobación se hace **después** de actualizar el maestro de personas y **después**
+  de actualizar el export de SAGE, en ese orden (19 nov 2026). Es **opcional por ahora y será obligatoria** para dar el paso por
+  superado.
+- **Dado** que una persona está en **dos empresas** (sobre todo en Staff), **entonces** aparece en **dos filas** identificadas
+  cada una por su `id_trabajador`, y la comprobación **no las confunde ni las da por duplicado** solo por compartir DNI.
+- **Dado** que una empresa se escribe distinto en cada origen (p. ej. MOTOR INTEGRAL, CTM MOTOR o CTM MOTOR INTEGRAL SLU),
+  **entonces** la comprobación las reconoce como la **misma empresa** y no inventa una incidencia por el nombre.
 
 > **Hoy el export de SAGE no trae DNI.** Sin él, la primera incidencia (DNI con otro identificador) solo
 > se puede **aproximar por el nombre**. Se ha pedido a quien exporta que lo incluya (16 nov 2026). La

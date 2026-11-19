@@ -1,7 +1,7 @@
 # SSD — Sistema VAP (Valoración de Actividad Productiva)
 **Software Specification & Design Document**
-**Versión:** 2.1
-**Fecha última actualización:** 16 noviembre 2026
+**Versión:** 2.2
+**Fecha última actualización:** 19 noviembre 2026
 
 > Documento único que cubre **especificación** (qué debe hacer el sistema) y **diseño**
 > (cómo está construido). Las **decisiones de arquitectura** se registran aparte, una por
@@ -687,6 +687,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-27 | **Las ayudas de COBEE no llegan a SAGE ni a la Vinculación** (columnas vacías en las 493 personas de la muestra) | Alto | Pregunta abierta: ¿es el primer o el segundo export? ([fuentes_de_contraste.md](../../docs_work/docs_cruce/fuentes_de_contraste.md) §7) |
 | R-28 | **La conexión entre la webapp y el proyecto de `VAP_Pagos`** (identificación entre proyectos) no se ha probado en Google real, y la cuenta viaja en memoria entre los dos | Medio | Comprobación manual escrita antes de desplegar; prueba automática de que la cuenta no llega a ningún registro ([RNF-19](../../docs_discovery/requisitos_no_funcionales.md), [RNF-21](../../docs_discovery/requisitos_no_funcionales.md)) |
 | R-29 | **Los ficheros del banco y el Excel de altas contienen cuentas y nombres en claro** y quedan en Drive hasta que el usuario los borre | Alto | Los borra el usuario a mano ([RNF-23](../../docs_discovery/requisitos_no_funcionales.md)); el sistema no los guarda. Sin borrado automático por decisión del 17 nov 2026 |
+| R-30 | **Una misma empresa se escribe de tres formas** según el origen (maestro «MOTOR INTEGRAL», export de SAGE «CTM MOTOR», otra hoja «CTM MOTOR INTEGRAL SLU»). `export_SAGE` une por el texto de empresa (en minúsculas y sin tildes) y el cruce de personas necesita una tabla de equivalencias: **si no casan, la persona queda sin vincular sin que salte ningún error**. Visto el 19 nov 2026 | Medio | Tabla única de equivalencias en `Config` leída por quien la necesite ([RF-100](../../docs_discovery/requisitos_funcionales.md), RF-80); mientras, comprobar en `LOG NETOS` y `LOG BRUTOS` las filas sin pareja. Decisión pendiente en `proximos_pasos.md` |
 | R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [RNF-08](../../docs_discovery/requisitos_no_funcionales.md) |
 
 ## 10. Glosario
@@ -786,6 +787,7 @@ Los riesgos de [`SSD.md` §9](SSD.md#9-riesgos-y-limitaciones) y el requisito qu
 | R-27 | COBEE no llega a SAGE ni al libro | RF-32 | 🔴 Pregunta abierta |
 | R-28 | Conexión webapp ↔ `VAP_Pagos` sin verificar | RNF-21, RNF-19 | 🔴 No construido |
 | R-29 | Cuentas en claro en ficheros del banco hasta que se borren | RNF-23 | 🔴 No construido |
+| R-30 | Una misma empresa con tres grafías entre maestro, SAGE y Vinculación | RF-80, RF-100 | 🟡 Lista de empresas cerrada; equivalencias sin decidir |
 
 > **Tres riesgos no tenían requisito y ahora lo tienen** (RF-70, RF-71, RNF-15). Y **tres riesgos
 > nuevos** salieron de esta confrontación y se han añadido al SSD: R-18, R-19 y R-20 — los tres de

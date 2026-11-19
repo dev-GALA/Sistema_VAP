@@ -8,6 +8,29 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 
 ---
 
+## [Sin publicar] · Lista única de empresas y casillas de `Alta` en el maestro (hecho en Google, sin código)
+
+### Hecho en `VAP_BBDD_Personas` (libro real; no hay cambio de código ni de scripts)
+- **Lista de empresas cerrada en 11** y escrita **una sola vez** en `Config` (A5 `Empresas`, B5 la lista separada por comas), con una **celda auxiliar** (`G1`/`G2`) que la reparte en vertical. Fórmula **verificada en el libro real**: nombres de función **en inglés** y separador de argumentos **`;`** → `=TRANSPOSE(SPLIT(B5;","))`.
+- Los desplegables de **`VAP_Staff`, `VAP_Secretarias` y `VAP_Profesores`** leen ahora de `Config!G2:G30` y no de una lista escrita a mano en cada regla.
+- **`Alta` pasa a casilla** en `VAP_Secretarias`. `VAP_Staff` ya la tenía.
+- En `VAP_Staff`, **«CTM MOTOR INTEGRAL SLU» se unifica como «MOTOR INTEGRAL»** (empresa e `id_trabajador`) con buscar y reemplazar en esa hoja. **Pasos dados; el resultado (8 cambios) no se ha confirmado.**
+
+### Decidido
+- **La comprobación de concordancia SAGE ↔ maestro es mensual**, en este orden: maestro, export de SAGE, cruce. **Opcional por ahora y obligatoria en el futuro** ([RF-80](docs_discovery/requisitos_funcionales.md), HU-46).
+- **Una persona puede estar en dos empresas** (sobre todo en Staff): dos filas, cada una con su `id_trabajador`.
+- **Nombre canónico `MOTOR INTEGRAL`**; JOSE, CASTA y NESSUN entran en la lista.
+
+### Cambiado (documentación)
+- [`problem.md`](docs_discovery/problem.md) 0.4, [`historias_usuarios.md`](docs_discovery/historias_usuarios.md) 0.7 (HU-46, HU-47), [`requisitos_funcionales.md`](docs_discovery/requisitos_funcionales.md) 0.9 (RF-80, RF-100 → 🟡, RF-101 con el inventario de scripts) y SSD 2.2 (riesgo **R-30**: tres grafías de una misma empresa).
+- El **resumen de `requisitos_funcionales.md`** decía 99 requisitos y hay **101**: corregido (25 cumplidos, 10 parciales, 65 no cumplidos, 1 en decisión).
+- `valor_dev.md` 0.4: revisión sin cifras nuevas. `proximos_pasos.md` 0.12: bloque «Pendientes del 19 nov 2026».
+
+### Pendiente
+- Tabla única de **equivalencias de nombre de empresa**, el **cruce mensual** (dónde vive y qué es incidencia con una persona en dos empresas), lista de **tipos de Staff**, las **demás pestañas** con empresa y retirar la columna E antigua de `Config`. Ver `proximos_pasos.md`.
+
+---
+
 ## [Sin publicar] · El maestro de personas real obliga a rehacer Altas/bajas (documentado, sin código)
 
 ### Descubierto

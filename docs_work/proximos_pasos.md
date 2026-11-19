@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.11 |
-| **Fecha** | 17 noviembre 2026 |
+| **Versión** | 0.12 |
+| **Fecha** | 19 noviembre 2026 |
 | **Se apoya en** | [FLUJO.md](flujo_doc/FLUJO.md) · [dudas/](dudas/README_dudas.md) |
 
 ---
@@ -389,6 +389,12 @@ palabras exactas están en [fuentes_de_contraste.md §11](docs_cruce/fuentes_de_
 **Hay datos reales que ya apuntan a incidencias de los dos tipos** (cruce contra la Vinculación, no
 contra el maestro): 22 personas de SAGE sin pareja, 32 de la Vinculación sin SAGE y una clave empresa +
 nº con dos DNI. **No sé si el maestro de personas las tendría**, porque no lo he visto.
+
+> **Decidido el 19 nov 2026:** es una operación **mensual**, en el orden **maestro → export de SAGE → cruce**. Hoy se plantea como
+> **opcional** y **en el futuro será obligatoria** para dar el paso por superado. **Una persona puede estar en dos empresas**
+> (sobre todo Staff): dos filas, cada una con su `id_trabajador`, y el DNI las une. **Consecuencia técnica:** el script de cruce
+> actual (`VAP_Script_Cruce_BBDD_Personas_SAGE.gs`) es de **uso único**; su motor sirve, pero hay que hacerlo **mensual y de solo
+> lectura**, y la **tabla de equivalencias de empresa** deja de poder vivir dentro de él (ver «Pendientes del 19 nov 2026»).
 
 **Se cierra cuando** la comprobación se ejecuta sobre las hojas reales, en solo lectura, y lista las
 incidencias de los dos tipos.
@@ -869,7 +875,7 @@ el identificador y el valor anterior y el nuevo, **sin la cuenta ni su huella**.
 escrituras es: **evento, cambios en los dos libros, y comprobación de que concuerdan** (RF-85).
 
 > **Con las bajas y altas por cambio de empresa, un mismo DNI aparece dos veces.** [OB-44](#ob-44--comprobar-que-cada-persona-sigue-en-concordancia-entre-sage-y-el-maestro-de-personas--)
-> debe dar por incidencia solo dos filas **activas**. Y `VAP_Pagos` tendrá dos filas con la misma
+> debe dar por incidencia solo dos filas **activas en la misma empresa** (una persona **sí puede estar en dos empresas**, sobre todo en Staff: ver «Pendientes del 19 nov 2026»). Y `VAP_Pagos` tendrá dos filas con la misma
 > huella (una de baja): la búsqueda mira solo las activas.
 
 > **Cambio del 17 nov 2026:** la v0.3.0 calcula la huella **dentro de la webapp**, con la clave en las propiedades de su
@@ -1317,9 +1323,9 @@ las pestañas están **protegidas** y las cabeceras **difieren** entre ellas y l
 
 | # | Qué falta | Detalle y opciones | Decide / hace |
 |---|---|---|---|
-| 1 | **Lista correcta de empresas** | `Config` tiene **7** y el desplegable de `VAP_Staff` **9** (nombres cortados en la captura). Hay que pasar la lista exacta, escrita como en los datos (solo nombres de empresa) | **Tú** |
-| 2 | **Desplegable desde una lista con comas** | Sheets **no puede** tomarlo de una celda con comas: hace falta una **celda auxiliar con fórmula** (`TRANSPOSE`+`SPLIT`+`TRIM`; separadores `;` o `,` según la configuración regional). **Fórmula SIN verificar**: se prueba en tu libro. Regla: **ningún nombre con coma** | Tú, guiado |
-| 3 | **La columna E «Empresas» de `Config` (7 valores)** | Quedaría obsoleta. **No se ha comprobado qué otro script la lee** antes de borrarla. Las filas nuevas (clave en A, valor en B) **no deberían molestar** al lector de notificaciones (`getNotificationEmailsByType_`, solo actúa con dos tipos concretos y la columna C verdadera): **no probado** | Yo, en solo lectura, luego tú |
+| 1 | ✅ **Lista correcta de empresas — resuelto el 19 nov 2026** | **11**: ARCOVIAL, CASTA, CERVANTES, DRIVERS, GALA, INTERCASTILLA, JOSE, LOGYFOR, MOTOR INTEGRAL, NESSUN y VALDEARROYOS. Escrita una vez en `Config` (A5/B5). Nombre canónico `MOTOR INTEGRAL` | Hecho |
+| 2 | ✅ **Desplegable desde una lista con comas — resuelto el 19 nov 2026** | Celda auxiliar `G2`: `=TRANSPOSE(SPLIT(B5;","))`. **Verificada en el libro real:** funciones **en inglés** y separador **`;`** (con los nombres en español daba `#NAME?` y con `,` daba error de análisis). Los desplegables de Staff, Secretarías y Profesores apuntan a `Config!G2:G30` | Hecho |
+| 3 | **La columna E «Empresas» de `Config` (7 valores)** | Quedaría obsoleta. **No se ha comprobado qué otro script la lee** antes de borrarla. Las filas nuevas (clave en A, valor en B) **no deberían molestar** al lector de notificaciones (`getNotificationEmailsByType_`, solo actúa con dos tipos concretos y la columna C verdadera): **no probado** | Yo, en solo lectura, luego tú. **19 nov:** ningún script del repo la lee (solo Complementos lee `Config`, columnas A a C); **no verificado en las copias desplegadas**. Sigue en pie con 7 empresas: se retira al final |
 | 4 | **Lista de `Tipo` de Staff** | Falta su contenido y la clave (`Tipos_Staff`) | **Tú** |
 | 5 | **Nombre en Secretarías y Profesores** | ¿se renombra a `Nombre_Profesores`? Secretarías mantiene `Nombre_Secretaria`, que **leen dos scripts de producción** (Horas Extras y Complementos) y el cruce de BBDD | **Tú** |
 | 6 | **Homogeneización de cabeceras (RF-101)** | **Tarea aparte y coordinada**: adaptar los lectores (`Nombre_Secretaria` en 2 scripts y en el cruce de BBDD, con sus pruebas), renombrar las hojas y **desplegar todo a la vez**, con consecuencias por escrito (`dev-pre-produccion`). Renombrar solo las hojas **rompería producción** | Yo + tú |
@@ -1340,7 +1346,7 @@ las pestañas están **protegidas** y las cabeceras **difieren** entre ellas y l
 | Qué | Por qué | Decide / hace |
 |---|---|---|
 | **Catálogo de pasos: de código a `config`** | Hoy vive en `dominio-pasos.gs`. Lo pediste para la **siguiente sesión de desarrollo** | Yo, con tu OK |
-| **Orden del paso 3 (Export SAGE) frente al 1.2** | OB-44 lo coloca antes; en la pantalla va después | **Tú** |
+| ✅ **Orden del paso 3 (Export SAGE) frente al 1.2 — decidido el 19 nov 2026** | El orden mensual es **1º maestro de personas, 2º export de SAGE, 3º cruce**. La pantalla debe seguirlo | Hecho; falta reflejarlo en la pantalla |
 | **ADR del despliegue con `clasp`** y **registrar «Ejecutar como: propietario» y las escrituras en ADR-0018** | Decisión tomada y en uso, **sin ADR**. Un ADR nuevo o cambiado necesita tu OK | Yo, con tu OK |
 | **Requisitos de la plantilla con previsualización y cuándo son obligatorios empresa y cuenta** | Para cerrar el mes. Hoy: sin empresa, el evento queda `sin-aplicar` | **Tú** |
 | **Modificar una persona, cambio de empresa y dar cuenta a una persona existente** | RF-82/83. No construido | Yo, tras el modelo |
@@ -1373,6 +1379,45 @@ El 17 nov se decidió el diseño de `VAP_Pagos` y del cruce de pagos ([ADR-0019]
 | **Supuestos del maestro** | `id_personal = Empresa_nº`, y las columnas `cuenta_en_pagos` y `cuenta_en_pagos_fecha` en cada pestaña de `VAP_BBDD_Personas` (no se ha visto el maestro real) | Tú |
 | **La carga inicial no deja evento en `registro_personal`** | RF-84 habla de altas, bajas y modificaciones. La carga inicial queda en `VAP_Pagos` (fecha de actualización) y en la marca del maestro, pero no en el registro de eventos. Decide si se quiere | Tú |
 | **`biome.json` ampliado a `src/pagos` y `tests/pagos`** y **recuentos de `CLAUDE.md`** | Los proyectos nuevos siguen el linter. `CLAUDE.md` (Pruebas) cita 1.790 pruebas de Vitest y 202 de Playwright: ahora son 1.978 (1.937 pasan y 41 documentan defectos) y 239. Además cita la webapp como **v0.3.0**; el código es **v0.4.0** | Tú (`CLAUDE.md` es tuyo) |
+
+## Pendientes que salen del trabajo del 19 nov 2026
+
+La jornada fue **de configuración del maestro en Google, sin cambios de código**: lista única de empresas, `Alta` como casilla y desplegables
+(ver `CHANGELOG.md`). Esto queda **por decidir o por hacer**.
+
+**Scripts de producción que leen el maestro por nombre de cabecera** (inventario; **no verificado que el repo coincida con lo desplegado**):
+
+| Script | Lee | Si cambia el nombre → |
+|---|---|---|
+| Horas Extras Secretarias (`VAP_Script_Actualizacion_Automatica_Secretarias.gs`) | `ID_Secre`, `Nombre_Secretaria`, `Alta` (`=== true`) en `VAP_Secretarias` | Lanza error y se para la sincronización del formulario |
+| Complementos Secretarias (`VAP_Export_Complementos_Mensuales_Secretarias.gs`) | `ID_Secre`, `Nombre_Secretaria`, `Alta` (`truthy_`) y `Config` (A a C) | Dejan de rellenarse los nombres en `Data` |
+| Actualización Profesores (`VAP_Script_Actualizacion_Automatica_Profesores.gs`) | `ID_Profesor`, `Nombre`, `Alta` en `VAP_Profesores` | Se para la sincronización del formulario de profesores |
+| Cruce BBDD ↔ SAGE (`VAP_Script_Cruce_BBDD_Personas_SAGE.gs`, uso único) | Tabla `ORIGEN` (hoja, nombre, id, fechas) | El cruce no encuentra columnas |
+
+**Regla acordada:** cuando un cambio toque alguno, Claude avisa en corto: **afecta a** · **cambiar** · **subir** · **implementar**.
+Añadir columnas no rompe nada; **renombrar o quitar una obliga a subir los afectados a la vez**.
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| **Tabla de equivalencias de empresa** (MOTOR INTEGRAL = «CTM MOTOR» = «CTM MOTOR INTEGRAL SLU», y las variantes de SAGE de las otras diez) | El cruce mensual la necesita, y también `export_SAGE` y la webapp. Opciones: **A** en el script de cruce (barato, pero ese script es de uso único), **C** una tabla en `Config` leída por todos (una sola fuente, pero obliga a cambiar y subir `export_SAGE` y el cruce a la vez, RF-101), **D** nada. **Recomendado: C**, ahora que el cruce será mensual. Riesgo **R-30** | Tú |
+| **Comprobar si `export_SAGE` ya casa mal «CTM MOTOR»** | Une por el texto de empresa; si la Vinculación dice otra cosa, la persona queda sin vincular **sin error**. Se ve en `LOG NETOS` y `LOG BRUTOS` (filas CTM sin pareja) | Tú (lo mira); yo lo leo |
+| **Cómo se escriben CASTA y NESSUN en SAGE** | El cruce tiene 8 empresas «en ámbito» (la lista nueva tiene 11) y las variantes de razón social que traiga SAGE. Sin ellas el cruce no las reconoce | Tú (el dato); yo (el script) |
+| **Dónde vive el cruce mensual** | Paso nuevo de la webapp (*Proceso mensual*) o menú de `VAP_Export_Sage`. No decidido; antes hay que cerrar el modelo | Tú |
+| **Qué es incidencia con una persona en dos empresas** | Hoy el cruce da por incidencia «persona activa a la vez en varias empresas». Staff lo hace de forma legítima (la pestaña real ya marca «De alta en N empresas a la vez»). Criterio por tipo de pestaña sin decidir | Tú |
+| **Los desplegables: ¿advertencia o rechazo?** | «Rechazar» impide teclear una empresa fuera de la lista (es lo que significa «elegir sin modificar»); «advertencia» solo la marca. Se dijo que está cambiado en las tres; **no consta cuál de las dos** | Tú (confirmar) |
+| **Quién puede editar `Config`** | La lista y su fórmula están ahí: quien edite `Config` cambia las opciones de todos los desplegables. **No se ha mirado la protección real** | Tú |
+| **Aplicar la lista en las demás pestañas con empresa** | `VAP_Complementos_Secretarias`, `VAP_Responsables` y `VAP_Responsables_Complementos`: no se ha visto si tienen columna de empresa | Tú; yo reviso scripts |
+| **Lista de tipos de Staff** (punto 4) | Los valores vistos en datos: Colaborador, Docente Formación, Mecánico (no se vio la lista completa). Clave propuesta `Tipos_Staff`, misma fórmula auxiliar | **Tú** |
+| **Confirmar el reemplazo «CTM MOTOR INTEGRAL SLU» → «MOTOR INTEGRAL» en `VAP_Staff`** | Se dieron los pasos (buscar y reemplazar, esta hoja, **8 cambios** esperados: 4 en empresa y 4 en `id_trabajador`); **no se ha visto el resultado**. Comprobar que no quedan triángulos rojos en las filas de MOTOR INTEGRAL | Tú |
+| **`id_trabajador` con espacio** | `MOTOR INTEGRAL_10` lleva un espacio. No se ha comprobado que ningún lector le moleste | Yo, en solo lectura |
+| **Filas con huecos en `VAP_Staff`** | Dos filas de CERVANTES sin `id_trabajador` y una sin `Tipo`; la regla de empresa cubre hasta la fila 500 y la de casilla hasta la 296. Entra en «`id_trabajador` en todas las filas» | Tú |
+| **`Alta` como casilla en `VAP_Profesores`** | Se hizo en Secretarías; **no consta Profesores**. Si queda texto («FALSO»), las celdas salen como dato no válido y `=== true` las trata como baja | Tú (comprobar) |
+| **Regla de aviso de scripts afectados en `CLAUDE.md`** | La regla vive en la memoria de Claude. `CLAUDE.md` es tuyo; propongo añadirla ahí para que valga en otros equipos | Tú: ¿se añade? |
+| **Retirar la columna E antigua de `Config`** y el punto final de `G1` | Cosmético y de orden; al final, cuando todo lo demás funcione | Tú |
+
+> **Qué NO se ha probado en Google real:** que los formularios siguen trayendo solo a las secretarias y profesoras de alta tras pasar
+> `Alta` a casilla (se comprueba abriendo el formulario de Horas Extras); y qué hace `export_SAGE` con «CTM MOTOR». **Sin riesgo de
+> bloqueo conocido:** todo lo hecho hoy se deshace con Ctrl+Z o con el historial de versiones del libro.
 
 ## Mejoras detectadas por las pruebas — **hacer antes del siguiente sprint**
 

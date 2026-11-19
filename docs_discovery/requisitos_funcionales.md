@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.8 — con RF-100 y RF-101 (listas únicas y cabeceras homogéneas del maestro de personas) |
-| **Fecha** | 17 noviembre 2026 (versión 0.6: 16 noviembre 2026) |
+| **Versión** | 0.9 — RF-80 mensual y con persona en dos empresas; RF-100 con la lista de 11 empresas cerrada; RF-101 con los scripts que leen las cabeceras (19 nov 2026) |
+| **Fecha** | 19 noviembre 2026 (versión 0.8: 17 noviembre 2026) |
 | **Se deriva de** | [historias_usuarios.md](historias_usuarios.md) |
 | **Responde a** | [Sprint 2 · OB-33](../docs_work/proximos_pasos.md) |
 | **Complemento** | [requisitos_no_funcionales.md](requisitos_no_funcionales.md) |
@@ -172,7 +172,7 @@ se puede dar por incumplido.
 | **RF-76** | El resultado de una comprobación se podrá **copiar a un correo**; por defecto copiará **solo el resumen**, y la lista de personas solo si el usuario lo elige de forma expresa | 🔴 | 🔹 | HU-43 |
 | **RF-77** | Cada diferencia detectada quedará **registrada**, identificada por comprobación, periodo, persona y tipo de diferencia, con un estado (abierta o resuelta) y, si se resuelve, quién y cuándo; se podrá consultar desde una pantalla distinta de la de comprobar | 🔴 | 🔸 | HU-44 |
 | **RF-78** | Al repetir una comprobación, el sistema **cerrará** las diferencias que ya no aparezcan indicando que desaparecieron al comprobar de nuevo, y **no duplicará** las que siguen abiertas | 🔴 | 🔸 | HU-44 |
-| **RF-80** | Al empezar el mes, el sistema comprobará entre el export de SAGE y el maestro de personas que cada identificador (empresa y nº de empleado) y su DNI **siguen en concordancia**, y listará como incidencia los DNI relacionados con otro identificador y las personas que están en un origen y no en el otro; el paso solo se dará por superado cuando no queden incidencias | 🔴 | 🔺 | HU-46 |
+| **RF-80** | Al empezar el mes, el sistema comprobará entre el export de SAGE y el maestro de personas que cada identificador (empresa y nº de empleado) y su DNI **siguen en concordancia**, y listará como incidencia los DNI relacionados con otro identificador y las personas que están en un origen y no en el otro; el paso solo se dará por superado cuando no queden incidencias. **Se hará cada mes, después de actualizar el maestro y el export de SAGE, en ese orden**; hoy es **opcional** y **en el futuro será obligatorio**. Una persona **en dos empresas** figura en **dos filas**, cada una con su identificador (`id_trabajador`), y la comprobación no las trata como duplicado por compartir DNI. Las **distintas grafías de una misma empresa** (MOTOR INTEGRAL, CTM MOTOR, CTM MOTOR INTEGRAL SLU) se reconocen como la misma | 🔴 | 🔺 | HU-46 |
 | **RF-81** | Siempre que una comprobación disponga a la vez del identificador (empresa y nº) y del DNI de una persona, el sistema verificará que **siguen en concordancia** antes de usarlos, porque una persona puede cambiar de empresa | 🔴 | 🔸 | HU-46 |
 | **RF-86** | Del dato bancario de cada persona el sistema guardará **solo una huella**, calculada con una **clave secreta** guardada en la configuración del **proyecto propio de `VAP_Pagos`**, junto al identificador de la persona y **en un libro aparte** (`VAP_Pagos`); **nunca la cuenta** | 🔴 | 🔺 | HU-48 |
 | **RF-87** | La huella **no incluirá el identificador de la persona ni su empresa**, de modo que un cambio de empresa no la altere y pueda buscarse sin saber de quién es | 🔴 | 🔺 | HU-48 |
@@ -188,8 +188,8 @@ se puede dar por incumplido.
 | **RF-97** | Cuando la cuenta de una persona queda registrada en `VAP_Pagos`, `VAP_Personas` guardará la marca **`cuenta_en_pagos`** (sí/no) con su **fecha**, **sin la huella ni la cuenta** | 🔴 | 🔺 | HU-47, HU-48 |
 | **RF-98** | Junto a cada huella se guardarán los **últimos 4 dígitos** de la cuenta, para que una persona pueda comprobar de qué cuenta salió | 🔴 | 🔸 | HU-48, HU-50 |
 | **RF-99** | El cruce **comparará el importe del banco con el de la Vinculación de gastos de personal** de la persona y el mes, y marcará *Incorrecto* si no coinciden dentro de la tolerancia definida (RF-33) | 🔴 | 🔺 | HU-25, HU-49 |
-| **RF-100** | Las **listas de valores** del maestro de personas (**empresas** y **tipos de Staff**) vivirán **una sola vez**, en la hoja `Config` del maestro, como **clave y valor separados por comas**. Los desplegables de todas las pestañas y la webapp **leerán de ahí**; ningún nombre de lista puede llevar coma | 🔴 | 🔸 | HU-47 |
-| **RF-101** | Las pestañas de `VAP_BBDD_Personas` tendrán **cabeceras homogéneas**: `Id_Sage` · `id_trabajador` · nombre · `DNI` · `Tipo` · `Empresa` · `Alta` (**casilla**) · `Fecha_Alta` · `Fecha_Baja` · `Observaciones` · marca de cuenta registrada. El cambio de nombre de una cabecera **se coordina con los scripts que la leen**, que hoy dependen de los nombres actuales | 🔴 | 🔸 | HU-47 |
+| **RF-100** | Las **listas de valores** del maestro de personas (**empresas** y **tipos de Staff**) vivirán **una sola vez**, en la hoja `Config` del maestro, como **clave y valor separados por comas**. Los desplegables de todas las pestañas y la webapp **leerán de ahí**; ningún nombre de lista puede llevar coma. **Avance del 19 nov 2026 (hecho en el libro real, sin código):** la lista de **empresas** está cerrada en **11** (ARCOVIAL, CASTA, CERVANTES, DRIVERS, GALA, INTERCASTILLA, JOSE, LOGYFOR, MOTOR INTEGRAL, NESSUN, VALDEARROYOS), escrita una sola vez en `Config` y repetida en vertical con una fórmula; los desplegables de `VAP_Staff`, `VAP_Secretarias` y `VAP_Profesores` ya apuntan a ella. **Falta:** la lista de tipos de Staff, las demás pestañas con empresa y que la webapp lea de ahí | 🟡 | 🔸 | HU-47 |
+| **RF-101** | Las pestañas de `VAP_BBDD_Personas` tendrán **cabeceras homogéneas**: `Id_Sage` · `id_trabajador` · nombre · `DNI` · `Tipo` · `Empresa` · `Alta` (**casilla**) · `Fecha_Alta` · `Fecha_Baja` · `Observaciones` · marca de cuenta registrada. El cambio de nombre de una cabecera **se coordina con los scripts que la leen**, que hoy dependen de los nombres actuales. **Leen el maestro por nombre de cabecera (inventario del 19 nov 2026):** Horas Extras Secretarias (`ID_Secre`, `Nombre_Secretaria`, `Alta`), Complementos Secretarias (`ID_Secre`, `Nombre_Secretaria`, `Alta`; y `Config`), Actualización Profesores (`ID_Profesor`, `Nombre`, `Alta`) y el cruce BBDD ↔ SAGE (tabla `ORIGEN`). Añadir columnas no los rompe; **renombrar o quitar una obliga a adaptarlos, subirlos y desplegarlos a la vez**. `Alta` pasa a casilla (`true`/`false`), que esos scripts ya leen bien | 🔴 | 🔸 | HU-47 |
 
 > **RF-34 es el que evita el peor fallo posible en una verificación:** que una persona que no casa
 > por identificador desaparezca del informe y se cuente como correcta. Lo *no comprobado* nunca debe
@@ -285,10 +285,10 @@ se puede dar por incumplido.
 | Estado | Funcionales | No funcionales |
 |---|---|---|
 | ✅ **Cumplidos** | 25 | 5 |
-| 🟡 **Parciales** | 9 | 7 |
-| 🔴 **No cumplidos** | 64 | 11 |
+| 🟡 **Parciales** | 10 | 7 |
+| 🔴 **No cumplidos** | 65 | 11 |
 | ⚪ **En decisión** | 1 | — |
-| | **99** | **23** |
+| | **101** | **23** |
 
 *Los dos requisitos no funcionales sin cumplir —escritura en bloque y precisión numérica— son deuda
 técnica ya inventariada, no funcionalidad ausente.*

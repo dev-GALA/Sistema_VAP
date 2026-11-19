@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Código | `VALOR-DEV` |
-| Versión | 0.3 |
-| Fecha | 2026-11-17 |
+| Versión | 0.4 |
+| Fecha | 2026-11-19 |
 | Estado | 🟡 Vivo — se revisa con cada cambio que añada valor registrable |
 | Propietario | Dpto. Data y Tecnología |
 
@@ -17,7 +17,7 @@ registro de revisiones) y de `carfa` (conclusión por delante, límites dichos a
 impacto interno acumulado), **con las mismas tarifas que BUCA**, para que las cifras sean comparables.
 Lo particular de VAP, que ninguno de los dos tiene, está en las dos secciones siguientes.
 
-**Última revisión:** 2026-11-16 · **Fase:** la Fase 1 (secretarias) y la Fase 2.A (sincronización de
+**Última revisión:** 2026-11-19 · **Fase:** la Fase 1 (secretarias) y la Fase 2.A (sincronización de
 formularios de profesores) están **en producción**; el resto de lo documentado está **pendiente de
 construir** (ver «Lo que existe y lo que no»).
 
@@ -400,3 +400,4 @@ urgente mientras el proceso manual siga siendo recuperable en la memoria de quie
 | 2026-11-14 | Creación del documento. Parte A con inventario de 14 artefactos (255 – 356 h, ≈ 21.000 €); tarifas heredadas de `gala_buca`. Parte B con partidas B1 a B9 ancladas a JS/RD, **sin cifras**: faltan línea base y costes-hora. | Redactado con Claude; pendiente de revisión del responsable |
 | 2026-11-16 | Revisión de cierre. **Re-medido** el tamaño (código 4.845 + 1.773 líneas; pruebas 12.045) y **añadidos** A15 (webapp v0.1.0) y las ampliaciones de A1 a A5, A12 y A13: de 255 – 356 h (≈ 21.000 €) a 364 – 521 h (≈ 30.300 €). **El salto es sobre todo corrección:** la suite de pruebas del 14 nov no estaba en la cifra (A12 pasa de 14 – 20 h a 74 – 110 h); el trabajo del 16 nov son ≈ 49 – 75 h (A1, A2, A3, A4, A5, A13 y A15). Horas estimadas por quien redacta, sin contraste. Parte B sin cambios de fórmula; se añade la primera medida de descuadres (una muestra). | Redactado con Claude; pendiente de revisión del responsable |
 | 2026-11-17 | Revisión de cierre. **Re-medido solo el tamaño** (código 7.128 + 3.191 líneas; pruebas 15.044) tras la webapp v0.4.0 y el servicio `VAP_Pagos` (sin desplegar). **Las horas y los euros NO se han re-estimado**: siguen siendo los del 16 nov y **infravaloran** el código nuevo (marca de pasos, Altas/bajas, cruce de pagos, 1.937 pruebas). Además, **Altas/bajas está por rehacer** contra el maestro real (ver `proximos_pasos.md`), así que su valor no debe contarse como terminado. Pendiente: re-estimar con los criterios de A15. | Redactado con Claude; pendiente de revisión del responsable |
+| 2026-11-19 | Revisión de cierre. **Sin código nuevo:** el tamaño medido el 17 nov sigue vigente y **las horas y los euros no cambian**. La jornada fue de diseño y de configuración del maestro de personas en Google (lista única de empresas, casillas de `Alta`, desplegables) más su documentación; **no añade artefacto valorable**, pero **evita descuadres** (la lista de empresas estaba en tres sitios que no coincidían) y deja inventariados los scripts que leen el maestro. Sin cifra: es valor de coherencia, no medible aún. | Redactado con Claude; pendiente de revisión del responsable |

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.3 — BORRADOR · con el cruce de pagos, `VAP_Pagos` y la coherencia del maestro de personas (17 nov 2026) |
-| **Fecha** | 17 noviembre 2026 (versión 0.2: 16 noviembre 2026) |
+| **Versión** | 0.4 — BORRADOR · con la comprobación mensual de concordancia y la lista única de empresas (19 nov 2026) |
+| **Fecha** | 19 noviembre 2026 (versión 0.3: 17 noviembre 2026) |
 | **Autor** | Fran Cañete (fcsainz) |
 | **Estado** | Propuesta inicial para revisión |
 
@@ -416,10 +416,17 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 > - **JS-05 también depende de que el maestro de personas sea coherente** (visto el 17 nov 2026): la lista de empresas está en
 >   **dos sitios que no coinciden** (7 en `Config`, 9 en un desplegable) y las tres pestañas llaman distinto a las mismas columnas, así que
 >   un alta hecha desde una pantalla puede quedar mal en una de ellas (HU-47; RF-100 y RF-101).
+>   **Actualizado el 19 nov 2026:** la lista de empresas **queda cerrada en 11** y vive en un solo sitio (`Config` del maestro);
+>   los desplegables de las tres pestañas ya leen de ahí. Una misma empresa se escribe de **tres maneras** según el origen
+>   (maestro, export de SAGE y Vinculación), y esa diferencia es una fuente de descuadres silenciosos (HU-46; RF-80 y RF-100).
 > - **JS-09 y JS-10** necesitan, antes que nada, que la identidad de cada persona concuerde entre SAGE y el
 >   maestro de personas (HU-46) y que el pago se reconozca sin guardar la cuenta (HU-48). **JS-10** se sirve
 >   además con el **cruce mensual del fichero del banco**, su informe subsanable (HU-49) y la consulta del
 >   histórico y del Maestro de Pagos (HU-50), decididos el 17 nov 2026.
+> - **La comprobación de concordancia (HU-46) es mensual** (decidido el 19 nov 2026): primero se actualiza el maestro de personas,
+>   después el export de SAGE y por último se cruzan. Hoy es **opcional** y **en el futuro será obligatoria** para dar el mes por bueno.
+>   Una persona puede estar en **dos empresas** (sobre todo el Staff): en todo el recorrido hay **dos filas**, cada una con su
+>   identificador de trabajador, y el DNI es lo que las une.
 
 > 🔍 **Por validar:** ¿faltan situaciones? Las candidatas que se me ocurren y no he escrito: el mes
 > en que un concepto retributivo cambia de criterio, y el momento en que alguien nuevo asume el rol
@@ -629,6 +636,9 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 | ¿Queda constancia de esas modificaciones? | No, y es una **decisión deliberada** | §2.2, §8 |
 | ¿El *Proceso mensual* y el tablero de los nueve pasos son dos pantallas? | **Una sola**, con dos nombres (16 nov 2026) | HU-45 |
 | ¿Un cambio de empresa es la misma persona con otro identificador? | No: **baja en una empresa y alta en otra**; el historial queda partido (16 nov 2026) | HU-47 · RF-83 · R-21 |
+| ¿Cuántas empresas hay y cómo se llama cada una? | **11**: ARCOVIAL, CASTA, CERVANTES, DRIVERS, GALA, INTERCASTILLA, JOSE, LOGYFOR, MOTOR INTEGRAL, NESSUN y VALDEARROYOS; JOSE se entiende como empresa a nivel interno (19 nov 2026). MOTOR INTEGRAL se escribe **CTM MOTOR** en el export de SAGE y **CTM MOTOR INTEGRAL SLU** en otra hoja | HU-47 · RF-100 |
+| ¿La comprobación de concordancia es obligatoria? | **Mensual; opcional por ahora y obligatoria en el futuro** (19 nov 2026). Orden: maestro, export de SAGE y cruce | HU-46 · RF-80 |
+| ¿Una persona puede tener dos identificadores? | Sí, si está en **dos empresas** (sobre todo Staff): **dos filas**, cada una con su `id_trabajador`; el DNI las une (19 nov 2026) | HU-46 · RF-80 · RF-83 |
 | ¿De quién es la webapp nueva y dónde guarda su estado? | En **un libro propio**, de la cuenta del desarrollador (16 nov 2026, propuesta) | [ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) |
 
 ---
