@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.12 |
-| **Fecha** | 19 noviembre 2026 |
+| **Versión** | 0.13 |
+| **Fecha** | 20 noviembre 2026 |
 | **Se apoya en** | [FLUJO.md](flujo_doc/FLUJO.md) · [dudas/](dudas/README_dudas.md) |
 
 ---
@@ -1418,6 +1418,26 @@ Añadir columnas no rompe nada; **renombrar o quitar una obliga a subir los afec
 > **Qué NO se ha probado en Google real:** que los formularios siguen trayendo solo a las secretarias y profesoras de alta tras pasar
 > `Alta` a casilla (se comprueba abriendo el formulario de Horas Extras); y qué hace `export_SAGE` con «CTM MOTOR». **Sin riesgo de
 > bloqueo conocido:** todo lo hecho hoy se deshace con Ctrl+Z o con el historial de versiones del libro.
+
+## Pendientes que salen del trabajo del 20 nov 2026
+
+La jornada fue **de análisis, sin cambios de código ni de libros**. Se leyó el CSV de la Vinculación (en `docs_cruce/`, ignorado por git) solo por su estructura.
+
+**Decisión tomada:** **por ahora no se renombran las cabeceras** de `VAP_Staff`, `VAP_Secretarias` y `VAP_Profesores` (`Nombre`, `Nombre_Secretaria`, `Tipo`, `Tipología_Profesor`, `Fecha Alta`…). Motivo: poco beneficio y riesgo real, porque los lectores de producción las leen por nombre y habría que desplegar todo a la vez. **Queda en pausa la tarea 6 (RF-101)**; no está cerrada. *(Corrección:* el 20 nov se dijo que `Nombre` solo lo leían la webapp y el cruce; **también lo lee Actualización Profesores**, como ya recoge el inventario de arriba.)
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| **Cruce de la columna B de la Vinculación con VAP Personas (siguiente paso)** | B trae el centro, el departamento o la relación (`CONYUGE`, `TITULAR`) de cada línea: **89 valores distintos** en 510 líneas, con espacios sobrantes y variantes (`Tomas`/`Tomás`, `Móstoles`/`Mostoles`…). Decidido: volcarla **tal cual** y limpiar ya dentro de VAP Personas. Búsqueda **por DNI** y **nombre como contraste** | Yo, cuando tengas las exportaciones |
+| ↳ **Entrega prevista:** un Excel con **una hoja por pestaña** (Staff, Secretarías, Profesores), con la columna nueva **en el mismo orden de filas** que tiene hoy cada una para copiar y pegar; una hoja de **líneas sin correspondencia** (nº de línea de la Vinculación, B, nombre, DNI, empresa y motivo); y una de **nombre distinto** | Las filas sin DNI (limpiezas, garajes, totales) y los 3 DNI repetidos van a «sin correspondencia», **sin cruzar por nombre**. El Excel sale en `docs_cruce/`, ignorado por git; el script, fuera del repo | Yo |
+| ↳ **Hace falta de ti:** las tres pestañas de VAP Personas exportadas a CSV **en su orden actual y con cabecera**, dejadas en `docs_work/docs_cruce/`. No hay ninguna en el equipo | Sin ellas no se puede casar por DNI ni respetar el orden de filas | **Tú** |
+| ↳ **Decisiones tuyas antes de empezar:** (1) si las líneas de **«nombre distinto»** quedan **fuera** de la columna de pegado hasta que las revises (propuesto) o se rellenan por DNI y se señalan aparte; (2) **nombre de la columna** nueva (propuesto `Asociado_a`); (3) instalar `openpyxl` para generar el Excel | La columna nueva es **añadir**, no renombrar: no rompe a los lectores por cabecera. **Sin verificar:** que ninguno lea por posición | **Tú** |
+| **`CONYUGE` y `TITULAR` en B: ¿son personas del maestro o solo familiares de Adeslas?** También `Privada` y `Laboral`, cuyo significado no se conoce | Los familiares **no son empleados** y no deben entrar en Staff, Secretarías ni Profesores; sus datos están protegidos igual (segunda regla del repo) | **Tú** |
+| **La Vinculación no es una tabla limpia** | 92 columnas (parámetros en las filas 1-3, cabecera en la 6, datos desde la 7), unos 20 bloques separados por filas vacías y marcadores (`TOTAL`, `FUERA DE %`, `ARRIBA`, `85-15`). Para generar la **copia mensual** hay que saber qué columnas son **fórmula** y cuáles dato pegado, qué es cada bloque y si el libro tiene una pestaña por mes. El CSV solo trae valores | **Tú**: fórmulas de una fila de ejemplo por bloque |
+| **`Tipología_Profesor` (1 y 2) sí tiene uso: lo dijiste tú** | Condiciona el **script de brutos y netos** y **la posición del nombre en la hoja de Vinculación**. [DT-11](dudas/deuda-tecnica.md) y el SSD (§6, `Tipologia_Profesor`) dicen «ningún script la usa»: **hay que corregirlos** cuando se sepa qué distingue 1 de 2. **No he localizado** ese script ni la vinculación en `docs_solutions/src` | **Tú**: dónde están; yo, actualizar DT-11 y SSD |
+| **Cabecera con tilde o sin ella** | El CHANGELOG y el SSD dicen que `Tipologia_Profesor` va **sin tilde**; la cabecera pegada el 20 nov lleva **`Tipología_Profesor`** (y el cruce de BBDD busca la que lleva tilde). Comprobar cuál es la real en el libro | **Tú** (comprobar) |
+| **Diferencias entre las tres cabeceras, sin tocar** | `Fecha Alta`/`Fecha Baja` (con espacio) en Secretarías frente a `Fecha_Alta`/`Fecha_Baja`; Staff sin `Fecha_Baja` y con `Revisión` (decidido el 17 nov: pasa a `Observaciones`); sin columna de tipo en Secretarías | Va con la tarea 6 |
+| **Columna E antigua de `Config`** | Ningún script del repo la lee. Antes de borrarla, buscar `Config!E` / `Config!$E` en **todas las hojas y fórmulas** de cada libro. Al eliminarla con «Eliminar columna», `G` pasa a `F`: comprobar que los desplegables (`Config!G2:G30`) siguen apuntando bien | **Tú** |
+| **`docs_cruce/README.md` sin versionar** | Existe (14 nov) y no está ignorado, pero arriba se dice que **se borró**. Es tuyo: ¿se versiona, se borra o se corrige el texto de arriba? Mientras tanto no hay datos personales en él | **Tú** |
 
 ## Mejoras detectadas por las pruebas — **hacer antes del siguiente sprint**
 
