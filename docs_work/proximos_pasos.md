@@ -1439,6 +1439,26 @@ La jornada fue **de análisis, sin cambios de código ni de libros**. Se leyó e
 | **Columna E antigua de `Config`** | Ningún script del repo la lee. Antes de borrarla, buscar `Config!E` / `Config!$E` en **todas las hojas y fórmulas** de cada libro. Al eliminarla con «Eliminar columna», `G` pasa a `F`: comprobar que los desplegables (`Config!G2:G30`) siguen apuntando bien | **Tú** |
 | **`docs_cruce/README.md` sin versionar** | Existe (14 nov) y no está ignorado, pero arriba se dice que **se borró**. Es tuyo: ¿se versiona, se borra o se corrige el texto de arriba? Mientras tanto no hay datos personales en él | **Tú** |
 
+## Pendientes que salen del trabajo del 24 nov 2026: formulario de mecánicos
+
+Se creó `docs_solutions/src/VAP_scripts_mecanicos/` (sincroniza el desplegable «Seleccione el Mecánico» con los mecánicos de alta de `VAP_Staff`) y 27 pruebas con dobles. **No se ha desplegado ni probado en Google real.**
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| **Trazabilidad del formulario de mecánicos** | No cita ninguna HU, RF ni ADR. Sin trazabilidad «no se planifica»: hay que enlazarlo a una HU y un RF existentes o crear los nuevos (¿ADR no hace falta por ser gemelo de Secretarías y Profesores?) | **Tú** |
+| **Documentarlo** (`CHANGELOG`, tabla de scripts del `README`, inventario del SSD) | No hecho porque `CLAUDE.md` exige tu visto bueno antes de tocar esos documentos | Yo, con tu OK |
+| **Mecánico en dos empresas con el mismo nombre** | El desplegable lo muestra una vez y al enviar falla («varios mecánicos activos»). Opciones: mostrar la empresa en el desplegable, o dejarlo y avisar | **Tú** |
+| **Función `diagnosticoMecanicos`** | Propuesta (solo lee y vuelca al registro: libro, columnas, filas por filtro, valores de `Tipo`, preguntas del formulario, triggers). Sin OK al cierre. Al cierre **no estaba confirmado** que la lista cargara ni que se refrescara | **Tú** (OK) · Yo |
+| **Triggers del proyecto de mecánicos** | No consta que se hayan creado (`crearTriggersProduccion`, `crearTriggerHorarioRespaldo`; se comprueba con `verTriggers`). Sin ellos la lista no se refresca sola | Tú |
+| **Formulario** | «Seleccione el Mecánico» sin marcar obligatoria; errata «¿Cuántos Sábados **a** trabajado?»; validación de «Sábados» sin comprobar (número ≥ 0); no se sabe si acepta coma decimal | Tú |
+| **Hoja de respuestas del formulario** | Falta vincularla (sin ella `onFormSubmit` no escribe `ID_Mecanico`); decidir carpeta y con quién se comparte | Tú |
+| **`id_trabajador` en los scripts de Secretarías** (cambio previo, sin commit) | Los scripts de horas extras y complementos ya leen `id_trabajador`, pero el SSD (§ hojas, §7 y glosario) y el `README` siguen diciendo `ID_Secre`. Además **el script de Profesores sigue leyendo `ID_Profesor`**: si `VAP_Profesores` pasa a `id_trabajador`, se rompe. Subir el de Secretarías solo cuando la hoja real tenga ya esa cabecera | **Tú** (cuándo) · Yo (alinear docs y Profesores) |
+| **Final de línea mezclado** en `VAP_Script_Actualizacion_Automatica_Secretarias.gs` | Una línea (`RESPONSE_ID_HEADER`) perdió el retorno de carro del resto del fichero. Inofensivo, pero ensucia el diff | Yo, con tu OK |
+
+> **Qué NO se ha probado en Google real:** triggers, permisos y cuotas del proyecto de mecánicos, que la validación numérica del formulario rechace lo que se espera y que el desplegable muestre a los mecánicos de verdad. **Antes de subirlo a real** hay que pasar `dev-pre-produccion`. Sin riesgo de bloqueo conocido: el proyecto es nuevo y se borra con sus triggers (`borrarTriggers`) sin tocar el maestro.
+
+---
+
 ## Mejoras detectadas por las pruebas — **hacer antes del siguiente sprint**
 
 *(14 nov 2026. Salen de las pruebas generadas por cuatro agentes (**~50 defectos distintos, en los cuatro módulos**) sobre todo el código de `src/`. Ninguno de estos

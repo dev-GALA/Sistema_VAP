@@ -173,7 +173,7 @@ test.describe('paso 2 y 3 · parámetros e importes (RF-05)', () => {
     await expect(entradas(page).first()).toHaveValue('');
   });
   test('los nombres con HTML se muestran como texto y no se ejecutan', async ({ page }) => {
-    await abrir(page, { bbdd: { VAP_Secretarias: [['ID_Secre', 'Nombre_Secretaria', 'Alta'], ['S1', CARGA_XSS, true]] } });
+    await abrir(page, { bbdd: { VAP_Secretarias: [['id_trabajador', 'Nombre_Secretaria', 'Alta'], ['S1', CARGA_XSS, true]] } });
     await validarEnReportar(page);
     await continuar(page);
     await expect(page.locator('#tbl tbody td:first-child')).toHaveText(CARGA_XSS);

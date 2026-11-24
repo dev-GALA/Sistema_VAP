@@ -36,7 +36,7 @@ export const RESP_CONC = [
   ['R3', 'C1', true],
 ];
 export const SECRETARIAS = [
-  ['ID_Secre', 'Nombre_Secretaria', 'Alta'],
+  ['id_trabajador', 'Nombre_Secretaria', 'Alta'],
   ['S1', 'Zoe Ficticia', true],
   ['S2', 'Álvaro Falso', true],
   ['S3', 'Berta Baja', false],

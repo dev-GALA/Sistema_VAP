@@ -50,18 +50,18 @@ describe('obtenerSecretariasActivasUnicas_ · lista del desplegable (ADR-0004)',
     expect(lista([['S1', 'Baja Uno', false], ['S2', 'Baja Dos', false]])).toEqual([]);
   });
   it('RNF-02 · localiza las columnas por NOMBRE de cabecera aunque estén en otro orden y haya extras', () => {
-    expect(lista([['Ana Prueba', 'extra', true, 'S1']], { cabeceraSecretarias: ['Nombre_Secretaria', 'Otra', 'Alta', 'ID_Secre'] })).toEqual(['Ana Prueba']);
+    expect(lista([['Ana Prueba', 'extra', true, 'S1']], { cabeceraSecretarias: ['Nombre_Secretaria', 'Otra', 'Alta', 'id_trabajador'] })).toEqual(['Ana Prueba']);
   });
   it.each([
-    ['ID_Secre', ['Nombre_Secretaria', 'Alta'], 'No se encuentra la columna "ID_Secre"'],
-    ['Nombre_Secretaria', ['ID_Secre', 'Alta'], 'No se encuentra la columna "Nombre_Secretaria"'],
-    ['Alta', ['ID_Secre', 'Nombre_Secretaria'], 'No se encuentra la columna "Alta"'],
+    ['id_trabajador', ['Nombre_Secretaria', 'Alta'], 'No se encuentra la columna "id_trabajador"'],
+    ['Nombre_Secretaria', ['id_trabajador', 'Alta'], 'No se encuentra la columna "Nombre_Secretaria"'],
+    ['Alta', ['id_trabajador', 'Nombre_Secretaria'], 'No se encuentra la columna "Alta"'],
   ])('falta la cabecera %s → error claro', (_c, cabecera, mensaje) => {
     const e = entornoSync({ secretarias: [['a', 'b']], cabeceraSecretarias: cabecera });
     expect(() => e.llamar('obtenerSecretariasActivasUnicas_')).toThrow(mensaje);
   });
   it('una cabecera con espacio final no se reconoce (caracterización)', () => {
-    const e = entornoSync({ secretarias: [['S1', 'Ana Prueba', true]], cabeceraSecretarias: ['ID_Secre', 'Nombre_Secretaria', 'Alta '] });
+    const e = entornoSync({ secretarias: [['S1', 'Ana Prueba', true]], cabeceraSecretarias: ['id_trabajador', 'Nombre_Secretaria', 'Alta '] });
     expect(() => e.llamar('obtenerSecretariasActivasUnicas_')).toThrow('No se encuentra la columna "Alta"');
   });
   it('sin la hoja VAP_Secretarias → error claro', () => {
@@ -113,9 +113,9 @@ describe('buscarIdSecrePorNombre_ · ID de la secretaria que envía', () => {
     expect(buscar(null)).toBe('');
   });
   it.each([
-    ['ID_Secre', ['Nombre_Secretaria', 'Alta']],
-    ['Nombre_Secretaria', ['ID_Secre', 'Alta']],
-    ['Alta', ['ID_Secre', 'Nombre_Secretaria']],
+    ['id_trabajador', ['Nombre_Secretaria', 'Alta']],
+    ['Nombre_Secretaria', ['id_trabajador', 'Alta']],
+    ['Alta', ['id_trabajador', 'Nombre_Secretaria']],
   ])('falta la cabecera %s → error claro', (c, cabecera) => {
     expect(() => buscar('Ana Prueba', [['a', 'b']], { cabeceraSecretarias: cabecera })).toThrow(`No se encuentra la columna "${c}"`);
   });
@@ -248,6 +248,6 @@ describe('constantes', () => {
     expect(f.getItems('LIST').map((i) => i.getTitle())).toEqual(['A']);
   });
   it('CAB_SECRETARIAS (ayuda de pruebas) coincide con las cabeceras que exige el script', () => {
-    expect(CAB_SECRETARIAS).toEqual(['ID_Secre', 'Nombre_Secretaria', 'Alta']);
+    expect(CAB_SECRETARIAS).toEqual(['id_trabajador', 'Nombre_Secretaria', 'Alta']);
   });
 });

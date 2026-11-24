@@ -47,7 +47,7 @@ const BBDD_RESP_CONC    = "VAP_Responsables_Complementos";
 /**
  * Columnas esperadas en BBDD
  */
-const COL_SEC_ID     = "ID_Secre";
+const COL_SEC_ID     = "id_trabajador";
 const COL_SEC_NOMBRE = "Nombre_Secretaria";
 const COL_SEC_ALTA   = "Alta";
 
@@ -1081,7 +1081,7 @@ function vap_rellenarNombresSecretariaFaltantes() {
   const sh = ss.getSheetByName(SHEET_DATA);
   if (!sh) { ui.alert(`No existe la hoja "${SHEET_DATA}".`); return; }
 
-  // Mapa ID_Secre -> Nombre_Secretaria desde la BBDD
+  // Mapa id_trabajador -> Nombre_Secretaria desde la BBDD
   const bbdd = SpreadsheetApp.openById(BBDD_SPREADSHEET_ID);
   const secretarias = readTable_(bbdd.getSheetByName(BBDD_SECRETARIAS));
   const mapaSec = new Map();

@@ -54,7 +54,7 @@ describe('actualizarPreguntaSecretarias · carga las activas en el desplegable (
     const sinHoja = entornoSync({ hojaSecretarias: false });
     expect(() => sinHoja.llamar('actualizarPreguntaSecretarias')).toThrow('No existe la hoja "VAP_Secretarias"');
     expect(sinHoja.opcionesFormulario()).toEqual(['(antigua)']);
-    const sinColumna = entornoSync({ secretarias: [['S1', 'x']], cabeceraSecretarias: ['ID_Secre', 'Nombre_Secretaria'] });
+    const sinColumna = entornoSync({ secretarias: [['S1', 'x']], cabeceraSecretarias: ['id_trabajador', 'Nombre_Secretaria'] });
     expect(() => sinColumna.llamar('actualizarPreguntaSecretarias')).toThrow('No se encuentra la columna "Alta"');
     expect(sinColumna.opcionesFormulario()).toEqual(['(antigua)']);
   });

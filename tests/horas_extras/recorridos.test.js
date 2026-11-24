@@ -155,7 +155,7 @@ describe('Recorrido 7 · envío del formulario → ID_Secre → volcado (ADR-000
     // Ambos .gs en el mismo entorno de prueba (en Google son proyectos distintos, ADR-0007: aquí solo se comprueba que no chocan).
     const e = entornoVolcado({ rutas: [CODIGO.horasExtrasVolcado, CODIGO.horasExtrasSync], destino: [filaDestino({ nombre: 'Ana Prueba' })] });
     const bbdd = e.google.libro(e.valor('SPREADSHEET_ID'), 'BBDD ficticia');
-    bbdd.conHoja('VAP_Secretarias', [['ID_Secre', 'Nombre_Secretaria', 'Alta'], ['S001', 'Ana Prueba', true]]);
+    bbdd.conHoja('VAP_Secretarias', [['id_trabajador', 'Nombre_Secretaria', 'Alta'], ['S001', 'Ana Prueba', true]]);
     const formulario = {
       getItems: () => [], getDestinationId: () => e.idOrigen,
     };

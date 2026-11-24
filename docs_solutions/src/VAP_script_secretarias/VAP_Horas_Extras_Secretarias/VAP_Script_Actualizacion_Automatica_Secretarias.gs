@@ -7,6 +7,7 @@ const SPREADSHEET_ID = "1HQMxubwPv-vrslsXj5DvsB0gJ9OyewVNDmbPg1hjmHk";
 const SHEET_SECRETARIAS = "VAP_Secretarias";
 const QUESTION_TITLE = "SECRETARIA";
 const RESPONSE_ID_HEADER = "ID_Secre";
+const COL_ID_BBDD = "id_trabajador";
 
 /****************************************************
  * 1) SINCRONIZACIÓN PRINCIPAL DEL FORMULARIO
@@ -145,11 +146,11 @@ function obtenerSecretariasActivasUnicas_() {
   const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   const headers = data[0];
 
-  const colId = headers.indexOf("ID_Secre");
+  const colId = headers.indexOf(COL_ID_BBDD);
   const colNombre = headers.indexOf("Nombre_Secretaria");
   const colAlta = headers.indexOf("Alta");
 
-  if (colId === -1) throw new Error('No se encuentra la columna "ID_Secre"');
+  if (colId === -1) throw new Error(`No se encuentra la columna "${COL_ID_BBDD}"`);
   if (colNombre === -1) throw new Error('No se encuentra la columna "Nombre_Secretaria"');
   if (colAlta === -1) throw new Error('No se encuentra la columna "Alta"');
 
@@ -184,11 +185,11 @@ function buscarIdSecrePorNombre_(nombreBuscado) {
   const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   const headers = data[0];
 
-  const colId = headers.indexOf("ID_Secre");
+  const colId = headers.indexOf(COL_ID_BBDD);
   const colNombre = headers.indexOf("Nombre_Secretaria");
   const colAlta = headers.indexOf("Alta");
 
-  if (colId === -1) throw new Error('No se encuentra la columna "ID_Secre"');
+  if (colId === -1) throw new Error(`No se encuentra la columna "${COL_ID_BBDD}"`);
   if (colNombre === -1) throw new Error('No se encuentra la columna "Nombre_Secretaria"');
   if (colAlta === -1) throw new Error('No se encuentra la columna "Alta"');
 

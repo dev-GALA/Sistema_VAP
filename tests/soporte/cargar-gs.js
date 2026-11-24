@@ -22,6 +22,7 @@ export const CODIGO = {
   horasExtrasSync: 'VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script_Actualizacion_Automatica_Secretarias.gs',
   profesoresSync: 'VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.gs',
   profesoresActividad: 'VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs',
+  mecanicosSync: 'VAP_scripts_mecanicos/VAP_Script_Actualizacion_Automatica_Mecanicos.gs',
 };
 
 export const HTML = {

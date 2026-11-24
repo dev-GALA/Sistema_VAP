@@ -114,7 +114,7 @@ export const filtrarLog = (log, categoria, tipo) =>
   (log || []).slice(1).filter((f) => f[4] === categoria && (tipo === undefined || f[5] === tipo));
 
 // ── Entorno de la sincronización ────────────────────────────────────────────────────────────────
-export const CAB_SECRETARIAS = ['ID_Secre', 'Nombre_Secretaria', 'Alta'];
+export const CAB_SECRETARIAS = ['id_trabajador', 'Nombre_Secretaria', 'Alta'];
 
 /** Doble de formulario con lo que usa el script: getItems(tipo), getDestinationId(). */
 export function crearFormulario({ id, items = [], destinationId = '' }) {
