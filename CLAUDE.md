@@ -138,11 +138,25 @@ la global**; la copia del repo es el respaldo para quien no la tenga.
 | `dev-pruebas` | Se escribe, cambia o pide una prueba, o se monta la base de pruebas. **Aquí nunca se escribe en libros reales de nóminas: se prueba con dobles en memoria** |
 | `dev-licencia` | Crear o revisar el `LICENSE` de un repo |
 
+### Apps Script: pasos manuales tras subir (triggers y autorizaciones)
+*(Regla del usuario, 2026-11-25: se subió el formulario de mecánicos sin avisar de crear los triggers y la lista no se refrescaba; Claude no lo había dicho nunca y eso provoca llamadas de usuarios.)*
+
+Cada vez que se cree, cambie o suba un proyecto de Apps Script, Claude entrega **por escrito, junto al código y antes de darlo por entregado**, la lista de pasos manuales de Google que el código no hace por sí solo:
+1. **Triggers**: cuáles deben existir (función, tipo, frecuencia), qué función los crea, si hay que ejecutarla a mano y cómo comprobarlo (`verTriggers` o la pestaña «Activadores»). Avisar de que `borrarTriggers` elimina **todos** los del proyecto.
+2. **Autorizaciones** que Google pedirá en la primera ejecución.
+3. **Primera ejecución manual** necesaria para ver el efecto (p. ej. refrescar un formulario).
+4. **Lo que no dispara triggers**: los cambios hechos por script (webapps incluidas) no lanzan `onEdit` ni `onChange`; si el flujo depende de ellos, hace falta el trigger horario de respaldo.
+5. **Cómo saber que funciona**: la prueba concreta que hace el usuario tras activarlo.
+
+Si el proyecto depende de triggers, **el trabajo no se da por terminado** hasta entregar esa lista y que el usuario confirme que están creados. Se aplica aunque el cambio parezca pequeño. Si no hay triggers, se dice expresamente («no aplica»). Se anota además en `docs_work/proximos_pasos.md` como pendiente del usuario. Procedimiento: skill `dev-pre-produccion`.
+
+En este repo **cada carpeta de `docs_solutions/src/` es un proyecto de Apps Script distinto y pegado a mano en Google**: no se despliega solo. Al terminar un cambio, además de la lista, di si hay que subirlo y a qué proyecto.
+
 ### Pruebas: cómo se ejecutan
 
 ```sh
-npm test                    # Vitest: unitarias, integración y recorridos del backend (1.881: 1.840 pasan y 41 documentan defectos)
-npm run e2e                 # Playwright: las pantallas HTML reales contra el .gs real (227)
+npm test                    # Vitest: unitarias, integración y recorridos del backend (2.137: 2.096 pasan y 41 documentan defectos)
+npm run e2e                 # Playwright: las pantallas HTML reales contra el .gs real (239; exige el navegador de Playwright instalado)
 npm run lint                # Biome: solo docs_solutions/src/webapp y tests/webapp (el código antiguo no se reformatea)
 python3 -m unittest discover -s scripts -p 'test_*.py'   # pruebas del verificador
 python3 scripts/verificar_trazabilidad.py                # trazabilidad y enlaces

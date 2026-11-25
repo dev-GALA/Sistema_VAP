@@ -55,12 +55,18 @@ function validarPersonas_(dependencias, registros) {
   });
 }
 
+/** Para la PANTALLA: la cuenta nunca se muestra, pero el DNI sí (quien da de alta debe poder resolver el conflicto). */
+function sinCuenta_(mensaje, registro) {
+  const texto = String(mensaje);
+  return registro.iban ? texto.split(registro.iban).join('***') : texto;
+}
+
+/** Para el REGISTRO de eventos (ADR-0018): ni la cuenta ni ningún DNI, ni el de la persona ni el de un conflicto. */
 function sinDatosPersonales_(mensaje, registro) {
-  let texto = String(mensaje);
-  [registro.iban, registro.dni].forEach((valor) => {
-    if (valor) texto = texto.split(valor).join('***');
-  });
-  return texto;
+  return sinCuenta_(mensaje, registro)
+    .split(registro.dni || '\u0000')
+    .join('***')
+    .replace(/\b(?:\d{8}|[XYZ]\d{7})[A-Z]\b/g, '***');
 }
 
 function anotarEvento_(dependencias, contexto, eventoId, registro, estado, detalle) {
@@ -109,11 +115,16 @@ function aplicarEvento_(dependencias, contexto, config, empresas, registro) {
     empresa: registro.empresa,
   };
   try {
-    dependencias.llamarServicioPagos('guardarCuenta', { idPersonal: persona.idPersonal, iban: registro.iban });
+    dependencias.llamarServicioPagos('guardarCuenta', {
+      idPersonal: persona.idPersonal,
+      dni: registro.dni,
+      usuario: contexto.correo,
+      iban: registro.iban,
+    });
   } catch (error) {
-    const detalle = `Aplicado al maestro, pero la cuenta NO se guardó: ${sinDatosPersonales_(error.message, registro)}`;
-    anotar(ESTADO_EVENTO.error, detalle);
-    return { eventoId, estado: ESTADO_EVENTO.error, detalle };
+    const inicio = 'Aplicado al maestro, pero la cuenta NO se guardó: ';
+    anotar(ESTADO_EVENTO.error, inicio + sinDatosPersonales_(error.message, registro));
+    return { eventoId, estado: ESTADO_EVENTO.error, detalle: inicio + sinCuenta_(error.message, registro) };
   }
   try {
     dependencias.marcarCuentaEnMaestro(config, empresas, persona);

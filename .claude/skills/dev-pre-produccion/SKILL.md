@@ -14,6 +14,7 @@ Progreso:
 - [ ] 3. Redactar las cuatro respuestas
 - [ ] 4. Marcar lo no verificado
 - [ ] 5. Presentar y esperar el sí
+- [ ] 6. Si es Apps Script: pasos manuales (triggers, autorizaciones)
 ```
 
 ## 1. Qué se sube y dónde
@@ -47,3 +48,7 @@ Señala lo que no has podido comprobar, sobre todo nombres de menús o pantallas
 ## 5. Presentar y esperar
 
 Entrega las cuatro respuestas (en total, unas 15 líneas) y **no subas nada hasta que el usuario lo lea y diga que sí**. Con el sí, procede solo con lo acordado y cuenta después exactamente lo que se hizo.
+
+## 6. Apps Script: pasos manuales tras subir
+
+Si lo que se sube es un proyecto de Apps Script, entrega **además** la lista de pasos manuales de Google que el código no hace: (1) triggers que deben existir, función que los crea y cómo comprobarlos (`verTriggers`); `borrarTriggers` elimina todos; (2) autorizaciones de la primera ejecución; (3) primera ejecución manual necesaria; (4) lo que no dispara triggers: los cambios hechos por script no lanzan `onEdit`/`onChange`, hace falta un trigger horario de respaldo; (5) la prueba con la que el usuario comprueba que funciona. No des el trabajo por terminado hasta que el usuario confirme que los triggers están creados. Si no hay triggers, di «no aplica».

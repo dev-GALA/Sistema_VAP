@@ -4,9 +4,37 @@
 
 | | |
 |---|---|
-| **Versión** | 0.13 |
-| **Fecha** | 20 noviembre 2026 |
+| **Versión** | 0.14 |
+| **Fecha** | 25 noviembre 2026 |
 | **Se apoya en** | [FLUJO.md](flujo_doc/FLUJO.md) · [dudas/](dudas/README_dudas.md) |
+
+---
+
+## Pendiente de decisión (25 nov 2026)
+
+| # | Qué hay que decidir | Opciones | Recomendación |
+|---|---|---|---|
+| D1 | **`VAP_BBDD_Personas` se puede leer con solo el enlace** (visto el 25 nov; lleva DNI). Revisar también `VAP_Pagos`, Complementos, export de SAGE y el libro temporal | A: «Restringido» · B: dejarlo | **A, cuanto antes**, probando después el portal de Complementos y los formularios con otra cuenta |
+| D2 | La webapp (altas) y el cruce con SAGE **escriben en `id_trabajador`** y romperían la fórmula (R-31) | A: adaptarlos antes de usarlos · B: no usarlos sobre el maestro | **A**; mientras tanto, B |
+| D3 | Filas de mecánicos duplicadas en `VAP_Staff` (plantilla antigua y «MECÁNICO») | A: solo las «MECÁNICO» · B: ambas · C: las antiguas, cambiando su tipo | **A** |
+| D4 | Cómo se actualizan huellas y envíos cuando alguien cambie de empresa o número (R-32) | A: automático en el centinela · B: revisión mensual · C: con la pantalla de altas y bajas | **C**; hasta entonces B |
+| D5 | Retirar los scripts de un solo uso (`VAP_Script_Unico_*` y la carga inicial de `vap_pagos`, con su excepción de arquitectura) | A: borrarlos tras cerrar la nómina · B: ya · C: conservarlos | **A** |
+| D6 | Borrar el libro temporal con **cuentas en claro**, su descarga y los CSV de `docs_cruce` y de `Descargas` | A: al terminar de subsanar · B: ya | **A**, sin dejarlo pasar de este mes |
+| D7 | Aceptar, cambiar o rechazar los ADR 0017 a 0022 (hay código en producción de decisiones en Propuesta) | A: revisarlos en una sesión · B: dejarlos | **A** |
+| D8 | Volver a ejecutar las pruebas de navegador | A: instalar el navegador de Playwright en este equipo (descarga) · B: ejecutarlas en otro equipo | **A** |
+| D9 | RF-89 dice que la carga de cuentas propone por empresa y nombre y comprueba el importe; **la hecha cruzó por DNI sin importes** | A: reescribir RF-89 y HU-48 con lo hecho · B: añadir la comprobación del importe | **A**: la carga ya está hecha y el DNI es mejor clave |
+| D10 | `README` y SSD dicen que la webapp está **sin desplegar**; `CLAUDE.md`, que está **desplegada en pruebas** | A: confirmar cuál es y corregir los otros · B: dejarlo | **A** |
+
+### Siguientes pasos del usuario
+
+1. Reunión (26 nov) sobre los errores de personas: ejecutar antes `revisarPersonas` para tener la lista al día y volver a pegar su script (corregido).
+2. Enviar el Excel de incidencias bancarias (versión `v2`) como enlace restringido; al subsanar, `cargaInicialEjecutar`.
+3. Comprobar en el libro real: que repetir el número de otra persona se deshace con aviso, que la columna `id_trabajador` solo la puede editar el propietario, que los formularios muestran los id nuevos y que ninguna fórmula de la Vinculación usa los antiguos.
+4. Revisar las filas en amarillo y los números provisionales (columna `Observaciones`).
+5. Borrar las hojas `revision_ids`, `correccion_empresa_idsage` y `actualizacion_ids`; **conservar oculta** `copia_id_trabajador` (lleva DNI) hasta cerrar la nómina.
+6. Antes del próximo volcado, `simularVolcado` en Horas Extras y en Actividad de Profesores (cruce por DNI sin probar en un volcado real).
+
+**Triggers:** el centinela usa el disparador simple `onEdit` (no hay que crear ninguno); la revisión y los de un solo uso se ejecutan a mano. Los de los formularios siguen como se describe en los bloques anteriores.
 
 ---
 
@@ -256,6 +284,7 @@ se reutiliza, no se duplica ([CLAUDE.md](../CLAUDE.md)).
 > nómina y los **ficheros del banco** es una de las funcionalidades más esperadas, así que **la
 > correspondencia persona ↔ cuenta se necesita desde el primer día**. La propuesta es una **hoja
 > aparte con `id_personal` y una huella de la cuenta**, sin guardar el IBAN y sin el DNI en esa hoja.
+> **Cambio del 25 nov 2026:** la hoja sí lleva el DNI, con una fila por pareja DNI + `id_trabajador` ([ADR-0020](../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md)).
 > **Sigue pendiente de validar** con Gerencia y protección de datos, y de escribirse en el ADR.
 
 ### OB-45 · Crear `VAP_Pagos`, la huella y la carga inicial de cuentas — 🔵
@@ -268,12 +297,12 @@ se reutiliza, no se duplica ([CLAUDE.md](../CLAUDE.md)).
 
 **Alcance acordado el 17 nov 2026:** un **proyecto de Apps Script propio de `VAP_Pagos`** (no ligado al libro; la webapp lo
 llama como servicio) y su **libro**, con `id_personal`, la **huella HMAC-SHA256** de la cuenta, los **últimos 4 dígitos** y
-la fecha, sin IBAN, sin DNI y sin nombre de las personas registradas. La **clave** vive solo en las Script Properties de ese
+la fecha, sin IBAN y sin nombre de las personas registradas (**con DNI desde el 25 nov 2026**, [ADR-0020](../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md)). La **clave** vive solo en las Script Properties de ese
 proyecto, con **copia en el gestor de contraseñas de GALA**. Diseño en
 [fuentes_de_contraste.md §12](docs_cruce/fuentes_de_contraste.md) y decisiones en
 [DUDA-0005](dudas/0005-identificar-a-la-persona-en-el-fichero-del-banco.md).
 
-**La carga inicial es de uso único:** se parte del **Excel de altas** (empresa y nombre, DNI y cuenta; lleva los tres
+**La carga inicial es de uso único:** se parte del **Excel de la carga inicial** (empresa y nombre, DNI y cuenta; lleva los tres
 en claro), se cruza **por DNI** con el maestro, se calcula la huella en memoria y **una persona confirma** antes de guardar
 (en bloque las claras, una a una las dudosas). Al guardar, `VAP_Personas` recibe la marca **`cuenta_en_pagos`** con su fecha
 (RF-97). **El Excel se borra una vez verificada la carga.** Después se retira: el mantenimiento pasa a Altas/bajas (OB-46).
@@ -1370,15 +1399,15 @@ El 17 nov se decidió el diseño de `VAP_Pagos` y del cruce de pagos ([ADR-0019]
 | **Lectura de `.xls` y `.xlsx` en el navegador** | XML y CSV se leen sin librerías; **Excel necesita una librería en el navegador**, y toda dependencia nueva lleva su ADR. Si no se llega, el cruce admite XML y CSV y se pide convertir el Excel | Tú: ¿se adopta una librería? |
 | **Duplicación de funciones entre dos proyectos (IBAN)** | La normalización y validación del IBAN viven en la webapp y hacen falta en `VAP_Pagos` (RNF-17). Alternativa: que **solo el servicio** valide la cuenta | Tú |
 | **Plazo de conservación de los informes** · **quién ve la entrada del gestor de contraseñas** · **segundo editor del proyecto** · **frecuencia de la copia del libro** | Abiertas en el ADR-0019; R-22 y R-25 | Tú, con Gerencia |
-| **Borrar los ficheros** | El **Excel de altas** (nombre, DNI y cuenta) tras verificar la carga, y los **ficheros del banco** cuando proceda. El sistema no los borra (RNF-23, R-29) | Tú |
-| ~~**Migrar la webapp v0.3.0 al servicio**~~ ✅ **Hecho en el código (v0.4.0, sin desplegar)** | La webapp ya no calcula huellas ni conoce `CLAVE_HUELLA`; llama al servicio `src/pagos/`. **Al desplegar hay que retirar `CLAVE_HUELLA` de las propiedades de la webapp desplegada (v0.2.0)** si se llegó a poner | Tú, al desplegar |
-| **Código escrito el 17 nov 2026, sin desplegar:** servicio `src/pagos/` (v0.1.0), webapp v0.4.0 con *Cruzar Pagos*, *Históricos*, *Maestro de Pagos* y *Carga inicial* | Cubierto con pruebas en memoria (Vitest, Playwright). **No probado en Google real:** despliegue, token entre proyectos, tiempos, permisos, `Utilities.computeHmacSha256Signature` real | Tú, con `dev-pre-produccion` |
+| **Borrar los ficheros** | El **Excel de la carga inicial** (nombre, DNI y cuenta) tras verificar la carga, y los **ficheros del banco** cuando proceda. El sistema no los borra (RNF-23, R-29) | Tú |
+| ~~**Migrar la webapp v0.3.0 al servicio**~~ ✅ **Hecho en el código (v0.4.0, sin desplegar)** | La webapp ya no calcula huellas ni conoce `CLAVE_HUELLA`; llama al servicio `src/vap_pagos/`. **Al desplegar hay que retirar `CLAVE_HUELLA` de las propiedades de la webapp desplegada (v0.2.0)** si se llegó a poner | Tú, al desplegar |
+| **Código escrito el 17 nov 2026, sin desplegar:** servicio `src/vap_pagos/` (v0.1.0), webapp v0.4.0 con *Cruzar Pagos*, *Históricos*, *Maestro de Pagos* y *Carga inicial* | Cubierto con pruebas en memoria (Vitest, Playwright). **No probado en Google real:** despliegue, token entre proyectos, tiempos, permisos, `Utilities.computeHmacSha256Signature` real | Tú, con `dev-pre-produccion` |
 | 🔎 **El XML del banco trae el DNI de cada beneficiario** (`Cdtr/Id/PrvtId/Othr/Id`, con `Issr` = `DNI`, prefijo `ES`) | El diseño parte de que el banco «no trae DNI» (DUDA-0005). **En el formato XML sí lo trae.** Permitiría proponer a la persona de una cuenta **no existente** (parte 2) por DNI, sin guardarlo en `VAP_Pagos`, y verificar que cuenta y DNI casan. **No se ha implementado**: decide si se usa | Tú |
 | **Fuente de importes esperados (Vinculación): lectura SUPUESTA** | DUDA-0006 sigue abierta. Se lee un libro y una hoja por configuración (`vinculacion_*` en `config`), por DNI. **La variante «subir el archivo de Vinculación desde la pantalla» no está hecha** (necesita leer Excel en el navegador) | Tú |
-| **Carga inicial desde el Excel de altas** | La pantalla lee **CSV** (`empresa;nombre;dni;cuenta`). El Excel de altas hay que guardarlo como CSV (se borra después, como el Excel). No se lee `.xlsx` en el navegador | Tú |
+| **Carga inicial desde el Excel de la carga inicial** | La pantalla lee **CSV** (`empresa;nombre;dni;cuenta`). El Excel de la carga inicial hay que guardarlo como CSV (se borra después, como el Excel). No se lee `.xlsx` en el navegador | Tú |
 | **Supuestos del maestro** | `id_personal = Empresa_nº`, y las columnas `cuenta_en_pagos` y `cuenta_en_pagos_fecha` en cada pestaña de `VAP_BBDD_Personas` (no se ha visto el maestro real) | Tú |
 | **La carga inicial no deja evento en `registro_personal`** | RF-84 habla de altas, bajas y modificaciones. La carga inicial queda en `VAP_Pagos` (fecha de actualización) y en la marca del maestro, pero no en el registro de eventos. Decide si se quiere | Tú |
-| **`biome.json` ampliado a `src/pagos` y `tests/pagos`** y **recuentos de `CLAUDE.md`** | Los proyectos nuevos siguen el linter. `CLAUDE.md` (Pruebas) cita 1.790 pruebas de Vitest y 202 de Playwright: ahora son 1.978 (1.937 pasan y 41 documentan defectos) y 239. Además cita la webapp como **v0.3.0**; el código es **v0.4.0** | Tú (`CLAUDE.md` es tuyo) |
+| **`biome.json` ampliado a `src/vap_pagos` y `tests/pagos`** y **recuentos de `CLAUDE.md`** | Los proyectos nuevos siguen el linter. `CLAUDE.md` (Pruebas) cita 1.790 pruebas de Vitest y 202 de Playwright: ahora son 1.978 (1.937 pasan y 41 documentan defectos) y 239. Además cita la webapp como **v0.3.0**; el código es **v0.4.0** | Tú (`CLAUDE.md` es tuyo) |
 
 ## Pendientes que salen del trabajo del 19 nov 2026
 
@@ -1439,6 +1468,63 @@ La jornada fue **de análisis, sin cambios de código ni de libros**. Se leyó e
 | **Columna E antigua de `Config`** | Ningún script del repo la lee. Antes de borrarla, buscar `Config!E` / `Config!$E` en **todas las hojas y fórmulas** de cada libro. Al eliminarla con «Eliminar columna», `G` pasa a `F`: comprobar que los desplegables (`Config!G2:G30`) siguen apuntando bien | **Tú** |
 | **`docs_cruce/README.md` sin versionar** | Existe (14 nov) y no está ignorado, pero arriba se dice que **se borró**. Es tuyo: ¿se versiona, se borra o se corrige el texto de arriba? Mientras tanto no hay datos personales en él | **Tú** |
 
+## Pendientes que salen del trabajo del 25 nov 2026: Asignación y `VAP_Pagos` por DNI
+
+**Hecho en Google (por el usuario):** columna **Asignacion** en `VAP_Staff`, `VAP_Secretarias` y `VAP_Profesores`, rellenada desde la Vinculación por DNI y pegada como valores; pestaña auxiliar borrada. Libro `VAP_Pagos` creado con `huellas`, `subsanaciones` y `cierres`.
+
+**Hecho en el código** (servicio subido y carga inicial ejecutada; la webapp **sin subir**): servicio `VAP_Pagos` v0.2.0 y webapp con el DNI como clave ([ADR-0020](../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md), [RF-102](../docs_discovery/requisitos_funcionales.md)). Pruebas y linter en verde.
+
+| Qué | Por qué | Decide / hace |
+|---|---|---|
+| **Crear el proyecto de Apps Script de `VAP_Pagos`** (no ligado al libro), pegar los `.gs` de `src/vap_pagos/` y crear las tres propiedades `ID_LIBRO_PAGOS`, `CLAVE_HUELLA` y `TOKEN_SERVICIO` — 🟢 hecho el 25 nov 2026 | Proyecto creado y código subido. **No consta** la propiedad `TOKEN_SERVICIO`, que hará falta cuando la webapp lo llame | **Tú**, paso a paso con capturas |
+| **«Ejecutar como» y «quién tiene acceso» del despliegue** | Sigue abierta. El token se comprueba siempre | **Tú**, con una propuesta mía antes |
+| **Subir la webapp** (`app-pagos.gs`, `app-personal.gs`, `ui-carga-inicial.html`) | Cambian las llamadas al servicio. Hoy está desplegada en pruebas y no escribe si no está configurada | **Tú** (OK explícito antes de `clasp push`) |
+| **Cargar las cuentas de las personas actuales** — 🟢 hecho el 25 nov 2026 | Carga inicial por DNI ejecutada; quedan incidencias por subsanar | **Tú** |
+| **Validación de Gerencia y de protección de datos por escrito** | El usuario la da por conseguida el 25 nov 2026, pero no consta en el repo | **Tú** |
+| **DNI de 10 caracteres en `VAP_Secretarias`** (con un cero de más) y filas sin Asignación | Con el DNI como clave, el servicio lo rechazaría. Limpieza de datos posterior a la copia de Asignación | **Tú** |
+| **Interfaz para resolver incidencias de `VAP_Pagos`** (conflicto de DNI, aviso de id nuevo, y las del cruce) | Hoy salen como texto con la máxima información. Una pantalla con nombres (leídos del maestro) y acciones queda **sin abordar**; no entra en ningún sprint | **Tú**: ¿se aborda y cuándo? |
+| **Tiempo del guardado en Google real** | Cada cuenta lee la hoja `huellas` dentro del bloqueo; con lotes de 200 debería caber en 6 minutos, **no probado** (RNF-22) | Prueba real |
+
+## Pendientes que salen del trabajo del 25 nov 2026 (tarde): el DNI como clave en los scripts de formularios
+
+**Decisión del usuario (25 nov 2026):** la persona se identifica por su **DNI** (único aunque cambie de empresa). Las listas dinámicas solo ofrecen a quien tiene **Alta marcada, DNI válido, nombre «APELLIDOS, NOMBRE» e `id_trabajador`**, y lo que se guarda en la respuesta es el DNI. **Se hace por script, uno a uno, y después se armoniza `id_trabajador`.** Cada script es un proyecto de Apps Script distinto, **pegado a mano en Google**.
+
+**Decisión asumida por defecto (opción A, no confirmada de forma expresa):** columna **nueva** `DNI_…` en las respuestas, y el id se sigue escribiendo: el histórico no se toca.
+
+| Orden | Script | Estado |
+|---|---|---|
+| 1 | Actualización **Mecánicos** | 🟢 Subido por el usuario el 25 nov |
+| 2 | Actualización **Secretarías** (Horas Extras) | 🟢 Subido por el usuario el 25 nov |
+| 2b | Actualización **Profesores** | 🟢 Subido por el usuario el 25 nov (lo anterior buscaba `ID_Profesor`, que no existe en el maestro) |
+| 3 | **Complementos Secretarías** | 🟢 Subido; relleno del DNI simulado y ejecutado el 25 nov |
+| 4 | **Volcado Horas Extras** y **Volcado Actividad Profesores** | 🟡 Subidos el 25 nov; **sin probar en un volcado real** |
+| 5 | **Export SAGE** (cruza `Empresa + Nº empleado`) | Pendiente. El export traerá DNI desde ahora: falta el **nombre de esa columna**; además se contrasta con el DNI del maestro por `Empresa + Id_Sage` |
+| 6 | **Armonizar `id_trabajador`** (`Empresa_Id_Sage`), centinela, protección y huellas | 🟢 Hecho en real el 25 nov (aviso del centinela sin confirmar) |
+
+**Mecánicos · pasos manuales tras subir (lo que el código no hace):**
+1. **Triggers:** no se crean ni cambian. Deben seguir existiendo `onFormSubmit`, `onSpreadsheetEditTrigger`, `onSpreadsheetChangeTrigger` y el horario de respaldo (`verTriggers` o la pestaña «Activadores»). `borrarTriggers` elimina **todos**.
+2. **Autorizaciones:** ninguna nueva (no usa servicios nuevos).
+3. **Primera ejecución manual:** `actualizarPreguntaMecanicos`, para refrescar la lista del formulario con las reglas nuevas, y leer en el registro **quién se queda fuera y por qué**.
+4. **Lo que no dispara triggers:** los cambios por script en el maestro no lanzan `onEdit`; ya existe el trigger horario de respaldo.
+5. **Cómo saber que funciona:** el desplegable solo trae mecánicos válidos, y una respuesta de prueba deja `ID_Mecanico` y `DNI_Mecanico` rellenas.
+
+**Consecuencia que conviene saber:** un mecánico de alta **sin DNI válido o con el nombre mal escrito deja de aparecer** en el formulario y no podrá reportar. El registro lo anota, pero solo lo ve quien abre el editor de Apps Script.
+
+**Secretarías (Horas Extras) · pasos manuales tras subir:** los mismos que en Mecánicos, con `actualizarPreguntaSecretarias` y la columna `DNI_Secre`. El script de Secretarías no crea el activador horario en `crearTriggersProduccion`: comprobar con `verTriggers` que están los cuatro. `borrarTriggers` elimina **todos**. Autorizaciones: ninguna nueva.
+
+**Histórico de los volcados · 🟢 corregido y subido el 25 nov:** los volcados de Horas Extras (`Anteriores`) y de Actividad de Profesores (`Hoja 1`) copian **la fila entera** de respuestas y añaden después `Archivado en`, fecha y `Run ID`. Con la columna nueva `DNI_…` al final de las respuestas, las filas archivadas desde ahora quedan **desplazadas una columna** respecto a las anteriores y a la cabecera. No se pierden datos ni cambia el volcado. **Arreglado en el código (25 nov 2026), sin subir:** la copia lleva el DNI **después** del `Run ID`. Se sube junto con el cruce por DNI de los volcados (paso 4).
+
+**Profesores · pasos manuales tras subir:** los mismos que en Mecánicos, con `actualizarPreguntaProfesores` y la columna `DNI_Profesor`.
+
+**Volcados · pasos manuales tras subir:** (1) pegar cada `.gs` en el proyecto del libro de respuestas (el diálogo HTML no cambia); (2) **triggers: no aplica** (usan `onOpen`); (3) la simulación se lanza desde el editor, función `simularVolcado` (el mes se pide en la pestaña de la hoja); (4) autorizaciones: Google puede pedirlas de nuevo al ejecutar la simulación; (5) **simular un mes y revisar `simulacion_volcado` antes del primer volcado real**, y hacer copia de la Vinculación. **No probado en Google real** (`ui.prompt`, hoja nueva, permisos). La columna D de la Vinculación se asume el DNI.
+
+**Complementos · pasos manuales tras subir:** (1) pegar `VAP_Export_Complementos_Mensuales_Secretarias.gs`; los HTML no cambian; (2) **publicar una versión nueva** de la aplicación web (Implementar → Gestionar implementaciones → editar → versión nueva; nombres de menú sin verificar); (3) triggers: no aplica; (4) autorizaciones: ninguna nueva prevista; (5) en el editor, `simularRellenoDniData` y, si cuadra, `rellenarDniData`; (6) comprobar un envío de prueba: `DNI_Secretaria` rellena. Antes, **arreglar los datos de las secretarias excluidas**.
+
+
+**Armonizar `id_trabajador` · 🟢 hecho en real el 25 nov 2026** (revisión, corrector, centinela y traslado de id; detalle en el [CHANGELOG](../CHANGELOG.md) y en [ADR-0021](../docs_solutions/docs_design/adr/0021-id-trabajador-generado-y-vigilado-en-el-maestro.md)). Lo que queda está en [Pendiente de decisión](#pendiente-de-decisión-25-nov-2026).
+
+**Formalizado el 25 nov 2026:** RF-105 y [ADR-0022](../docs_solutions/docs_design/adr/0022-el-dni-como-clave-de-persona-en-formularios-y-volcados.md), en Propuesta.
+
 ## Pendientes que salen del trabajo del 24 nov 2026: formulario de mecánicos
 
 Se creó `docs_solutions/src/VAP_scripts_mecanicos/` (sincroniza el desplegable «Seleccione el Mecánico» con los mecánicos de alta de `VAP_Staff`) y 27 pruebas con dobles. **No se ha desplegado ni probado en Google real.**
@@ -1449,7 +1535,7 @@ Se creó `docs_solutions/src/VAP_scripts_mecanicos/` (sincroniza el desplegable 
 | **Documentarlo** (`CHANGELOG`, tabla de scripts del `README`, inventario del SSD) | No hecho porque `CLAUDE.md` exige tu visto bueno antes de tocar esos documentos | Yo, con tu OK |
 | **Mecánico en dos empresas con el mismo nombre** | El desplegable lo muestra una vez y al enviar falla («varios mecánicos activos»). Opciones: mostrar la empresa en el desplegable, o dejarlo y avisar | **Tú** |
 | **Función `diagnosticoMecanicos`** | Propuesta (solo lee y vuelca al registro: libro, columnas, filas por filtro, valores de `Tipo`, preguntas del formulario, triggers). Sin OK al cierre. Al cierre **no estaba confirmado** que la lista cargara ni que se refrescara | **Tú** (OK) · Yo |
-| **Triggers del proyecto de mecánicos** | No consta que se hayan creado (`crearTriggersProduccion`, `crearTriggerHorarioRespaldo`; se comprueba con `verTriggers`). Sin ellos la lista no se refresca sola | Tú |
+| **Triggers del proyecto de mecánicos** | No consta que se hayan creado (`crearTriggersProduccion`, `crearTriggerHorarioRespaldo`; se comprueba con `verTriggers`). Sin ellos la lista no se refresca sola. **25 nov: síntoma confirmado** (una alta del día anterior no aparece en el desplegable). Ejecutar antes `verTriggers`: `crearTriggersProduccion` borra todos los triggers del proyecto. Después, `crearTriggerHorarioRespaldo` (necesario porque las altas hechas por script no disparan `onEdit`/`onChange`) y `actualizarPreguntaMecanicos` a mano | Tú |
 | **Formulario** | «Seleccione el Mecánico» sin marcar obligatoria; errata «¿Cuántos Sábados **a** trabajado?»; validación de «Sábados» sin comprobar (número ≥ 0); no se sabe si acepta coma decimal | Tú |
 | **Hoja de respuestas del formulario** | Falta vincularla (sin ella `onFormSubmit` no escribe `ID_Mecanico`); decidir carpeta y con quién se comparte | Tú |
 | **`id_trabajador` en los scripts de Secretarías** (cambio previo, sin commit) | Los scripts de horas extras y complementos ya leen `id_trabajador`, pero el SSD (§ hojas, §7 y glosario) y el `README` siguen diciendo `ID_Secre`. Además **el script de Profesores sigue leyendo `ID_Profesor`**: si `VAP_Profesores` pasa a `id_trabajador`, se rompe. Subir el de Secretarías solo cuando la hoja real tenga ya esa cabecera | **Tú** (cuándo) · Yo (alinear docs y Profesores) |

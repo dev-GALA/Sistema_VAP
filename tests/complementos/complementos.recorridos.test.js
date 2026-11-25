@@ -7,7 +7,8 @@ const valores = (...pares) => pares.map(([id, nombre, valorStr]) => ({ idSecreta
 const exportar = (env) => {
   env.idTemporal = registrarTemporal(env);
   env.e.llamar('vap_generarExcelMensual');
-  return env.g.estado.libros.get(env.idTemporal).getSheets()[0].volcar();
+  // sin la columna DNI (la última), que se comprueba en las pruebas de exportación
+  return env.g.estado.libros.get(env.idTemporal).getSheets()[0].volcar().map((fila) => fila.slice(0, -1));
 };
 
 describe('recorrido · un manager reporta, corrige y se exporta', () => {
@@ -18,7 +19,7 @@ describe('recorrido · un manager reporta, corrige y se exporta', () => {
     const arranque = env.llamar('vap_bootstrapForEmail', 'ana@gala.test');
     expect(arranque.ok).toBe(true);
     const [aptos] = arranque.conceptos;
-    const [alvaro, , zoe] = arranque.secretarias;
+    const [alvaro, zoe] = arranque.secretarias;
     // 2. envío mensual (Álvaro 100, Zoe 250,5)
     const r1 = env.llamar('vap_submitBatch', envio({ concepto: aptos, valores: valores([alvaro.id, alvaro.nombre, '100'], [zoe.id, zoe.nombre, '250,5']) }));
     expect(r1).toMatchObject({ ok: true, written: 2, errors: 0 });
@@ -43,8 +44,8 @@ describe('recorrido · un manager reporta, corrige y se exporta', () => {
     // 5. el Excel recoge el último valor de cada secretaria y conserva lo no corregido
     expect(exportar(env)).toEqual([
       ['ID_Secretaria', 'Secretaria', 'Aptos'],
-      ['S2', 'Álvaro Falso', 100],
-      ['S1', 'Zoe Ficticia', 300],
+      ['S2', 'Falso, Álvaro', 100],
+      ['S1', 'Ficticia, Zoe', 300],
     ]);
     // 6. trazabilidad: Logs en orden y un correo por cada envío; el Excel deja EXPORT_OK
     expect(env.logs().volcar().slice(1).map((f) => f[3])).toEqual(['ENVIO', 'CORRECCION', 'EXPORT_OK']);
@@ -58,12 +59,12 @@ describe('recorrido · un manager reporta, corrige y se exporta', () => {
 describe('recorrido · valores inválidos mezclados (RF-60 · RF-61)', () => {
   it('los válidos llegan al Excel y los inválidos quedan solo en Errores', () => {
     const env = crearEntorno({ respuestas: { prompt: colaPrompt('2026', '3') }, fetch: fetchXlsxOk });
-    const r = env.llamar('vap_submitBatch', envio({ valores: valores(['S1', 'Zoe Ficticia', '10'], ['S2', 'Álvaro Falso', 'mucho'], ['S4', 'Ñoño Inventado', '1.250,75']) }));
+    const r = env.llamar('vap_submitBatch', envio({ valores: valores(['S1', 'Ficticia, Zoe', '10'], ['S2', 'Falso, Álvaro', 'mucho'], ['S4', 'Inventado, Ñoño', '1.250,75']) }));
     expect(r).toMatchObject({ written: 2, errors: 1 });
     expect(exportar(env)).toEqual([
       ['ID_Secretaria', 'Secretaria', 'Aptos'],
-      ['S4', 'Ñoño Inventado', 1250.75],
-      ['S1', 'Zoe Ficticia', 10],
+      ['S1', 'Ficticia, Zoe', 10],
+      ['S4', 'Inventado, Ñoño', 1250.75],
     ]);
     expect(env.errores().volcar()[1].slice(5, 8)).toEqual(['S2', 'mucho', 'Valor no numérico']);
     expect(env.g.estado.correos[0].htmlBody).toMatch(/Nº errores<\/td>\s*<td[^>]*>1</);
@@ -75,13 +76,13 @@ describe('recorrido · varios responsables y conceptos en un mismo mes', () => {
     const env = crearEntorno({ respuestas: { prompt: colaPrompt('2026', 'Marzo') }, fetch: fetchXlsxOk });
     const ana = { id: 'R1', nombre: 'Ana Prueba', email: 'ana@gala.test' };
     const beto = { id: 'R2', nombre: 'Beto Prueba', email: 'beto@gala.test' };
-    env.llamar('vap_submitBatch', envio({ responsable: ana, concepto: { id: 'C2', concepto: 'Sábados 50' }, valores: valores(['S1', 'Zoe Ficticia', '5']) }));
-    env.llamar('vap_submitBatch', envio({ responsable: beto, concepto: { id: 'C3', concepto: 'Reseñas' }, valores: valores(['S1', 'Zoe Ficticia', '7'], ['S2', 'Álvaro Falso', '9']) }));
-    env.llamar('vap_submitBatch', envio({ responsable: ana, concepto: { id: 'C1', concepto: 'Aptos' }, valores: valores(['S2', 'Álvaro Falso', '1']) }));
+    env.llamar('vap_submitBatch', envio({ responsable: ana, concepto: { id: 'C2', concepto: 'Sábados 50' }, valores: valores(['S1', 'Ficticia, Zoe', '5']) }));
+    env.llamar('vap_submitBatch', envio({ responsable: beto, concepto: { id: 'C3', concepto: 'Reseñas' }, valores: valores(['S1', 'Ficticia, Zoe', '7'], ['S2', 'Falso, Álvaro', '9']) }));
+    env.llamar('vap_submitBatch', envio({ responsable: ana, concepto: { id: 'C1', concepto: 'Aptos' }, valores: valores(['S2', 'Falso, Álvaro', '1']) }));
     expect(exportar(env)).toEqual([
       ['ID_Secretaria', 'Secretaria', 'Aptos', 'Reseñas', 'Sábados 50'],
-      ['S2', 'Álvaro Falso', 1, 9, ''],
-      ['S1', 'Zoe Ficticia', '', 7, 5],
+      ['S2', 'Falso, Álvaro', 1, 9, ''],
+      ['S1', 'Ficticia, Zoe', '', 7, 5],
     ]);
   });
 });
@@ -89,8 +90,8 @@ describe('recorrido · varios responsables y conceptos en un mismo mes', () => {
 describe('recorrido · ADR-0005 · el mismo mes de dos años no se mezcla', () => {
   it('marzo de 2025 y marzo de 2026 conviven y cada exportación toma solo el suyo', () => {
     const env2026 = crearEntorno({ respuestas: { prompt: colaPrompt('2026', 'Marzo') }, fetch: fetchXlsxOk });
-    env2026.llamar('vap_submitBatch', envio({ year: 2025, valores: valores(['S1', 'Zoe Ficticia', '1']) }));
-    env2026.llamar('vap_submitBatch', envio({ year: 2026, valores: valores(['S1', 'Zoe Ficticia', '2']) }));
+    env2026.llamar('vap_submitBatch', envio({ year: 2025, valores: valores(['S1', 'Ficticia, Zoe', '1']) }));
+    env2026.llamar('vap_submitBatch', envio({ year: 2026, valores: valores(['S1', 'Ficticia, Zoe', '2']) }));
     expect(exportar(env2026)[1][2]).toBe(2);
     expect(env2026.llamar('vap_consultaBootstrap', 'ana@gala.test').periodos).toEqual([{ year: 2026, month: 3 }, { year: 2025, month: 3 }]);
     expect(env2026.llamar('vap_consultaBatches', { idResponsable: 'R1', year: 2025, month: 3 }).batches).toHaveLength(1);
@@ -100,12 +101,12 @@ describe('recorrido · ADR-0005 · el mismo mes de dos años no se mezcla', () =
 describe('recorrido · corrección TOTAL con ceros (RF-08)', () => {
   it('una corrección total pone a 0 lo no informado y el Excel lo refleja', () => {
     const env = crearEntorno({ respuestas: { prompt: colaPrompt('2026', 'Marzo') }, fetch: fetchXlsxOk });
-    const original = env.llamar('vap_submitBatch', envio({ valores: valores(['S1', 'Zoe Ficticia', '10'], ['S2', 'Álvaro Falso', '20']) }));
+    const original = env.llamar('vap_submitBatch', envio({ valores: valores(['S1', 'Ficticia, Zoe', '10'], ['S2', 'Falso, Álvaro', '20']) }));
     fijarHora(env, '2026-03-16T10:00:00Z');
     env.llamar('vap_submitBatch', envio({
-      modo: 'CORRECCION', corrigeBatchId: original.batchId, tipoCorreccion: 'TOTAL', valores: valores(['S1', 'Zoe Ficticia', '15'], ['S2', 'Álvaro Falso', '']),
+      modo: 'CORRECCION', corrigeBatchId: original.batchId, tipoCorreccion: 'TOTAL', valores: valores(['S1', 'Ficticia, Zoe', '15'], ['S2', 'Falso, Álvaro', '']),
     }));
-    expect(exportar(env).slice(1)).toEqual([['S2', 'Álvaro Falso', 0], ['S1', 'Zoe Ficticia', 15]]);
+    expect(exportar(env).slice(1)).toEqual([['S2', 'Falso, Álvaro', 0], ['S1', 'Ficticia, Zoe', 15]]);
     expect(env.data().getLastRow()).toBe(5); // cabecera + 2 originales + 2 de corrección: nada se borró
   });
 });

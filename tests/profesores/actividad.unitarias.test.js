@@ -1,4 +1,4 @@
-// Unitarias de VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs: funciones puras y de menú.
+// Unitarias de VAP_Script_Volcado_Actividad_Profesores.gs: funciones puras y de menú.
 // RF-20 (acumulación campo a campo) · RF-16 (periodo) · RF-48 (error con solución) · ADR-0009 · ADR-0014 · SSD §7.4.
 import { describe, expect, it } from 'vitest';
 import { plano } from '../soporte/cargar-gs.js';

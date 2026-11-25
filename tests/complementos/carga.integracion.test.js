@@ -21,8 +21,8 @@ describe('envío mensual (NUEVO) · RF-05', () => {
     const { Timestamp, ...resto } = a;
     expect(resto).toEqual({
       Batch_ID: BATCH, ID_Responsable: 'R1', Nombre_Responsable: 'Ana Prueba', Email_Responsable: 'ana@gala.test', Año: 2026, Mes: 3,
-      ID_Concepto: 'C1', Concepto: 'Aptos', ID_Secretaria: 'S1', Nombre_Secretaria: 'Zoe Ficticia', Tipo_Valor: 'IMPORTE', Valor: 100,
-      Source: 'WEBAPP', Modo: 'NUEVO', Corrige_Batch_ID: '',
+      ID_Concepto: 'C1', Concepto: 'Aptos', ID_Secretaria: 'S1', Nombre_Secretaria: 'Ficticia, Zoe', Tipo_Valor: 'IMPORTE', Valor: 100,
+      Source: 'WEBAPP', Modo: 'NUEVO', Corrige_Batch_ID: '', DNI_Secretaria: '11111111H',
     });
     expect(b.ID_Secretaria).toBe('S2');
     expect(b.Valor).toBe(250.5);
@@ -190,7 +190,7 @@ describe('correcciones · RF-08 · RNF-06 · una corrección AÑADE, no sustituy
     env.e.ejecutar('Math.random = () => 0.5');
     fijarHora(env, '2026-03-16T10:00:00Z');
     const antes = env.data().volcar().map((f) => [...f]);
-    const corr = enviar(env, envio({ modo: 'CORRECCION', corrigeBatchId: original.batchId, tipoCorreccion: 'PARCIAL', valores: [{ idSecretaria: 'S1', nombreSecretaria: 'Zoe Ficticia', valorStr: '120' }] }));
+    const corr = enviar(env, envio({ modo: 'CORRECCION', corrigeBatchId: original.batchId, tipoCorreccion: 'PARCIAL', valores: [{ idSecretaria: 'S1', nombreSecretaria: 'Ficticia, Zoe', valorStr: '120' }] }));
     const despues = env.data().volcar();
     expect(despues.slice(0, antes.length)).toEqual(antes);
     expect(despues).toHaveLength(antes.length + 1);
@@ -204,7 +204,7 @@ describe('correcciones · RF-08 · RNF-06 · una corrección AÑADE, no sustituy
   it('reenviar el mismo mes/año/concepto en modo NUEVO no sobrescribe: añade otra remesa', () => {
     const env = crearEntorno();
     enviar(env, envio());
-    enviar(env, envio({ valores: [{ idSecretaria: 'S1', nombreSecretaria: 'Zoe Ficticia', valorStr: '999' }] }));
+    enviar(env, envio({ valores: [{ idSecretaria: 'S1', nombreSecretaria: 'Ficticia, Zoe', valorStr: '999' }] }));
     expect(datos(env).map((d) => d.Valor)).toEqual([100, 250.5, 999]);
     expect(logs(env)).toHaveLength(2);
   });

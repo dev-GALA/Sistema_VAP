@@ -5,10 +5,12 @@ import { crearGoogle } from '../soporte/google.js';
 export const AHORA = '2026-03-15T10:00:00Z';
 
 // ───────────────────────────── Sincronización del formulario ─────────────────────────────
-export const CABECERA_PROFESORES = ['Empresa', 'Nombre', 'ID_Profesor', 'Id_Sage', 'Departamento', 'Notas', 'Alta'];
+export const CABECERA_PROFESORES = ['Empresa', 'Nombre', 'id_trabajador', 'Id_Sage', 'Departamento', 'Notas', 'Alta', 'DNI'];
+/** DNI inventado con forma válida. */
+export const DNI_PRUEBA = '12345678Z';
 
 /** Fila de VAP_Profesores. `alta` puede ser true, false o el texto 'TRUE'. */
-export const profesor = (nombre, id, alta = true) => ['EMPRESA_A', nombre, id, '1', 'Dpto Ficticio', '', alta];
+export const profesor = (nombre, id, alta = true, dni = DNI_PRUEBA) => ['EMPRESA_A', nombre, id, '1', 'Dpto Ficticio', '', alta, dni];
 
 /** Doble de formulario: una lista (la pregunta de profesores) y otros elementos. */
 export function crearFormulario({ titulos = ['SELECCIONE EL PROFESOR'], destino = 'libro-respuestas' } = {}) {

@@ -704,3 +704,87 @@ describe('abrir con el libro activo ligado (el script vive en el libro de respue
     expect(x.libroOrigen.getSheets().map((h) => h.getName()).sort()).toStrictEqual(['Hoja 1', 'LOG Volcado', 'Respuestas de formulario 1']);
   });
 });
+
+describe('copia al histórico · las columnas DNI_… van detrás del Run ID y no desplazan las anteriores', () => {
+  const conDni = (extra) => {
+    const fila = filaOrigen({ datos: { 6: 2 } });
+    while (fila.length < 72) fila.push('');
+    fila[71] = 'A_1'; // BT ID_Profesor
+    return [...fila, extra];
+  };
+
+  it('en un histórico nuevo: cabecera y filas terminan en Archivado en, fecha, Run ID y DNI_Profesor', () => {
+    const e = entornoActividad({ origen: [conDni('12345678Z')], destino: [filaDestino({})] });
+    e.hojaOrigen.getRange(1, 72).setValue('ID_Profesor');
+    e.hojaOrigen.getRange(1, 73).setValue('DNI_Profesor');
+    e.llamar('vapEjecutarExportacion', 'MARZO', 2026);
+    const [cabecera, fila] = e.libroOrigen.getSheetByName('Hoja 1').volcar();
+    expect(cabecera.slice(-4)).toEqual(['Archivado en', 'Fecha de archivo', 'Run ID', 'DNI_Profesor']);
+    expect(cabecera[71]).toBe('ID_Profesor');
+    expect(fila[71]).toBe('A_1');
+    expect(fila[72]).toBe('ARCHIVADO MARZO 2026');
+    expect(fila.at(-1)).toBe('12345678Z');
+  });
+
+  it('en un histórico ya existente (sin DNI): las columnas antiguas no se mueven y la cabecera gana DNI_Profesor al final', () => {
+    const anterior = Array(75).fill('');
+    anterior[71] = 'ID_Profesor';
+    anterior.splice(72, 3, 'Archivado en', 'Fecha de archivo', 'Run ID');
+    const e = entornoActividad({ origen: [conDni('12345678Z')], destino: [filaDestino({})], historico: [anterior] });
+    e.hojaOrigen.getRange(1, 72).setValue('ID_Profesor');
+    e.hojaOrigen.getRange(1, 73).setValue('DNI_Profesor');
+    e.llamar('vapEjecutarExportacion', 'MARZO', 2026);
+    const [cabecera, fila] = e.libroOrigen.getSheetByName('Hoja 1').volcar();
+    expect(cabecera.slice(72)).toEqual(['Archivado en', 'Fecha de archivo', 'Run ID', 'DNI_Profesor']);
+    expect(fila[72]).toBe('ARCHIVADO MARZO 2026');
+    expect(fila.at(-1)).toBe('12345678Z');
+  });
+});
+
+describe('cruce por DNI y simulación del volcado de actividad', () => {
+  const DNI_A = '12345678Z';
+  const DNI_B = '87654321X';
+  const envio = (profesor, dni, valor = 2) => {
+    const fila = filaOrigen({ profesor, datos: { 6: valor } });
+    while (fila.length < 72) fila.push('');
+    return [...fila, dni];
+  };
+  const destino = (nombre, dni = '') => {
+    const fila = filaDestino({});
+    fila[2] = nombre;
+    fila[3] = dni;
+    return fila;
+  };
+  const montar = (origen, filas) => {
+    const e = entornoActividad({ origen, destino: filas });
+    e.hojaOrigen.getRange(1, 73).setValue('DNI_Profesor');
+    return e;
+  };
+  const volcar = (e) => plano(e.llamar('vapEjecutarExportacion', 'MARZO', 2026));
+  const tipos = (e) => leerLog(e).map((f) => f.Tipo);
+
+  it('cruza por DNI aunque el nombre difiera, escribe y avisa', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('PRUEBA GARCIA, ANA', DNI_A)]);
+    expect(volcar(e)).toMatchObject({ ok: true, actualizados: 1, creados: 0, bloqueados: 0 });
+    expect(e.hojaDestino.getRange(2, 29).getValue()).toBe(2);
+    expect(tipos(e)).toContain('NOMBRE_DISTINTO');
+  });
+
+  it('el nombre coincide pero el DNI es otro: NO se escribe', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('Prueba, Ana', DNI_B)]);
+    expect(volcar(e)).toMatchObject({ bloqueados: 1, actualizados: 0 });
+    expect(e.hojaDestino.getRange(2, 29).getValue()).toBe('');
+    expect(tipos(e)).toContain('DNI_DISTINTO');
+  });
+
+  it('la simulación no escribe en el destino ni archiva, y dice cómo cruza y qué cambia', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('Prueba, Ana', DNI_A)]);
+    const antes = JSON.stringify(e.hojaDestino.volcar());
+    expect(plano(e.llamar('simularVolcado_', 'MARZO', 2026))).toMatchObject({ ok: true, personas: 1, bloqueadas: 0 });
+    expect(JSON.stringify(e.hojaDestino.volcar())).toBe(antes);
+    expect(e.libroOrigen.getSheetByName('Hoja 1')).toBeNull();
+    const [cabecera, fila] = e.libroOrigen.getSheetByName('simulacion_volcado').volcar();
+    expect(cabecera[3]).toBe('Cómo cruza');
+    expect(fila.slice(0, 6)).toEqual(['Prueba, Ana', DNI_A, '2', 'DNI', 2, 1]);
+  });
+});

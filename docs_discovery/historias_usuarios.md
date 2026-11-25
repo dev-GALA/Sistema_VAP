@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Versión** | 0.7 — BORRADOR · con la comprobación mensual (orden y obligatoriedad futura), la persona en dos empresas y la lista única de empresas (HU-46, HU-47) |
+| **Versión** | 0.8 — BORRADOR · con HU-51 (identificador de cada persona del maestro, 25 nov 2026) |
 | **Fecha** | 19 noviembre 2026 (versión 0.6: 17 noviembre 2026) |
 | **Se deriva de** | [problem.md](problem.md) · [../docs_work/FLUJO.md](../docs_work/flujo_doc/FLUJO.md) · [../docs_work/dudas/](../docs_work/dudas/README_dudas.md) |
 | **Responde a** | [Sprint 0 · OB-15](../docs_work/proximos_pasos.md) |
@@ -776,7 +776,7 @@ lista de IBAN.
 
 | Estado | Prioridad | Origen |
 |---|---|---|
-| 🔴 Pendiente | 🔺 Imprescindible | JS-10 |
+| 🟡 Parcial | 🔺 Imprescindible | JS-10 |
 
 - **Dado** el fichero del banco, **entonces** cada cuenta se reconoce por su **huella** entre las
   personas **activas**, y la que no se reconoce o es ambigua **no se descarta**: aparece en la **Parte 2
@@ -786,12 +786,12 @@ lista de IBAN.
 - **Dado** que arranco el sistema con las personas ya existentes, **entonces** puedo cargar sus cuentas
   **una sola vez** desde el fichero del banco, con una propuesta por empresa y nombre, comprobando el
   importe y con **confirmación mía** antes de guardar.
+- **Dado** que una persona tiene dos identificadores de trabajador (dos contratos o un cambio de empresa), **entonces** `VAP_Pagos` los guarda en filas distintas con **el mismo DNI y la misma huella**, y **avisa** para revisarlo; si alguien cambia de cuenta, se actualizan todas sus filas ([RF-102](requisitos_funcionales.md)).
 - **Dado** que se usa el sistema, **entonces** la cuenta no aparece en ningún registro, mensaje ni hoja.
 - **Dado** que una cuenta queda registrada, **entonces** `VAP_Personas` lo anota (**`cuenta_en_pagos`** y su
   fecha), sin huella, y `VAP_Pagos` guarda además los **últimos 4 dígitos** para poder comprobarla.
 
-> **La huella vive solo en `VAP_Pagos`**, junto al identificador de la persona, y **no en el maestro**
-> con los DNI. Se calcula con una clave secreta guardada en el **proyecto propio de `VAP_Pagos`**, y **no
+> **La huella vive solo en `VAP_Pagos`**, junto al DNI y al identificador de trabajador ([ADR-0020](../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md)), y **no en el maestro**. Se calcula con una clave secreta guardada en el **proyecto propio de `VAP_Pagos`**, y **no
 > incluye el identificador**, así que un cambio de empresa no la altera.
 
 ### HU-49 · Cruzar los pagos del banco y subsanar el informe
@@ -1037,6 +1037,23 @@ decidir dónde invertir.
 - **Dado** que hay una variación fuera de lo corriente, **entonces** se señala en lugar de quedar
   diluida en el total.
 
+### HU-51 · Identificar sin ambigüedad a cada persona del maestro
+
+**Como** Responsable de Administración, **quiero** que cada persona del maestro tenga un identificador correcto y que nadie
+pueda usar el de otra, **para** que lo que se guarda y se paga con ese identificador llegue a quien corresponde.
+
+| Estado | Prioridad | Origen |
+|---|---|---|
+| 🟡 Parcial | 🔺 Imprescindible | JS-05 · JS-10 |
+
+- **Dado** que escribo la empresa y el número de SAGE, **entonces** el identificador aparece solo y no puedo escribirlo.
+- **Dado** que escribo un número que ya usa **otra persona** de esa empresa, en cualquier pestaña, **entonces** no se
+  guarda y veo dónde está el otro uso; si pego varias celdas, quedan marcadas con una nota.
+- **Dado** que la misma persona está en dos pestañas, **entonces** puede repetir el número.
+- **Dado** que pido la revisión, **entonces** veo la lista de errores sin que cambie ningún dato.
+
+> **Falta** comprobar en el libro real el aviso al repetir un número y corregir los errores que la revisión señala.
+
 ---
 
 ## Matriz de trazabilidad
@@ -1049,12 +1066,12 @@ De cada *job story* de [`problem.md`](problem.md) a las historias que la cubren:
 | **JS-02** | Corregir un error propio | HU-07 |
 | **JS-03** | Saber qué falta | HU-13, HU-28, HU-45 |
 | **JS-04** | Responder a una reclamación | HU-08, HU-20, HU-31, HU-32 |
-| **JS-05** | Dar de alta a alguien nuevo | HU-01, HU-02, HU-46, HU-47 |
+| **JS-05** | Dar de alta a alguien nuevo | HU-01, HU-02, HU-46, HU-47, HU-51 |
 | **JS-06** | Ajustar un importe en la revisión | HU-21 |
 | **JS-07** | Dar el mes por cerrado | HU-22, HU-32 |
 | **JS-08** | Dar la salida del mes | HU-26, HU-27, HU-45 |
 | **JS-09** | Confiar en lo que se descuenta | HU-23, HU-24, HU-42, HU-43, HU-44, HU-46 |
-| **JS-10** | Confirmar que lo pagado es lo calculado | HU-25, HU-42, HU-43, HU-44, HU-48, HU-49, HU-50 |
+| **JS-10** | Confirmar que lo pagado es lo calculado | HU-25, HU-42, HU-43, HU-44, HU-48, HU-49, HU-50, HU-51 |
 | **JS-11** | Saber si este mes ha sido normal | HU-33, HU-34, HU-35 |
 
 **Las once *job stories* están cubiertas.** Y en sentido contrario, las historias que **no** salen
@@ -1071,15 +1088,15 @@ concepto retributivo nuevo sin rehacer el proceso* (`problem.md` §4.3) → ahor
 | Estado | Historias | |
 |---|---|---|
 | ✅ **Implementadas** | HU-01 … HU-10, HU-14 … HU-17, HU-21, HU-36 … HU-40 | **20** |
-| 🟡 **Parciales** | HU-11, HU-12, HU-18, HU-20, HU-31, HU-41, HU-45 | **7** |
-| 🔴 **Pendientes** | HU-19, HU-22 … HU-30, HU-32 … HU-35, HU-42 … HU-44, HU-46 … HU-50 | **22** |
+| 🟡 **Parciales** | HU-11, HU-12, HU-18, HU-20, HU-31, HU-41, HU-45, HU-48, HU-51 | **9** |
+| 🔴 **Pendientes** | HU-19, HU-22 … HU-30, HU-32 … HU-35, HU-42 … HU-44, HU-46, HU-47, HU-49, HU-50 | **21** |
 | ⚪ **En decisión** | HU-13 | **1** |
 
 **Lo que enseña este reparto:** lo implementado está en **maestro de personal, captura y
 consolidación** — mover datos. Lo pendiente está en **verificar, coordinar y medir** — controlar el
 proceso. Es la misma frontera que señalaba el mapa del flujo, ahora en forma de lista de trabajo.
 
-**Y las cinco parciales dicen dónde está la fragilidad**, porque ninguna lo es por falta de tiempo:
+**Y las parciales dicen dónde está la fragilidad**, porque ninguna lo es por falta de tiempo:
 
 | Historia | Qué le falta |
 |---|---|
@@ -1108,7 +1125,7 @@ Dicho eso, la prioridad indica **cuánto duele que falte**; **cuándo se hace** 
 |--------|-----------|-----------|
 | **1** · La webapp de coordinación | HU-26 … HU-30, HU-33 … HU-35, HU-45, HU-47 | OB-07, OB-08, OB-20 … OB-22, OB-09, OB-10, OB-13, OB-14, OB-43, OB-46 |
 | **2** · Saldar la deuda | HU-18, HU-19, HU-20 | OB-17 … OB-19, OB-23 … OB-27 |
-| **3** · Verificación de datos | HU-23, HU-24, HU-25, HU-42, HU-43, HU-44, HU-46, HU-48, HU-49, HU-50 | OB-01 … OB-06, OB-11, OB-12, OB-40 … OB-42, OB-44, OB-45, OB-47 |
+| **3** · Verificación de datos | HU-23, HU-24, HU-25, HU-42, HU-43, HU-44, HU-46, HU-48, HU-49, HU-50, HU-51 | OB-01 … OB-06, OB-11, OB-12, OB-40 … OB-42, OB-44, OB-45, OB-47 |
 | **Sin sprint asignado** | HU-11, HU-12, HU-13, HU-22, HU-31, HU-32, HU-41 | — |
 
 **El Sprint 3 existe por estas tres historias.** HU-18, HU-19 y HU-20 no construyen nada nuevo:

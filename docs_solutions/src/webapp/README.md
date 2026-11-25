@@ -11,7 +11,7 @@ La primera pantalla del sistema para Administración: **Proceso mensual**, **Com
 >
 > **Pagos (v0.4.0, sin desplegar)**: el submenú **Pagos** trae *Cruzar Pagos*, *Históricos de Pagos*, *Maestro de Pagos* y
 > *Carga inicial de cuentas*. Todo lo que toca cuentas bancarias lo hace el **servicio `VAP_Pagos`**
-> ([`../pagos/`](../pagos/README.md), [ADR-0019](../../docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md)):
+> ([`../vap_pagos/`](../vap_pagos/README.md), [ADR-0019](../../docs_design/adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md)):
 > la webapp **ya no calcula ninguna huella ni conoce la clave**. Ver la sección «Pagos» más abajo.
 >
 > **Altas/bajas (v0.3.0)** funciona de dos formas: **a mano** (formulario) y **subiendo una plantilla CSV** con

@@ -2,10 +2,10 @@
 // (disparador, menú, función que llama el diálogo) hasta el estado final de hojas, formulario y logs.
 import { describe, expect, it } from 'vitest';
 import { plano } from '../soporte/cargar-gs.js';
-import { entornoActividad, entornoSync, eventoEnvio, filaDestino, filaOrigen, leerLog, profesor } from './ayudas.js';
+import { DNI_PRUEBA, entornoActividad, entornoSync, eventoEnvio, filaDestino, filaOrigen, leerLog, profesor } from './ayudas.js';
 
-const ANA = 'Ana Beta Ficticia';
-const CARLOS = 'Carlos Dos Ficticio';
+const ANA = 'Beta Ficticia, Ana';
+const CARLOS = 'Dos Ficticio, Carlos';
 const LISTA = 'SELECCIONE EL PROFESOR';
 const disparar = (e, handler, evento) => e.llamar(handler, evento);
 
@@ -23,7 +23,7 @@ describe('Recorrido · alta de un profesor hasta que su respuesta lleva ID (RF-0
     expect(e.formulario.opcionesPorTitulo[LISTA]).toStrictEqual([ANA, CARLOS]);
 
     disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, ANA]]));
-    expect(e.hojaRespuestas.volcar()).toStrictEqual([['Marca temporal', LISTA, 'ID_Profesor'], ['10/03/2026 10:15:30', ANA, 'A_1']]);
+    expect(e.hojaRespuestas.volcar()).toStrictEqual([['Marca temporal', LISTA, 'ID_Profesor', 'DNI_Profesor'], ['10/03/2026 10:15:30', ANA, 'A_1', DNI_PRUEBA]]);
   });
 
   it('baja (casilla Alta desmarcada) → edición → desaparece de la lista y su envío ya no obtiene ID', () => {
@@ -35,7 +35,7 @@ describe('Recorrido · alta de un profesor hasta que su respuesta lleva ID (RF-0
     e.hojaProfesores.getRange(2, 7).setValue(false);
     disparar(e, 'onSpreadsheetEditTrigger', { range: e.hojaProfesores.getRange(2, 7) });
     expect(e.formulario.opcionesPorTitulo[LISTA]).toStrictEqual([CARLOS]);
-    expect(() => disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, ANA]]))).toThrow(`No se encontró ID_Profesor para "${ANA}"`);
+    expect(() => disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, ANA]]))).toThrow(`No se encontró el profesor "${ANA}"`);
     expect(e.hojaRespuestas.volcar()[1]).toStrictEqual(['10/03/2026 10:15:30', ANA]);
   });
 
@@ -46,7 +46,7 @@ describe('Recorrido · alta de un profesor hasta que su respuesta lleva ID (RF-0
     });
     e.llamar('actualizarPreguntaProfesores');
     expect(e.formulario.opcionesPorTitulo[LISTA]).toStrictEqual([CARLOS]);
-    expect(() => disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, ANA]]))).toThrow(/No se encontró ID_Profesor/);
+    expect(() => disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, ANA]]))).toThrow(/No se encontró el profesor/);
   });
 
   it('SSD §6.1.0 · con ID_Profesor vacío (Id_Sage olvidado) no aparece en el formulario', () => {
@@ -79,13 +79,13 @@ describe('Recorrido · alta de un profesor hasta que su respuesta lleva ID (RF-0
 
   it('un profesor ambiguo (dos activos con el mismo nombre) se ve en el formulario pero su envío falla sin escribir', () => {
     const e = entornoSync({
-      profesores: [profesor('Repetida Ficticia', 'A_1'), profesor('Repetida Ficticia', 'A_2')],
-      respuestas: [['Marca temporal', LISTA], ['10/03/2026 10:15:30', 'Repetida Ficticia']],
+      profesores: [profesor('Ficticia, Repetida', 'A_1'), profesor('Ficticia, Repetida', 'A_2')],
+      respuestas: [['Marca temporal', LISTA], ['10/03/2026 10:15:30', 'Ficticia, Repetida']],
     });
     e.llamar('actualizarPreguntaProfesores');
-    expect(e.formulario.opcionesPorTitulo[LISTA]).toStrictEqual(['Repetida Ficticia']);
-    expect(() => disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, 'Repetida Ficticia']]))).toThrow(/varios profesores activos/);
-    expect(plano(e.hojaRespuestas.volcar()[1])).toStrictEqual(['10/03/2026 10:15:30', 'Repetida Ficticia']);
+    expect(e.formulario.opcionesPorTitulo[LISTA]).toStrictEqual(['Ficticia, Repetida']);
+    expect(() => disparar(e, 'onFormSubmit', eventoEnvio([[LISTA, 'Ficticia, Repetida']]))).toThrow(/varios profesores activos/);
+    expect(plano(e.hojaRespuestas.volcar()[1])).toStrictEqual(['10/03/2026 10:15:30', 'Ficticia, Repetida']);
   });
 
   it('varios envíos seguidos escriben cada ID en su fila (marcas distintas)', () => {

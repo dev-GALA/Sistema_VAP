@@ -12,7 +12,7 @@ export const SRC = join(RAIZ, 'docs_solutions', 'src');
 // La webapp del proceso mensual (ADR-0017) es un proyecto más de `src/`; se carga con `{ raiz: SRC_WEBAPP }`.
 export const SRC_WEBAPP = join(SRC, 'webapp');
 // VAP_Pagos (ADR-0019): el servicio que guarda la clave y las huellas; otro proyecto de Apps Script.
-export const SRC_PAGOS = join(SRC, 'pagos');
+export const SRC_PAGOS = join(SRC, 'vap_pagos');
 
 export const CODIGO = {
   exportSage: 'scripts_generales/VAP_script_export_SAGE.gs',
@@ -21,8 +21,16 @@ export const CODIGO = {
   horasExtrasVolcado: 'VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script Volcado Horas Extras Secretarias.gs',
   horasExtrasSync: 'VAP_script_secretarias/VAP_Horas_Extras_Secretarias/VAP_Script_Actualizacion_Automatica_Secretarias.gs',
   profesoresSync: 'VAP_scripts_profesores/VAP_Script_Actualizacion_Automatica_Profesores.gs',
-  profesoresActividad: 'VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs',
+  profesoresActividad: 'VAP_scripts_profesores/VAP_Script_Volcado_Actividad_Profesores.gs',
   mecanicosSync: 'VAP_scripts_mecanicos/VAP_Script_Actualizacion_Automatica_Mecanicos.gs',
+  revisionPersonas: 'VAP_Personas/VAP_Script_Revision_Personas.gs',
+  // Todos viven en el MISMO proyecto de Apps Script (el del maestro) y comparten funciones.
+  personas: [
+    'VAP_Personas/VAP_Script_Revision_Personas.gs',
+    'VAP_Personas/VAP_Script_Centinela_Personas.gs',
+    'VAP_Personas/VAP_Script_Unico_Empresa_IdSage.gs',
+    'VAP_Personas/VAP_Script_Unico_Actualizar_Ids.gs',
+  ],
 };
 
 export const HTML = {

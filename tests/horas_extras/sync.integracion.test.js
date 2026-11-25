@@ -1,12 +1,12 @@
 // Integración de la sincronización del desplegable y del ID_Secre: BBDD + formulario + hoja de respuestas + disparadores.
 // Datos ficticios. ADR-0004 · ADR-0008 · SSD §7.2 · RNF-12.
 import { describe, expect, it } from 'vitest';
-import { entornoSync, eventoEnvio, fecha } from './ayudas.js';
+import { DNI_PRUEBA, entornoSync, eventoEnvio, fecha } from './ayudas.js';
 import { plano } from '../soporte/cargar-gs.js';
 
-const ana = ['S001', 'Ana Prueba', true];
-const bea = ['S002', 'Bea Inventada', true];
-const cleoBaja = ['S003', 'Cleo Falsa', false];
+const ana = ['S001', 'Prueba, Ana', true];
+const bea = ['S002', 'Inventada, Bea', true];
+const cleoBaja = ['S003', 'Falsa, Cleo', false];
 const CAB_RESP = ['Marca temporal', 'MES', 'SECRETARIA'];
 const T = fecha(2026, 3, 10, 9, 5, 7);
 const TEXTO_T = '10/03/2026 09:05:07';
@@ -17,7 +17,7 @@ describe('actualizarPreguntaSecretarias · carga las activas en el desplegable (
   it('sustituye las opciones de la pregunta SECRETARIA por las secretarias activas ordenadas', () => {
     const e = entornoSync({ secretarias: [bea, ana, cleoBaja] });
     e.llamar('actualizarPreguntaSecretarias');
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba', 'Bea Inventada']);
+    expect(e.opcionesFormulario()).toEqual(['Inventada, Bea', 'Prueba, Ana']);
     expect(e.estado.logs).toContain('Formulario actualizado correctamente. Opciones cargadas: 2');
   });
   it('una baja desaparece del desplegable en la siguiente sincronización', () => {
@@ -25,7 +25,7 @@ describe('actualizarPreguntaSecretarias · carga las activas en el desplegable (
     e.llamar('actualizarPreguntaSecretarias');
     e.hojaSecretarias.getRange(3, 3).setValue(false);
     e.llamar('actualizarPreguntaSecretarias');
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba']);
+    expect(e.opcionesFormulario()).toEqual(['Prueba, Ana']);
   });
   it('solo toca la pregunta SECRETARIA: las demás listas y preguntas quedan igual', () => {
     const e = entornoSync({
@@ -33,7 +33,7 @@ describe('actualizarPreguntaSecretarias · carga las activas en el desplegable (
       items: [{ titulo: 'MES', opciones: ['ENERO'] }, { titulo: 'SECRETARIA', opciones: [] }, { titulo: 'SECRETARIA', tipo: 'TEXT', opciones: ['no'] }],
     });
     e.llamar('actualizarPreguntaSecretarias');
-    expect(e.formulario.items.map((i) => i.opciones)).toEqual([['ENERO'], ['Ana Prueba'], ['no']]);
+    expect(e.formulario.items.map((i) => i.opciones)).toEqual([['ENERO'], ['Prueba, Ana'], ['no']]);
   });
   it('lista vacía → error y el desplegable anterior se CONSERVA (no se deja el formulario sin opciones)', () => {
     const e = entornoSync({ secretarias: [cleoBaja] });
@@ -54,7 +54,7 @@ describe('actualizarPreguntaSecretarias · carga las activas en el desplegable (
     const sinHoja = entornoSync({ hojaSecretarias: false });
     expect(() => sinHoja.llamar('actualizarPreguntaSecretarias')).toThrow('No existe la hoja "VAP_Secretarias"');
     expect(sinHoja.opcionesFormulario()).toEqual(['(antigua)']);
-    const sinColumna = entornoSync({ secretarias: [['S1', 'x']], cabeceraSecretarias: ['id_trabajador', 'Nombre_Secretaria'] });
+    const sinColumna = entornoSync({ secretarias: [['S1', 'x', DNI_PRUEBA]], cabeceraSecretarias: ['id_trabajador', 'Nombre_Secretaria', 'DNI'] });
     expect(() => sinColumna.llamar('actualizarPreguntaSecretarias')).toThrow('No se encuentra la columna "Alta"');
     expect(sinColumna.opcionesFormulario()).toEqual(['(antigua)']);
   });
@@ -93,7 +93,7 @@ describe('onSpreadsheetEditTrigger · edición de VAP_Secretarias', () => {
   it('una edición en VAP_Secretarias sincroniza el formulario y lo deja anotado', () => {
     const e = entornoSync({ secretarias: [ana, bea] });
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba', 'Bea Inventada']);
+    expect(e.opcionesFormulario()).toEqual(['Inventada, Bea', 'Prueba, Ana']);
     expect(e.estado.logs[0]).toBe('Cambio detectado en VAP_Secretarias (edición). Sincronizando formulario...');
   });
   it('dos ediciones seguidas: la segunda se omite por frecuencia (la 2.ª edición no llega hasta el respaldo horario)', () => {
@@ -101,15 +101,15 @@ describe('onSpreadsheetEditTrigger · edición de VAP_Secretarias', () => {
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
     e.hojaSecretarias.appendRow(bea);
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba']);
+    expect(e.opcionesFormulario()).toEqual(['Prueba, Ana']);
   });
   it('pasada la ventana, la edición pendiente sí se sincroniza', () => {
     const e = entornoSync({ secretarias: [ana] });
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
-    e.hojaSecretarias.appendRow(bea);
+    e.hojaSecretarias.appendRow([...bea, DNI_PRUEBA]);
     delete e.estado.cache.vap_sync_secretarias_lock;
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba', 'Bea Inventada']);
+    expect(e.opcionesFormulario()).toEqual(['Inventada, Bea', 'Prueba, Ana']);
   });
   it('si la sincronización falla, se registra y se relanza el error', () => {
     const e = entornoSync({ secretarias: [] });
@@ -119,7 +119,7 @@ describe('onSpreadsheetEditTrigger · edición de VAP_Secretarias', () => {
   it('caracterización: un fallo agota igualmente la ventana de 30 s (el reintento inmediato se omite)', () => {
     const e = entornoSync({ secretarias: [] });
     expect(() => e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'))).toThrow();
-    e.hojaSecretarias.appendRow(ana);
+    e.hojaSecretarias.appendRow([...ana, DNI_PRUEBA]);
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
     expect(e.opcionesFormulario()).toEqual(['(antigua)']);
   });
@@ -129,7 +129,7 @@ describe('onSpreadsheetChangeTrigger · cambios estructurales', () => {
   it.each(['INSERT_ROW', 'REMOVE_ROW', 'INSERT_GRID', 'REMOVE_GRID'])('%s sincroniza', (tipo) => {
     const e = entornoSync({ secretarias: [ana] });
     e.llamar('onSpreadsheetChangeTrigger', { changeType: tipo });
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba']);
+    expect(e.opcionesFormulario()).toEqual(['Prueba, Ana']);
     expect(e.estado.logs[0]).toBe(`Cambio estructural detectado (${tipo}). Sincronizando formulario...`);
   });
   it.each(['EDIT', 'FORMAT', 'INSERT_COLUMN', 'REMOVE_COLUMN', 'OTHER', undefined])('%s se ignora', (tipo) => {
@@ -148,7 +148,7 @@ describe('onSpreadsheetChangeTrigger · cambios estructurales', () => {
     e.llamar('onSpreadsheetEditTrigger', hojaEdicion(e, 'VAP_Secretarias'));
     e.hojaSecretarias.appendRow(bea);
     e.llamar('onSpreadsheetChangeTrigger', { changeType: 'INSERT_ROW' });
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba']);
+    expect(e.opcionesFormulario()).toEqual(['Prueba, Ana']);
   });
   it('el fallo se registra y se relanza', () => {
     const e = entornoSync({ secretarias: [] });
@@ -158,12 +158,12 @@ describe('onSpreadsheetChangeTrigger · cambios estructurales', () => {
 });
 
 describe('onFormSubmit · escribe ID_Secre en la fila del envío', () => {
-  const envio = (nombre = 'Ana Prueba', marca = T) => eventoEnvio({ MES: 'MARZO', SECRETARIA: nombre }, marca);
+  const envio = (nombre = 'Prueba, Ana', marca = T) => eventoEnvio({ MES: 'MARZO', SECRETARIA: nombre }, marca);
 
   it('rellena la columna ID_Secre existente en la fila del envío (localizada por marca temporal)', () => {
     const e = entornoSync({
       secretarias: [ana, bea],
-      respuestas: [[...CAB_RESP, 'ID_Secre'], ['09/03/2026 08:00:00', 'MARZO', 'Bea Inventada', 'S002'], [TEXTO_T, 'MARZO', 'Ana Prueba', ''], ['11/03/2026 08:00:00', 'MARZO', 'Bea Inventada', '']],
+      respuestas: [[...CAB_RESP, 'ID_Secre'], ['09/03/2026 08:00:00', 'MARZO', 'Inventada, Bea', 'S002'], [TEXTO_T, 'MARZO', 'Prueba, Ana', ''], ['11/03/2026 08:00:00', 'MARZO', 'Inventada, Bea', '']],
     });
     e.llamar('onFormSubmit', envio());
     expect(e.hojaRespuestas.getRange(3, 4).getValue()).toBe('S001');
@@ -171,33 +171,37 @@ describe('onFormSubmit · escribe ID_Secre en la fila del envío', () => {
     expect(e.hojaRespuestas.getRange(2, 4).getValue()).toBe('S002');
   });
   it('si no existe la columna ID_Secre la crea al final con su cabecera', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Ana Prueba']] });
+    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Prueba, Ana']] });
     e.llamar('onFormSubmit', envio());
-    expect(e.hojaRespuestas.volcar()).toEqual([[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Ana Prueba', 'S001']]);
+    expect(e.hojaRespuestas.volcar()).toEqual([[...CAB_RESP, 'ID_Secre', 'DNI_Secre'], [TEXTO_T, 'MARZO', 'Prueba, Ana', 'S001', DNI_PRUEBA]]);
   });
-  it('anota los 7 pasos en el log', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Ana Prueba', '']] });
+  it('anota los pasos en el log', () => {
+    const e = entornoSync({ secretarias: [ana], respuestas: [[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Prueba, Ana', '']] });
     e.llamar('onFormSubmit', envio());
     expect(e.estado.logs).toEqual([
-      '1. Inicio onFormSubmit', '2. Secretaria recibida: Ana Prueba', '3. ID encontrado: S001',
+      '1. Inicio onFormSubmit', '2. Secretaria recibida: Prueba, Ana', '3. Secretaria localizada: S001',
       '4. Hoja de respuestas encontrada: Respuestas de formulario', '5. Fila objetivo: 2',
-      '6. Columna ID_Secre ya existe en posición 4', '7. ID_Secre escrito correctamente en fila 2',
+      'Columna DNI_Secre creada en posición 5', '6. ID_Secre y DNI_Secre escritos en la fila 2',
     ]);
   });
   it('anota la creación de la columna', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Ana Prueba']] });
+    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Prueba, Ana']] });
     e.llamar('onFormSubmit', envio());
-    expect(e.estado.logs).toContain('6. Columna ID_Secre creada en posición 4');
+    expect(e.estado.logs).toContain('Columna ID_Secre creada en posición 4');
   });
   it('el nombre se compara sin distinguir mayúsculas ni espacios sobrantes', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'ana  PRUEBA']] });
-    e.llamar('onFormSubmit', envio('ana  PRUEBA'));
+    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'prueba,  ANA']] });
+    e.llamar('onFormSubmit', envio('prueba,  ANA'));
     expect(e.hojaRespuestas.getRange(2, 4).getValue()).toBe('S001');
   });
-  it('solo escribe en la celda ID_Secre de esa fila (nada más cambia)', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Ana Prueba', '']] });
+  it('solo escribe ID_Secre y DNI_Secre en esa fila (nada más cambia)', () => {
+    const e = entornoSync({ secretarias: [ana], respuestas: [[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Prueba, Ana', '']] });
     e.llamar('onFormSubmit', envio());
-    expect(e.estado.escrituras).toEqual([{ hoja: 'Respuestas de formulario', rango: 'D2' }]);
+    expect(e.estado.escrituras).toEqual([
+      { hoja: 'Respuestas de formulario', rango: 'D2' },
+      { hoja: 'Respuestas de formulario', rango: 'E1' },
+      { hoja: 'Respuestas de formulario', rango: 'E2' },
+    ]);
   });
   it('envío sin respuesta a SECRETARIA → error y no se escribe nada', () => {
     const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', '']] });
@@ -206,16 +210,16 @@ describe('onFormSubmit · escribe ID_Secre en la fila del envío', () => {
     expect(e.estado.logs.at(-1)).toBe('ERROR onFormSubmit: No se encontró respuesta para la pregunta "SECRETARIA"');
   });
   it('secretaria desconocida → error y no se escribe nada', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Nadie Imaginario']] });
-    expect(() => e.llamar('onFormSubmit', envio('Nadie Imaginario'))).toThrow('No se encontró ID_Secre para "Nadie Imaginario"');
+    const e = entornoSync({ secretarias: [ana], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Imaginario, Nadie']] });
+    expect(() => e.llamar('onFormSubmit', envio('Imaginario, Nadie'))).toThrow('No se encontró la secretaria "Imaginario, Nadie"');
     expect(e.estado.escrituras).toEqual([]);
   });
   it('secretaria de baja → error (no se asigna ID a quien no está de alta)', () => {
-    const e = entornoSync({ secretarias: [cleoBaja], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Cleo Falsa']] });
-    expect(() => e.llamar('onFormSubmit', envio('Cleo Falsa'))).toThrow('No se encontró ID_Secre para "Cleo Falsa"');
+    const e = entornoSync({ secretarias: [cleoBaja], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Falsa, Cleo']] });
+    expect(() => e.llamar('onFormSubmit', envio('Falsa, Cleo'))).toThrow('No se encontró la secretaria "Falsa, Cleo"');
   });
   it('dos activas con el mismo nombre → error y no se escribe', () => {
-    const e = entornoSync({ secretarias: [ana, ['S009', 'Ana Prueba', true]], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Ana Prueba']] });
+    const e = entornoSync({ secretarias: [ana, ['S009', 'Prueba, Ana', true]], respuestas: [CAB_RESP, [TEXTO_T, 'MARZO', 'Prueba, Ana']] });
     expect(() => e.llamar('onFormSubmit', envio())).toThrow(/varias secretarias activas/);
     expect(e.estado.escrituras).toEqual([]);
   });
@@ -224,16 +228,16 @@ describe('onFormSubmit · escribe ID_Secre en la fila del envío', () => {
     expect(() => e.llamar('onFormSubmit', envio())).toThrow('El formulario no tiene hoja de respuestas vinculada');
   });
   it('la hoja de respuestas no encuentra marca coincidente → usa la última fila (respaldo)', () => {
-    const e = entornoSync({ secretarias: [ana], respuestas: [[...CAB_RESP, 'ID_Secre'], ['01/01/2026 00:00:00', 'ENERO', 'Bea Inventada', 'S002'], ['otra marca', 'MARZO', 'Ana Prueba', '']] });
+    const e = entornoSync({ secretarias: [ana], respuestas: [[...CAB_RESP, 'ID_Secre'], ['01/01/2026 00:00:00', 'ENERO', 'Inventada, Bea', 'S002'], ['otra marca', 'MARZO', 'Prueba, Ana', '']] });
     e.llamar('onFormSubmit', envio());
     expect(e.hojaRespuestas.getRange(3, 4).getValue()).toBe('S001');
   });
   it.fails('DEFECTO: dos envíos en el MISMO segundo: el ID del primero no debería escribirse en la fila del segundo', () => {
     const e = entornoSync({
       secretarias: [ana, bea],
-      respuestas: [[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Ana Prueba', ''], [TEXTO_T, 'MARZO', 'Bea Inventada', '']],
+      respuestas: [[...CAB_RESP, 'ID_Secre'], [TEXTO_T, 'MARZO', 'Prueba, Ana', ''], [TEXTO_T, 'MARZO', 'Inventada, Bea', '']],
     });
-    e.llamar('onFormSubmit', envio('Ana Prueba'));
+    e.llamar('onFormSubmit', envio('Prueba, Ana'));
     expect(e.hojaRespuestas.getRange(2, 4).getValue()).toBe('S001');
   });
 });

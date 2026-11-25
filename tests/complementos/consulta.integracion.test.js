@@ -68,15 +68,15 @@ describe('vap_consultaBatches · detalle de los envíos de un periodo', () => {
   it('agrupa por Batch_ID con sus secretarias y el número de registros', () => {
     const env = crearEntorno();
     cargarData(env, [
-      { batch: 'B1', idS: 'S1', nomS: 'Zoe Ficticia', valor: 10 },
-      { batch: 'B1', idS: 'S2', nomS: 'Álvaro Falso', valor: 0 },
+      { batch: 'B1', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 10 },
+      { batch: 'B1', idS: 'S2', nomS: 'Falso, Álvaro', valor: 0 },
     ]);
     const [b] = env.llamar('vap_consultaBatches', q()).batches;
     expect(b).toEqual({
       batchId: 'B1', tsText: '10/03/2026 10:00', concepto: 'Aptos', modo: 'NUEVO', tipoCorreccion: '', corrigeBatchId: '', nRegistros: 2,
       secretarias: [
-        { idSecretaria: 'S1', nombreSecretaria: 'Zoe Ficticia', valor: 10 },
-        { idSecretaria: 'S2', nombreSecretaria: 'Álvaro Falso', valor: 0 },
+        { idSecretaria: 'S1', nombreSecretaria: 'Ficticia, Zoe', valor: 10 },
+        { idSecretaria: 'S2', nombreSecretaria: 'Falso, Álvaro', valor: 0 },
       ],
     });
   });

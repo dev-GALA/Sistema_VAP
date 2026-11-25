@@ -114,7 +114,9 @@ export const filtrarLog = (log, categoria, tipo) =>
   (log || []).slice(1).filter((f) => f[4] === categoria && (tipo === undefined || f[5] === tipo));
 
 // ── Entorno de la sincronización ────────────────────────────────────────────────────────────────
-export const CAB_SECRETARIAS = ['id_trabajador', 'Nombre_Secretaria', 'Alta'];
+export const CAB_SECRETARIAS = ['id_trabajador', 'Nombre_Secretaria', 'Alta', 'DNI'];
+/** DNI inventado y con forma válida: las filas de prueba de 3 columnas lo reciben por defecto. */
+export const DNI_PRUEBA = '12345678Z';
 
 /** Doble de formulario con lo que usa el script: getItems(tipo), getDestinationId(). */
 export function crearFormulario({ id, items = [], destinationId = '' }) {
@@ -177,7 +179,8 @@ export function entornoSync({
   if (libroBbdd) {
     salida.libroBbdd = google.libro(idBbdd, 'VAP_BBDD_Personas (ficticia)');
     if (hojaSecretarias) {
-      salida.hojaSecretarias = salida.libroBbdd.conHoja(entorno.valor('SHEET_SECRETARIAS'), [cabeceraSecretarias, ...secretarias]);
+      const conDni = cabeceraSecretarias === CAB_SECRETARIAS ? secretarias.map((f) => (f.length === 3 ? [...f, DNI_PRUEBA] : f)) : secretarias;
+      salida.hojaSecretarias = salida.libroBbdd.conHoja(entorno.valor('SHEET_SECRETARIAS'), [cabeceraSecretarias, ...conDni]);
     }
   }
   if (formulario) {

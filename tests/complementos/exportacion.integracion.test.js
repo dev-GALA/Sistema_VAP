@@ -1,7 +1,7 @@
 // Integración · exportación mensual a XLSX (menú «Generar Excel mensual») y utilidades de Data.
 // RNF-03 · RNF-06 · RNF-12 · ADR-0005 · ADR-0009 (el último registro gana por Timestamp, sin borrar nada).
 import { describe, expect, it } from 'vitest';
-import { cargarData, colaPrompt, crearEntorno, fetchXlsxOk, registrarTemporal } from './ayudas.js';
+import { CAB_DATA, cargarData, colaPrompt, crearEntorno, envio, fetchXlsxOk, registrarTemporal } from './ayudas.js';
 
 /** Entorno de exportación: prompts encadenados, HTTP correcto y libro temporal registrado en Drive. */
 function entornoExport({ anio = '2026', mes = 'Marzo', fetch = fetchXlsxOk, filas = [], ...resto } = {}) {
@@ -12,11 +12,13 @@ function entornoExport({ anio = '2026', mes = 'Marzo', fetch = fetchXlsxOk, fila
 }
 const exportar = (env) => env.e.llamar('vap_generarExcelMensual');
 const ultimaAlerta = (env) => env.g.estado.alertas.at(-1)[0];
-const tablaTemporal = (env) => env.g.estado.libros.get(env.idTemporal).getSheets()[0].volcar();
+const tablaConDni = (env) => env.g.estado.libros.get(env.idTemporal).getSheets()[0].volcar();
+/** La tabla sin la columna DNI (la última), que se comprueba aparte. */
+const tablaTemporal = (env) => tablaConDni(env).map((fila) => fila.slice(0, -1));
 
 const BASE = [
-  { idS: 'S1', nomS: 'Zoe Ficticia', idC: 'C1', conc: 'Aptos', valor: 100 },
-  { idS: 'S2', nomS: 'Álvaro Falso', idC: 'C1', conc: 'Aptos', valor: 50 },
+  { idS: 'S1', nomS: 'Ficticia, Zoe', idC: 'C1', conc: 'Aptos', valor: 100 },
+  { idS: 'S2', nomS: 'Falso, Álvaro', idC: 'C1', conc: 'Aptos', valor: 50 },
 ];
 
 describe('entrada del usuario', () => {
@@ -84,12 +86,12 @@ describe('estado de Data antes de exportar', () => {
 
 describe('contenido del Excel · el último registro gana (ADR-0009 · RNF-06)', () => {
   it('pivot: ID_Secretaria, Secretaria y un concepto por columna', () => {
-    const env = entornoExport({ filas: [...BASE, { idS: 'S1', nomS: 'Zoe Ficticia', idC: 'C2', conc: 'Sábados 50', valor: 7 }] });
+    const env = entornoExport({ filas: [...BASE, { idS: 'S1', nomS: 'Ficticia, Zoe', idC: 'C2', conc: 'Sábados 50', valor: 7 }] });
     exportar(env);
     expect(tablaTemporal(env)).toEqual([
       ['ID_Secretaria', 'Secretaria', 'Aptos', 'Sábados 50'],
-      ['S2', 'Álvaro Falso', 50, ''],
-      ['S1', 'Zoe Ficticia', 100, 7],
+      ['S2', 'Falso, Álvaro', 50, ''],
+      ['S1', 'Ficticia, Zoe', 100, 7],
     ]);
   });
   it('el registro con Timestamp más reciente prevalece, esté donde esté en la hoja', () => {
@@ -109,18 +111,18 @@ describe('contenido del Excel · el último registro gana (ADR-0009 · RNF-06)',
   it('RF-08 · una corrección PARCIAL cambia solo lo corregido y conserva el resto', () => {
     const env = entornoExport({ filas: [
       ...BASE,
-      { batch: 'B2', idS: 'S1', nomS: 'Zoe Ficticia', valor: 120, ts: '2026-03-12T09:00:00Z', modo: 'CORRECCION', corrige: 'BATCH_A' },
+      { batch: 'B2', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 120, ts: '2026-03-12T09:00:00Z', modo: 'CORRECCION', corrige: 'BATCH_A' },
     ] });
     exportar(env);
-    expect(tablaTemporal(env).slice(1)).toEqual([['S2', 'Álvaro Falso', 50], ['S1', 'Zoe Ficticia', 120]]);
+    expect(tablaTemporal(env).slice(1)).toEqual([['S2', 'Falso, Álvaro', 50], ['S1', 'Ficticia, Zoe', 120]]);
   });
   it('RF-08 · una corrección TOTAL con ceros deja 0 (el 0 es un valor, no un vacío)', () => {
     const env = entornoExport({ filas: [
       ...BASE,
-      { batch: 'B2', idS: 'S2', nomS: 'Álvaro Falso', valor: 0, ts: '2026-03-12T09:00:00Z', modo: 'CORRECCION' },
+      { batch: 'B2', idS: 'S2', nomS: 'Falso, Álvaro', valor: 0, ts: '2026-03-12T09:00:00Z', modo: 'CORRECCION' },
     ] });
     exportar(env);
-    expect(tablaTemporal(env)[1]).toEqual(['S2', 'Álvaro Falso', 0]);
+    expect(tablaTemporal(env)[1]).toEqual(['S2', 'Falso, Álvaro', 0]);
   });
   it('RNF-06 · exportar no modifica Data', () => {
     const env = entornoExport({ filas: BASE });
@@ -173,7 +175,7 @@ describe('contenido del Excel · el último registro gana (ADR-0009 · RNF-06)',
     const env = entornoExport({ filas: BASE });
     env.data().cargar(env.data().volcar().map((f) => [...f].reverse()));
     exportar(env);
-    expect(tablaTemporal(env).slice(1)).toEqual([['S2', 'Álvaro Falso', 50], ['S1', 'Zoe Ficticia', 100]]);
+    expect(tablaTemporal(env).slice(1)).toEqual([['S2', 'Falso, Álvaro', 50], ['S1', 'Ficticia, Zoe', 100]]);
   });
 });
 
@@ -297,7 +299,7 @@ describe('vap_rellenarNombresSecretariaFaltantes · reparación de nombres en Da
     ]);
     rellenar(env);
     const nombres = env.data().volcar().slice(1).map((f) => f[10]);
-    expect(nombres).toEqual(['Zoe Ficticia', 'Álvaro Falso', 'Nombre Ya Escrito', '', '', '', '']);
+    expect(nombres).toEqual(['Ficticia, Zoe', 'Falso, Álvaro', 'Nombre Ya Escrito', '', '', '', '']);
     expect(ultimaAlerta(env)).toBe('Filas actualizadas: 2\nFilas sin match en BBDD: 3\n\nIDs sin match:\nS9, S8');
   });
   it('sin pendientes no lista IDs', () => {
@@ -322,5 +324,64 @@ describe('vap_rellenarNombresSecretariaFaltantes · reparación de nombres en Da
     cargarData(env, [{ idS: 'S1', nomS: '' }, { idS: 'S2', nomS: '' }, { idS: 'S4', nomS: '' }]);
     rellenar(env);
     expect(env.g.estado.escrituras.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('el DNI de cada secretaria · lista, envío, Excel y datos antiguos', () => {
+  const SECRETARIAS = [
+    ['id_trabajador', 'Nombre_Secretaria', 'Alta', 'DNI'],
+    ['S1', 'Buena, Ana', true, ' 1111-1111h '],
+    ['S2', 'Sin Dni, Beto', true, ''],
+    ['S3', 'Largo Dni, Carla', true, '050986557L'],
+    ['S4', 'Sin Coma Dora', true, '44444444A'],
+  ];
+  const montar = () =>
+    crearEntorno({ bbdd: { VAP_Secretarias: SECRETARIAS }, respuestas: { prompt: colaPrompt('2026', 'Marzo') }, fetch: fetchXlsxOk });
+
+  it('el portal ofrece solo a quien tiene id, DNI válido y «APELLIDOS, NOMBRE», y no envía el DNI al navegador', () => {
+    const env = montar();
+    const r = env.llamar('vap_bootstrapForEmail', 'ana@gala.test');
+    expect(r.secretarias).toEqual([{ id: 'S1', nombre: 'Buena, Ana' }]);
+    expect(JSON.stringify(r)).not.toContain('11111111H');
+    const registro = JSON.stringify(env.g.estado.logs);
+    expect(registro).toContain('(S3): DNI con forma no válida');
+    expect(registro).not.toContain('Largo Dni');
+  });
+
+  it('el Excel lleva el DNI al final: el guardado en Data o, en filas antiguas, el del maestro por id', () => {
+    const env = montar();
+    cargarData(env, [
+      { idS: 'S1', nomS: 'Buena, Ana', valor: 10, dni: '' },
+      { idS: 'S9', nomS: 'Otra, Persona', valor: 5, dni: '99999999R' },
+      { idS: 'S8', nomS: 'Sin, Dni', valor: 1, dni: '' },
+    ]);
+    env.idTemporal = registrarTemporal(env);
+    env.e.llamar('vap_generarExcelMensual');
+    const [cabecera, ...filas] = tablaConDni(env);
+    expect(cabecera.at(-1)).toBe('DNI');
+    expect(Object.fromEntries(filas.map((f) => [f[0], f.at(-1)]))).toEqual({ S1: '11111111H', S9: '99999999R', S8: '' });
+  });
+
+  it('simular el relleno no escribe; rellenar completa solo las filas sin DNI cuyo id se conoce', () => {
+    const env = montar();
+    cargarData(env, [
+      { idS: 'S1', dni: '' },
+      { idS: 'S8', dni: '' },
+      { idS: 'S1', dni: '99999999R' },
+    ]);
+    const antes = JSON.stringify(env.data().volcar());
+    expect(env.llamar('simularRellenoDniData')).toEqual({ filas: 3, porRellenar: 1, idsSinDni: ['S8'], escrito: false });
+    expect(JSON.stringify(env.data().volcar())).toBe(antes);
+    expect(env.llamar('rellenarDniData')).toMatchObject({ porRellenar: 1, escrito: true });
+    expect(env.data().volcar().slice(1).map((f) => f.at(-1))).toEqual(['11111111H', '', '99999999R']);
+  });
+
+  it('si Data no tiene la columna DNI_Secretaria, el primer envío la crea al final', () => {
+    const env = montar();
+    env.data().cargar([CAB_DATA.slice(0, -1)]);
+    env.llamar('vap_submitBatch', envio({ valores: [{ idSecretaria: 'S1', nombreSecretaria: 'Buena, Ana', valorStr: '10' }] }));
+    const [cabecera, fila] = env.data().volcar();
+    expect(cabecera.at(-1)).toBe('DNI_Secretaria');
+    expect(fila.at(-1)).toBe('11111111H');
   });
 });

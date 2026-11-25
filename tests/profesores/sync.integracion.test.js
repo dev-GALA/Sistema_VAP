@@ -2,15 +2,15 @@
 // RF-02 (lista sincronizada) · RF-03 (ID en la respuesta) · RF-47 (traza) · ADR-0007/0008.
 import { describe, expect, it } from 'vitest';
 import { plano } from '../soporte/cargar-gs.js';
-import { entornoSync, eventoEnvio, profesor } from './ayudas.js';
+import { DNI_PRUEBA, entornoSync, eventoEnvio, profesor } from './ayudas.js';
 
-const PROFES = [profesor('Ana Beta Ficticia', 'A_1'), profesor('Carlos Dos Ficticio', 'B_2'), profesor('Baja Ficticia', 'C_3', false)];
+const PROFES = [profesor('Beta Ficticia, Ana', 'A_1'), profesor('Dos Ficticio, Carlos', 'B_2'), profesor('Ficticia, Baja', 'C_3', false)];
 
 describe('actualizarPreguntaProfesores · RF-02', () => {
   it('carga en la pregunta «SELECCIONE EL PROFESOR» los nombres activos y deja traza', () => {
     const e = entornoSync({ profesores: PROFES });
     e.llamar('actualizarPreguntaProfesores');
-    expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toStrictEqual(['Ana Beta Ficticia', 'Carlos Dos Ficticio']);
+    expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toStrictEqual(['Beta Ficticia, Ana', 'Dos Ficticio, Carlos']);
     expect(e.google.estado.logs).toContain('Formulario actualizado correctamente. Opciones cargadas: 2');
   });
   it('pide al formulario solo preguntas de tipo lista', () => {
@@ -35,10 +35,10 @@ describe('actualizarPreguntaProfesores · RF-02', () => {
     e.llamar('actualizarPreguntaProfesores');
     e.hojaProfesores.getRange(2, 7).setValue(false);
     e.llamar('actualizarPreguntaProfesores');
-    expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toStrictEqual(['Carlos Dos Ficticio']);
+    expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toStrictEqual(['Dos Ficticio, Carlos']);
   });
   it('sin profesores activos lanza y NO toca el formulario (no vacía la lista por error)', () => {
-    const e = entornoSync({ profesores: [profesor('Baja Ficticia', 'A_1', false)] });
+    const e = entornoSync({ profesores: [profesor('Ficticia, Baja', 'A_1', false)] });
     e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR'] = ['Previa'];
     expect(() => e.llamar('actualizarPreguntaProfesores')).toThrow('No se han encontrado profesores activos válidos');
     expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toStrictEqual(['Previa']);
@@ -91,7 +91,7 @@ describe('onSpreadsheetEditTrigger · disparador por edición', () => {
   it('dos ediciones seguidas dentro de 30 s: solo la primera sincroniza', () => {
     const e = entornoSync({ profesores: PROFES });
     e.llamar('onSpreadsheetEditTrigger', evento(e, 'VAP_Profesores'));
-    e.hojaProfesores.appendRow(profesor('Nueva Ficticia', 'D_4'));
+    e.hojaProfesores.appendRow(profesor('Ficticia, Nueva', 'D_4'));
     e.llamar('onSpreadsheetEditTrigger', evento(e, 'VAP_Profesores'));
     expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toHaveLength(2);
     expect(e.google.estado.logs).toContain('Sincronización omitida por control de frecuencia');
@@ -124,7 +124,7 @@ describe('onSpreadsheetChangeTrigger · cambios estructurales', () => {
   it('comparte la ventana de 30 s con el disparador de edición', () => {
     const e = entornoSync({ profesores: PROFES });
     e.llamar('onSpreadsheetEditTrigger', { range: { getSheet: () => ({ getName: () => 'VAP_Profesores' }) } });
-    e.hojaProfesores.appendRow(profesor('Nueva Ficticia', 'D_4'));
+    e.hojaProfesores.appendRow(profesor('Ficticia, Nueva', 'D_4'));
     e.llamar('onSpreadsheetChangeTrigger', { changeType: 'INSERT_ROW' });
     expect(e.formulario.opcionesPorTitulo['SELECCIONE EL PROFESOR']).toHaveLength(2);
   });
@@ -167,23 +167,23 @@ describe('obtenerHojaRespuestasDelFormulario_', () => {
 });
 
 describe('onFormSubmit · RF-03 (ID_Profesor en la respuesta)', () => {
-  const respuestas = [['Marca temporal', 'SELECCIONE EL PROFESOR'], ['09/03/2026 08:00:00', 'Carlos Dos Ficticio'], ['10/03/2026 10:15:30', 'Ana Beta Ficticia']];
-  const ev = () => eventoEnvio([['SELECCIONE EL PROFESOR', 'Ana Beta Ficticia']]);
+  const respuestas = [['Marca temporal', 'SELECCIONE EL PROFESOR'], ['09/03/2026 08:00:00', 'Dos Ficticio, Carlos'], ['10/03/2026 10:15:30', 'Beta Ficticia, Ana']];
+  const ev = () => eventoEnvio([['SELECCIONE EL PROFESOR', 'Beta Ficticia, Ana']]);
 
   it('crea la columna ID_Profesor si no existe y escribe el ID en la fila de la respuesta', () => {
     const e = entornoSync({ profesores: PROFES, respuestas });
     e.llamar('onFormSubmit', ev());
     expect(e.hojaRespuestas.volcar()).toStrictEqual([
-      ['Marca temporal', 'SELECCIONE EL PROFESOR', 'ID_Profesor'],
-      ['09/03/2026 08:00:00', 'Carlos Dos Ficticio'],
-      ['10/03/2026 10:15:30', 'Ana Beta Ficticia', 'A_1'],
+      ['Marca temporal', 'SELECCIONE EL PROFESOR', 'ID_Profesor', 'DNI_Profesor'],
+      ['09/03/2026 08:00:00', 'Dos Ficticio, Carlos'],
+      ['10/03/2026 10:15:30', 'Beta Ficticia, Ana', 'A_1', DNI_PRUEBA],
     ]);
   });
   it('si la columna ID_Profesor ya existe la reutiliza sin crear otra', () => {
-    const e = entornoSync({ profesores: PROFES, respuestas: [['Marca temporal', 'SELECCIONE EL PROFESOR', 'Otra', 'ID_Profesor'], ['10/03/2026 10:15:30', 'Ana Beta Ficticia', '', '']] });
+    const e = entornoSync({ profesores: PROFES, respuestas: [['Marca temporal', 'SELECCIONE EL PROFESOR', 'Otra', 'ID_Profesor'], ['10/03/2026 10:15:30', 'Beta Ficticia, Ana', '', '']] });
     e.llamar('onFormSubmit', ev());
-    expect(e.hojaRespuestas.volcar()[1]).toStrictEqual(['10/03/2026 10:15:30', 'Ana Beta Ficticia', '', 'A_1']);
-    expect(e.hojaRespuestas.volcar()[0]).toHaveLength(4);
+    expect(e.hojaRespuestas.volcar()[1]).toStrictEqual(['10/03/2026 10:15:30', 'Beta Ficticia, Ana', '', 'A_1', DNI_PRUEBA]);
+    expect(e.hojaRespuestas.volcar()[0]).toHaveLength(5); // la columna del DNI, creada al final
   });
   it('escribe solo en la fila de la respuesta: no toca las demás', () => {
     const e = entornoSync({ profesores: PROFES, respuestas });
@@ -195,13 +195,13 @@ describe('onFormSubmit · RF-03 (ID_Profesor en la respuesta)', () => {
     e.llamar('onFormSubmit', ev());
     const l = e.google.estado.logs;
     expect(l[0]).toBe('1. Inicio onFormSubmit');
-    expect(l).toContain('3. ID encontrado: A_1');
+    expect(l).toContain('3. Profesor localizado: A_1');
     expect(l).toContain('5. Fila objetivo: 3');
-    expect(l.at(-1)).toBe('7. ID_Profesor escrito correctamente en fila 3');
+    expect(l.at(-1)).toBe('6. ID_Profesor y DNI_Profesor escritos en la fila 3');
   });
   it('un nombre con otra capitalización o espacios extra resuelve igual', () => {
     const e = entornoSync({ profesores: PROFES, respuestas });
-    e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', '  ANA  beta FICTICIA ']]));
+    e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', '  BETA  ficticia, ANA ']]));
     expect(e.hojaRespuestas.getRange(3, 3).getValue()).toBe('A_1');
   });
   it('sin respuesta a la pregunta lanza y no escribe nada', () => {
@@ -211,17 +211,17 @@ describe('onFormSubmit · RF-03 (ID_Profesor en la respuesta)', () => {
   });
   it('profesor sin ID (inexistente o de baja) lanza y no escribe', () => {
     const e = entornoSync({ profesores: PROFES, respuestas });
-    expect(() => e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', 'Baja Ficticia']]))).toThrow('No se encontró ID_Profesor para "Baja Ficticia"');
+    expect(() => e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', 'Ficticia, Baja']]))).toThrow('No se encontró el profesor "Ficticia, Baja"');
     expect(e.hojaRespuestas.volcar()).toStrictEqual(respuestas);
   });
   it('profesor ambiguo (dos activos con el mismo nombre) lanza y no escribe', () => {
-    const e = entornoSync({ profesores: [profesor('Repetida Ficticia', 'A_1'), profesor('Repetida Ficticia', 'A_2')], respuestas });
-    expect(() => e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', 'Repetida Ficticia']]))).toThrow(/varios profesores activos/);
+    const e = entornoSync({ profesores: [profesor('Ficticia, Repetida', 'A_1'), profesor('Ficticia, Repetida', 'A_2')], respuestas });
+    expect(() => e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', 'Ficticia, Repetida']]))).toThrow(/varios profesores activos/);
     expect(e.hojaRespuestas.volcar()).toStrictEqual(respuestas);
   });
   it('si no localiza la marca temporal escribe en la última fila', () => {
     const e = entornoSync({ profesores: PROFES, respuestas });
-    e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', 'Ana Beta Ficticia']], new Date('2026-01-01T00:00:00Z')));
+    e.llamar('onFormSubmit', eventoEnvio([['SELECCIONE EL PROFESOR', 'Beta Ficticia, Ana']], new Date('2026-01-01T00:00:00Z')));
     expect(e.hojaRespuestas.getRange(3, 3).getValue()).toBe('A_1');
   });
   it('registra el error y lo relanza si falla (formulario sin hoja vinculada)', () => {

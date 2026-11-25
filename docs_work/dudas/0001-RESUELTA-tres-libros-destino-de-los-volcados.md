@@ -19,7 +19,7 @@ libros de Google Sheets diferentes**:
 | Qué se vuelca | Script | Libro destino (ID) | Columnas |
 |---------------|--------|--------------------|----------|
 | Horas extras de secretarias | `VAP_Script Volcado Horas Extras Secretarias` | `1qK3JeBdJV6nHMnFYZGgsRAC0t3rfvig17c5E0iYo8kc` | `AE`, `AH` |
-| Actividad de profesores | `VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26` | `1qK3JeBdJV6nHMnFYZGgsRAC0t3rfvig17c5E0iYo8kc` *(el mismo)* | `AC..CN` |
+| Actividad de profesores | `VAP_Script_Volcado_Actividad_Profesores` | `1qK3JeBdJV6nHMnFYZGgsRAC0t3rfvig17c5E0iYo8kc` *(el mismo)* | `AC..CN` |
 | Nóminas **Neto** | `VAP_script_export_SAGE` → `exportNeto` | `1HDwgihfz91atsLE99Qu0k3kTyBKpo3Iu3SaUtVGMPTs` | `G,H,I,L,P,Q,R,T` |
 | Nóminas **Bruto** | `VAP_script_export_SAGE` → `exportBruto` | `1eTVPws0NVRMIlXgZYsUZANdfMyFYQtDlEEK5ujFt04A` | `G,H,I,L,P,Q,R,T` |
 
@@ -82,7 +82,7 @@ El cambio es pequeño: **una línea en cada script**.
 
 ```js
 // VAP_Script Volcado Horas Extras Secretarias.gs
-// VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs
+// VAP_Script_Volcado_Actividad_Profesores.gs
 const TARGET_SPREADSHEET_ID = '...';   // ← el libro que corresponda
 ```
 

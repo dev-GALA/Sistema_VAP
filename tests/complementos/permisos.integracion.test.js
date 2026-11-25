@@ -65,9 +65,9 @@ describe('vap_bootstrapForEmail · validación del responsable (RF-06 · ADR-000
   it('lista solo secretarias de ALTA con id y nombre, ordenadas alfabéticamente en español', () => {
     const r = crearEntorno().llamar('vap_bootstrapForEmail', 'ana@gala.test');
     expect(r.secretarias).toEqual([
-      { id: 'S2', nombre: 'Álvaro Falso' },
-      { id: 'S4', nombre: 'Ñoño Inventado' },
-      { id: 'S1', nombre: 'Zoe Ficticia' },
+      { id: 'S2', nombre: 'Falso, Álvaro' },
+      { id: 'S1', nombre: 'Ficticia, Zoe' },
+      { id: 'S4', nombre: 'Inventado, Ñoño' },
     ]);
   });
   it('incluye los valores por defecto de año y mes', () => {
@@ -121,7 +121,7 @@ describe('autorización en el servidor · ADR-0002 · RNF-09', () => {
     const env = crearEntorno({ usuario: 'beto@gala.test' });
     env.data().cargar([
       ['Timestamp', 'Batch_ID', 'ID_Responsable', 'Año', 'Mes', 'Concepto', 'Modo', 'Corrige_Batch_ID', 'ID_Secretaria', 'Nombre_Secretaria', 'Valor'],
-      [env.fecha('2026-03-10T09:00:00Z'), 'B1', 'R1', 2026, 3, 'Aptos', 'NUEVO', '', 'S1', 'Zoe Ficticia', 10],
+      [env.fecha('2026-03-10T09:00:00Z'), 'B1', 'R1', 2026, 3, 'Aptos', 'NUEVO', '', 'S1', 'Ficticia, Zoe', 10],
     ]);
     const r = env.llamar('vap_consultaBatches', { idResponsable: 'R1', year: 2026, month: 3 });
     expect(r.ok).toBe(false); // Beto (sesión activa) no debería ver lo de Ana

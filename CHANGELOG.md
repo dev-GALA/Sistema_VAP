@@ -8,6 +8,28 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 
 ---
 
+## [Sin publicar] · 25 nov 2026 · Identificador armonizado, DNI como clave y huellas cargadas
+
+### Hecho en los libros reales (lo ejecutó el usuario)
+- **`VAP_BBDD_Personas`:** `Empresa` e `Id_Sage` corregidos contra el export de SAGE (15 cambios, 4 números provisionales, 166 filas marcadas para revisar, columna nueva `Observaciones`); `id_trabajador` **generado por fórmula y protegido** en las tres pestañas.
+- **`VAP_Pagos`:** carga inicial de huellas (493 y 1 más tras regenerar las incidencias); 20 id actualizados y 17 huellas repetidas borradas.
+- **Complementos:** DNI rellenado en los envíos antiguos que lo permitían y 60 id actualizados; 79 envíos con id antiguos inexistentes se dejan como están.
+- Excel de incidencias de cuentas bancarias generado **fuera del repositorio**.
+- **Subidos a Google** los scripts de formularios, los dos volcados, Complementos y el servicio `VAP_Pagos` (las entradas siguientes, que dicen «sin subir», son anteriores a la subida). La webapp **no** se ha subido y los volcados no se han probado con un volcado real.
+
+### Añadido
+- [ADR-0021](docs_solutions/docs_design/adr/0021-id-trabajador-generado-y-vigilado-en-el-maestro.md) y [ADR-0022](docs_solutions/docs_design/adr/0022-el-dni-como-clave-de-persona-en-formularios-y-volcados.md), en Propuesta; [RF-103 a RF-106](docs_discovery/requisitos_funcionales.md) y HU-51; riesgos R-31 a R-33 en el SSD.
+
+### Corregido
+- La fórmula de `id_trabajador` daba `#ERROR!` en la hoja real: se escribe con `;` (con `,` como alternativa), se comprueba y, si falla, quedan los id como texto.
+- La revisión del maestro ya no dice «mismo DNI en todas» cuando falta algún DNI (**sin subir**).
+- `.gitignore` ignora las marcas `:Zone.Identifier` de los ficheros descargados.
+
+### Pruebas
+- Vitest 2.096 pasan y 41 documentan defectos; verificador de trazabilidad sin errores; linter y sintaxis limpios. **Las de navegador no se han podido ejecutar** (falta el navegador de Playwright en este equipo).
+
+---
+
 ## [Sin publicar] · Lista única de empresas y casillas de `Alta` en el maestro (hecho en Google, sin código)
 
 ### Hecho en `VAP_BBDD_Personas` (libro real; no hay cambio de código ni de scripts)
@@ -25,6 +47,26 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 - [`problem.md`](docs_discovery/problem.md) 0.4, [`historias_usuarios.md`](docs_discovery/historias_usuarios.md) 0.7 (HU-46, HU-47), [`requisitos_funcionales.md`](docs_discovery/requisitos_funcionales.md) 0.9 (RF-80, RF-100 → 🟡, RF-101 con el inventario de scripts) y SSD 2.2 (riesgo **R-30**: tres grafías de una misma empresa).
 - El **resumen de `requisitos_funcionales.md`** decía 99 requisitos y hay **101**: corregido (25 cumplidos, 10 parciales, 65 no cumplidos, 1 en decisión).
 - `valor_dev.md` 0.4: revisión sin cifras nuevas. `proximos_pasos.md` 0.12: bloque «Pendientes del 19 nov 2026».
+
+### Cambiado (código, **sin subir** a Google) · `VAP_Pagos` identifica a la persona por su DNI ([ADR-0020](docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md), Propuesta · [RF-102](docs_discovery/requisitos_funcionales.md) · HU-48)
+- **Servicio `VAP_Pagos` v0.2.0:** la hoja `huellas` pasa a `id_pagos · dni · id_trabajador · huella · ultimos4 · actualizado_en · actualizado_por`, una fila por pareja DNI + id de trabajador y todas con la misma huella. Guardar una cuenta exige DNI y usuario; avisa si a un DNI se le añade otro id y rechaza un id que consta con otro DNI. El cruce mensual no cambia.
+- **Webapp:** la carga inicial y el alta con cuenta pasan al servicio el DNI **del maestro** y el correo de quien guarda; la pantalla de carga muestra los avisos.
+- **Pruebas:** toda la batería pasa (1.975 y 41 que documentan defectos conocidos; 79 son del servicio) y el linter queda limpio.
+- **Documentación:** ADR-0020 (sustituye la decisión 4 del ADR-0019), RF-102, HU-48, SSD, `resumen_proteccion_datos.md`, DUDA-0005 y §12 de `fuentes_de_contraste.md` (que decían «sin DNI»).
+- **Carga inicial de las huellas (uso único, sin ejecutar):** `dominio-carga.gs`, `app-carga.gs` e `infra-carga.gs` en `src/vap_pagos/`. Cruza por DNI el Excel de los trabajadores actuales con el maestro, tiene **simulación** y carga real repetible, escribe un informe en la hoja `carga_inicial` (sin cuentas) y **marca la casilla `Huella`** en `VAP_BBDD_Personas`. Dos funciones públicas como excepción autorizada a la regla de arquitectura.
+- **Hojas de detalle de la carga inicial** (`…_carga_inicial`, en el libro temporal del Excel): repetidas, DNI inválido, ids repetidos en el maestro, sin cuenta, sin persona activa, cuentas distintas, sin cuenta en el Excel y con huella, con nombre, DNI, fila, pestaña y posible pareja por nombre; nunca la cuenta.
+- **Actualización Mecánicos · el DNI como clave de la persona** (código listo, **sin subir**): la lista del formulario solo ofrece a mecánicos de alta con `id_trabajador`, **DNI válido** y nombre en formato «APELLIDOS, NOMBRE»; quien se queda fuera queda anotado en el registro con su fila, su id y el motivo. Al responder, además de `ID_Mecanico` se guarda `DNI_Mecanico` (columna nueva; el histórico no se toca). Primero de los scripts que pasan a usar el DNI; ver `proximos_pasos.md`.
+- **Actualización Secretarías (Horas Extras) · el DNI como clave de la persona** (código listo, **sin subir**): mismo cambio que en Mecánicos; la respuesta guarda `ID_Secre` y la columna nueva `DNI_Secre`, añadida al final de la hoja de respuestas (no desplaza las columnas que lee el volcado). Pruebas adaptadas (datos de prueba con DNI y nombre «APELLIDOS, NOMBRE»).
+- **Actualización Profesores · el DNI como clave de la persona** (código listo, **sin subir**): lee `id_trabajador` (antes buscaba `ID_Profesor`, columna que ya no existe en el maestro, así que **lo desplegado no podía actualizar la lista**; no verificado en el registro), mismas reglas de lista que Mecánicos y Secretarías, y guarda `ID_Profesor` y la columna nueva `DNI_Profesor`.
+- **Histórico de los dos volcados** (código listo, **sin subir**): las columnas `DNI_…` se archivan **detrás del Run ID**, así las columnas del histórico no se desplazan. El script de actividad de profesores se **renombra** a `VAP_Script_Volcado_Actividad_Profesores.gs`.
+- **Volcados de Horas Extras y de Actividad de Profesores · cruce por DNI y simulación** (código listo, **sin subir**): cruzan por DNI contra la columna D de la Vinculación y, sin DNI (respuestas antiguas), por nombre. Si el DNI coincide y el nombre no, **se vuelca y se avisa**; si el nombre coincide y el DNI no, o el DNI está en varias filas, **no se escribe**. La función **`simularVolcado`**, que se ejecuta desde el editor de Apps Script (no está en el menú) y pide el mes en la hoja, deja en la hoja `simulacion_volcado` cómo cruza cada persona y qué cambiaría, con el mismo cálculo que el volcado.
+- **Complementos Secretarías · el DNI como referencia** (código listo, **sin subir**): el portal ofrece solo a secretarias de alta con id, DNI válido y «APELLIDOS, NOMBRE»; al guardar, el servidor rellena `DNI_Secretaria` en `Data` (el DNI no llega al navegador); el Excel mensual añade la columna `DNI` **al final** y sigue agrupando por id (unir por DNI perdería importes de quien cobra en dos empresas); «rellenar nombres» busca por DNI y luego por id. Funciones de uso puntual `simularRellenoDniData` y `rellenarDniData` para los envíos antiguos.
+- **Actualización única de id** (nuevo, **sin subir**): `VAP_Script_Unico_Actualizar_Ids.gs` lleva los `id_trabajador` nuevos a `huellas` (`VAP_Pagos`) y a `Data` (Complementos), emparejando por id anterior y DNI; `simularActualizacionIds` y `ejecutarActualizacionIds`. Lo dudoso no se toca y queda en `actualizacion_ids`. Incluye cinco cambios de profesores que la copia no recoge y, si dos huellas quedan con el mismo DNI, id y huella, borra la sobrante (aprobado el 25 nov).
+- **Revisión de `VAP_BBDD_Personas`** (nuevo, **sin subir**): carpeta `docs_solutions/src/VAP_Personas/`, función `revisarPersonas`. Fase 0 de la armonización de `id_trabajador`: solo lee y escribe la pestaña `revision_ids` (ids que no cumplen `Empresa_Id_Sage`, repetidos, sin `Id_Sage`, empresa fuera de lista, DNI y nombre incorrectos en personas de alta, y cuánto histórico usa cada id).
+- **Centinela de `id_trabajador`** (nuevo, **sin subir**): `VAP_Script_Centinela_Personas.gs`. `instalarCentinela` deja la columna generada por fórmula en la cabecera (`Empresa_Id_Sage`) y protegida, guardando antes los id antiguos en `copia_id_trabajador`; `onEdit` impide (o marca, si se pega un bloque) que dos personas usen el mismo número de SAGE en una empresa, en cualquiera de las tres hojas.
+- **Corrector de un solo uso de `Empresa` e `Id_Sage`** (nuevo, **sin subir**): `VAP_Script_Unico_Empresa_IdSage.gs`, contrasta por nombre (admite recortes, abreviaturas y erratas) con el export de SAGE; `simularCorreccionEmpresaIdSage` y `ejecutarCorreccionEmpresaIdSage`. Si el nombre está en SAGE pone lo de SAGE; si no está y su número es de otra persona, le da uno provisional desde 9000; si no está, conserva el número. `JOSE` e `INTERCASTILLA` no están en SAGE: no se contrastan ni se marca (solo número provisional si dos personas comparten número). Los dos últimos casos quedan en amarillo con una observación en la columna `Observaciones` (la crea si falta).
+- **Carpeta `src/pagos` renombrada a `src/vap_pagos`**; hoja `fusiones` renombrada a `cierres`; propiedad del maestro `ID_LIBRO_VAP_Personas`.
+- **Hecho en Google:** libro `VAP_Pagos` creado con las hojas `huellas`, `subsanaciones` y `cierres` (cabeceras puestas por el usuario) y la columna **Asignacion** en `VAP_Staff`, `VAP_Secretarias` y `VAP_Profesores`, rellenada desde la Vinculación por DNI y pegada como valores.
 
 ### Pendiente
 - Tabla única de **equivalencias de nombre de empresa**, el **cruce mensual** (dónde vive y qué es incidencia con una persona en dos empresas), lista de **tipos de Staff**, las **demás pestañas** con empresa y retirar la columna E antigua de `Config`. Ver `proximos_pasos.md`.
@@ -48,7 +90,7 @@ el diseño del sistema, en [`docs_solutions/docs_design/SSD.md`](docs_solutions/
 ## [Sin publicar] · `VAP_Pagos` y el cruce de pagos: diseño documentado
 
 ### Añadido (código, sin desplegar)
-- **Servicio `VAP_Pagos` v0.1.0** (`docs_solutions/src/pagos/`): proyecto de Apps Script propio con la huella HMAC-SHA256 de la cuenta, los últimos 4 dígitos, el cruce por empresa en dos partes (*Coincidente*/*Incorrecto*), la subsanación sin sobrescribir, la fusión obligatoria y el historial. Token en cada llamada. 68 pruebas.
+- **Servicio `VAP_Pagos` v0.1.0** (`docs_solutions/src/vap_pagos/`): proyecto de Apps Script propio con la huella HMAC-SHA256 de la cuenta, los últimos 4 dígitos, el cruce por empresa en dos partes (*Coincidente*/*Incorrecto*), la subsanación sin sobrescribir, la fusión obligatoria y el historial. Token en cada llamada. 68 pruebas.
 - **Webapp v0.4.0**: submenú **Pagos** con *Cruzar Pagos*, *Históricos de Pagos*, *Maestro de Pagos* y *Carga inicial de cuentas*; lectura de ficheros del banco **XML (ISO 20022), CSV y TXT** que se rechazan si no cuadran con lo que declaran; marca `cuenta_en_pagos` en el maestro. **La webapp ya no calcula huellas ni conoce la clave.** Pruebas que unen los dos proyectos en memoria y 12 de Playwright.
 - `biome.json` ampliado a los proyectos nuevos.
 
@@ -508,7 +550,7 @@ Retomado el proyecto. Dos frentes: **rediseño del volcado de horas extras de se
   usarse para el volcado (se conserva la función, desactivada por la constante
   `AUTO_VOLCADO_AL_ENVIAR`). La regla *"último registro por empleada sin mirar el mes"* se sustituye
   por el filtrado por periodo.
-- **`VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js` reescrito.** El trigger `onFormSubmit`
+- **`VAP_Script_Volcado_Actividad_Profesores.js` reescrito.** El trigger `onFormSubmit`
   deja de usarse: **si sigue instalado en el proyecto GAS hay que borrarlo**, porque apunta a una
   función que ya no existe. El `COLUMN_MAP` de 64 entradas ahora se **genera** a partir de tres
   constantes en lugar de mantenerse a mano (verificado que produce el mismo mapeo `F..BQ → AC..CN`).
@@ -774,7 +816,7 @@ formulario de profesores y rediseño del volcado del registro de actividad para 
 - Retirado `VAP_scripts_profesores/README.md` (guía del registro de actividad): su
   contenido vive ya en `ADR.md` (subsección 4.3) y en el `README.md` raíz.
 
-#### Registro de Actividad de Profesores — `VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.js`
+#### Registro de Actividad de Profesores — `VAP_scripts_profesores/VAP_Script_Volcado_Actividad_Profesores.js`
 - **Cambio de arquitectura de "último gana entero" a acumulación por
   `(profesor + mes + año)` (DT-09).** Antes, el último envío de un profesor sobrescribía
   la fila completa, borrando los datos de envíos anteriores; ahora los datos se acumulan.

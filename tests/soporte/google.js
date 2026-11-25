@@ -77,6 +77,35 @@ class Rango {
   }
   clearContent() { return this.setValue(''); }
   clear() { return this.setValue(''); }
+  /** Guarda la fórmula; de `={"Cabecera";…}` deja visible la cabecera, como hace Google. */
+  setFormula(formula) {
+    this.hoja._formulas = { ...(this.hoja._formulas || {}), [this.getA1Notation()]: formula };
+    // `rechazaFormula` imita una hoja que no entiende la fórmula (p. ej. otra configuración regional).
+    if (this.hoja._libro._estado.rechazaFormula?.(formula)) return this.setValue('#ERROR!');
+    const cabecera = /^=\{"([^"]*)"/.exec(formula);
+    return this.setValue(cabecera ? cabecera[1] : formula);
+  }
+  getNotes() {
+    return this.getValues().map((fila, f) => fila.map((_, c) => (this.hoja._notas || {})[`${this.fila + f}:${this.columna + c}`] || ''));
+  }
+  setNote(nota) {
+    this.hoja._notas = { ...(this.hoja._notas || {}), [`${this.fila}:${this.columna}`]: nota };
+    return this;
+  }
+  protect() {
+    const proteccion = {
+      rango: this.getA1Notation(), descripcion: '', editores: ['otra@gala.test'],
+      setDescription(d) { this.descripcion = d; return this; },
+      getDescription() { return this.descripcion; },
+      getEditors() { return this.editores; },
+      addEditor() { return this; },
+      removeEditors() { this.editores = []; return this; },
+      canDomainEdit() { return false; },
+      remove: () => { this.hoja._protecciones = this.hoja._protecciones.filter((x) => x !== proteccion); },
+    };
+    this.hoja._protecciones = [...(this.hoja._protecciones || []), proteccion];
+    return proteccion;
+  }
   setDataValidation(regla) {
     this.hoja._libro._estado.validaciones.push({ hoja: this.hoja.getName(), rango: this.getA1Notation(), regla });
     return this;
@@ -92,6 +121,7 @@ class Hoja {
     this._congeladas = 0;
     return permisivo(this, (m, a) => libro._estado.formato.push({ m, a }));
   }
+  getProtections() { return this._protecciones || []; }
   _celda(f, c) {
     const v = (this._datos[f - 1] || [])[c - 1];
     return v === undefined ? '' : v;
@@ -302,6 +332,7 @@ export function crearGoogle(opciones = {}) {
     getActiveSpreadsheet: () => estado.libroActivo,
     getActive: () => estado.libroActivo,
     create(nombre) { return nuevoLibro(`libro-creado-${estado.libros.size + 1}`, nombre); },
+    ProtectionType: { RANGE: 'RANGE', SHEET: 'SHEET' },
     getUi: () => iu,
     flush() {},
     newDataValidation() {

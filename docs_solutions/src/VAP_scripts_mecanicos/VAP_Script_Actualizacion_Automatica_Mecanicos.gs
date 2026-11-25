@@ -3,7 +3,10 @@
  *
  * Gemelo de los scripts de Secretarias y Profesores (se mantienen separados a propósito).
  * Lee la pestaña VAP_Staff y precarga en el formulario a las personas de alta cuyo
- * Tipo sea MECÁNICO (sin distinguir mayúsculas ni tildes).
+ * Tipo sea MECÁNICO (sin distinguir mayúsculas ni tildes) y que tengan los datos
+ * necesarios: id_trabajador, DNI válido y nombre en formato "APELLIDOS, NOMBRE".
+ * Al responder el formulario guarda en la respuesta el id (ID_Mecanico) y el DNI
+ * (DNI_Mecanico): el DNI es lo único unívoco por persona, cambie o no de empresa.
  ****************************************************/
 
 const FORM_ID = "1iJoFCf6CcFyFnl5Qv5zHCcOYb-JUISlKgvi6s1G9D7E";
@@ -11,9 +14,11 @@ const SPREADSHEET_ID = "1HQMxubwPv-vrslsXj5DvsB0gJ9OyewVNDmbPg1hjmHk";
 const SHEET_STAFF = "VAP_Staff";
 const QUESTION_TITLE = "Seleccione el Mecánico";
 const RESPONSE_ID_HEADER = "ID_Mecanico";
+const RESPONSE_DNI_HEADER = "DNI_Mecanico";
 
 const COL_ID = "id_trabajador";
 const COL_NOMBRE = "Nombre";
+const COL_DNI = "DNI";
 const COL_TIPO = "Tipo";
 const COL_ALTA = "Alta";
 const TIPO_MECANICO = "MECANICO";
@@ -23,7 +28,9 @@ const TIPO_MECANICO = "MECANICO";
  ****************************************************/
 function actualizarPreguntaMecanicos() {
   try {
-    const opciones = obtenerMecanicosActivosUnicos_();
+    const candidatos = leerMecanicosDeStaff_();
+    anotarExcluidos_(candidatos);
+    const opciones = nombresUnicosOrdenados_(candidatos.filter(p => !p.motivo));
 
     if (opciones.length === 0) {
       throw new Error("No se han encontrado mecánicos activos válidos");
@@ -90,7 +97,7 @@ function onSpreadsheetChangeTrigger(e) {
 
 /****************************************************
  * 4) AL ENVIAR EL FORMULARIO
- * Crea / rellena ID_Mecanico
+ * Crea / rellena ID_Mecanico y DNI_Mecanico
  ****************************************************/
 function onFormSubmit(e) {
   try {
@@ -102,11 +109,11 @@ function onFormSubmit(e) {
     }
     Logger.log(`2. Mecánico recibido: ${mecanicoNombre}`);
 
-    const idMecanico = buscarIdMecanicoPorNombre_(mecanicoNombre);
-    if (!idMecanico) {
-      throw new Error(`No se encontró ${RESPONSE_ID_HEADER} para "${mecanicoNombre}"`);
+    const mecanico = buscarMecanicoPorNombre_(mecanicoNombre);
+    if (!mecanico) {
+      throw new Error(`No se encontró el mecánico "${mecanicoNombre}"`);
     }
-    Logger.log(`3. ID encontrado: ${idMecanico}`);
+    Logger.log(`3. Mecánico localizado: ${mecanico.id}`);
 
     const responseSheet = obtenerHojaRespuestasDelFormulario_();
     Logger.log(`4. Hoja de respuestas encontrada: ${responseSheet.getName()}`);
@@ -114,21 +121,9 @@ function onFormSubmit(e) {
     const targetRow = localizarFilaRespuesta_(responseSheet, e.response);
     Logger.log(`5. Fila objetivo: ${targetRow}`);
 
-    const lastCol = responseSheet.getLastColumn();
-    const headers = responseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-
-    let colId = headers.indexOf(RESPONSE_ID_HEADER) + 1;
-
-    if (colId === 0) {
-      colId = lastCol + 1;
-      responseSheet.getRange(1, colId).setValue(RESPONSE_ID_HEADER);
-      Logger.log(`6. Columna ${RESPONSE_ID_HEADER} creada en posición ${colId}`);
-    } else {
-      Logger.log(`6. Columna ${RESPONSE_ID_HEADER} ya existe en posición ${colId}`);
-    }
-
-    responseSheet.getRange(targetRow, colId).setValue(idMecanico);
-    Logger.log(`7. ${RESPONSE_ID_HEADER} escrito correctamente en fila ${targetRow}`);
+    escribirEnColumna_(responseSheet, targetRow, RESPONSE_ID_HEADER, mecanico.id);
+    escribirEnColumna_(responseSheet, targetRow, RESPONSE_DNI_HEADER, mecanico.dni);
+    Logger.log(`6. ${RESPONSE_ID_HEADER} y ${RESPONSE_DNI_HEADER} escritos en la fila ${targetRow}`);
 
   } catch (error) {
     Logger.log("ERROR onFormSubmit: " + error.message);
@@ -137,9 +132,34 @@ function onFormSubmit(e) {
 }
 
 /****************************************************
- * 5) LEER MECÁNICOS ACTIVOS DE VAP_STAFF
+ * 5) LEER MECÁNICOS DE VAP_STAFF
  ****************************************************/
-function leerMecanicosActivos_() {
+function normalizarDni_(texto) {
+  return String(texto || "").toUpperCase().replace(/[\s-]/g, "");
+}
+
+/** Solo la forma: DNI (8 cifras y letra) o NIE (X, Y o Z, 7 cifras y letra). */
+function esDniValido_(dni) {
+  return /^(\d{8}|[XYZ]\d{7})[A-Z]$/.test(dni);
+}
+
+/** «APELLIDOS, NOMBRE»: una sola coma, con texto a los dos lados. */
+function tieneFormatoApellidosNombre_(nombre) {
+  return /^[^,]+,[^,]+$/.test(nombre);
+}
+
+/** Por qué una persona de alta y de tipo mecánico NO puede aparecer en la lista ("" si puede). */
+function motivoDeExclusion_(p) {
+  if (!p.id) return "sin id_trabajador";
+  if (!p.nombre) return "sin nombre";
+  if (!tieneFormatoApellidosNombre_(p.nombre)) return 'nombre sin el formato "APELLIDOS, NOMBRE"';
+  if (!p.dni) return "sin DNI";
+  if (!esDniValido_(p.dni)) return "DNI con forma no válida";
+  return "";
+}
+
+/** Las personas de alta y tipo mecánico, cada una con su `motivo` de exclusión (vacío si es válida). */
+function leerMecanicosDeStaff_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_STAFF);
 
@@ -157,48 +177,71 @@ function leerMecanicosActivos_() {
 
   const colId = headers.indexOf(COL_ID);
   const colNombre = headers.indexOf(COL_NOMBRE);
+  const colDni = headers.indexOf(COL_DNI);
   const colTipo = headers.indexOf(COL_TIPO);
   const colAlta = headers.indexOf(COL_ALTA);
 
   if (colId === -1) throw new Error(`No se encuentra la columna "${COL_ID}"`);
   if (colNombre === -1) throw new Error(`No se encuentra la columna "${COL_NOMBRE}"`);
+  if (colDni === -1) throw new Error(`No se encuentra la columna "${COL_DNI}"`);
   if (colTipo === -1) throw new Error(`No se encuentra la columna "${COL_TIPO}"`);
   if (colAlta === -1) throw new Error(`No se encuentra la columna "${COL_ALTA}"`);
 
   return data
     .slice(1)
-    .map(row => ({
+    .map((row, i) => ({
+      fila: i + 2,
       id: String(row[colId] || "").trim(),
       nombre: String(row[colNombre] || "").trim().replace(/\s+/g, " "),
+      dni: normalizarDni_(row[colDni]),
       tipo: normalizarTextoSinTildes_(row[colTipo]),
       alta: row[colAlta] === true
     }))
-    .filter(p => p.id && p.nombre && p.alta && p.tipo.startsWith(TIPO_MECANICO));
+    .filter(p => p.alta && p.tipo.startsWith(TIPO_MECANICO))
+    .map(p => Object.assign(p, { motivo: motivoDeExclusion_(p) }));
 }
 
-function obtenerMecanicosActivosUnicos_() {
-  const nombres = leerMecanicosActivos_().map(p => p.nombre);
+function leerMecanicosActivos_() {
+  return leerMecanicosDeStaff_().filter(p => !p.motivo);
+}
 
-  return [...new Set(nombres)].sort((a, b) =>
+/** Deja en el registro a quien está de alta como mecánico pero se queda fuera de la lista, con su id y el motivo. */
+function anotarExcluidos_(candidatos) {
+  const excluidos = candidatos.filter(p => p.motivo);
+  if (excluidos.length === 0) return;
+
+  Logger.log(`Mecánicos de alta que NO aparecen en el formulario: ${excluidos.length}`);
+  excluidos.forEach(p => {
+    Logger.log(`  fila ${p.fila} (${p.id || "sin id"}): ${p.motivo}`);
+  });
+}
+
+function nombresUnicosOrdenados_(personas) {
+  return [...new Set(personas.map(p => p.nombre))].sort((a, b) =>
     a.localeCompare(b, "es", { sensitivity: "base" })
   );
 }
 
+function obtenerMecanicosActivosUnicos_() {
+  return nombresUnicosOrdenados_(leerMecanicosActivos_());
+}
+
 /****************************************************
- * 6) BUSCAR ID POR NOMBRE
+ * 6) BUSCAR POR NOMBRE
  ****************************************************/
-function buscarIdMecanicoPorNombre_(nombreBuscado) {
+/** La persona { id, dni } con ese nombre entre los mecánicos válidos, o null si no existe. */
+function buscarMecanicoPorNombre_(nombreBuscado) {
   const nombreNormalizado = normalizarTexto_(nombreBuscado);
 
   const coincidencias = leerMecanicosActivos_()
     .filter(p => normalizarTexto_(p.nombre) === nombreNormalizado);
 
-  if (coincidencias.length === 0) return "";
+  if (coincidencias.length === 0) return null;
   if (coincidencias.length > 1) {
     throw new Error(`Hay varios mecánicos activos con el mismo nombre: "${nombreBuscado}"`);
   }
 
-  return coincidencias[0].id;
+  return { id: coincidencias[0].id, dni: coincidencias[0].dni };
 }
 
 /****************************************************
@@ -218,6 +261,21 @@ function obtenerRespuestaPorTitulo_(e, questionTitle) {
   }
 
   return "";
+}
+
+/** Escribe el valor en la columna con esa cabecera (la crea al final si no existe). */
+function escribirEnColumna_(hoja, fila, cabecera, valor) {
+  const lastCol = hoja.getLastColumn();
+  const headers = hoja.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  let col = headers.indexOf(cabecera) + 1;
+  if (col === 0) {
+    col = lastCol + 1;
+    hoja.getRange(1, col).setValue(cabecera);
+    Logger.log(`Columna ${cabecera} creada en posición ${col}`);
+  }
+
+  hoja.getRange(fila, col).setValue(valor);
 }
 
 function obtenerHojaRespuestasDelFormulario_() {

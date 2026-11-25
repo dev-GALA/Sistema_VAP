@@ -182,7 +182,7 @@ function validarCargaInicial_(dependencias, filas) {
 
 /** Guarda solo las filas que siguen en estado «lista»: lo que la pantalla confirma se vuelve a comprobar aquí. */
 function confirmarCargaInicial_(dependencias, filas) {
-  exigirAcceso_(dependencias, 'carga-inicial');
+  const contexto = exigirAcceso_(dependencias, 'carga-inicial');
   exigirServicioPagos_(dependencias);
   exigirLote_(filas);
   const { config, personasPorEmpresa, propuestas } = proponerLote_(dependencias, filas);
@@ -195,8 +195,11 @@ function confirmarCargaInicial_(dependencias, filas) {
   const listas = propuestas.filter((p) => p.estado === 'lista');
   if (listas.length === 0) return resultados;
 
+  // El DNI sale del maestro (no del fichero): es la clave de la persona en VAP_Pagos (ADR-0020).
+  const dniDe = (p) => personasPorEmpresa[p.empresa].filter((x) => x.idPersonal === p.idPersonal)[0].dni;
   const guardadas = dependencias.llamarServicioPagos('guardarCuentas', {
-    cuentas: listas.map((p) => ({ idPersonal: p.idPersonal, iban: filas[p.indice].cuenta })),
+    usuario: contexto.correo,
+    cuentas: listas.map((p) => ({ idPersonal: p.idPersonal, dni: dniDe(p), iban: filas[p.indice].cuenta })),
   });
   guardadas.forEach((guardada, posicion) => {
     const propuesta = listas[posicion];
@@ -207,7 +210,12 @@ function confirmarCargaInicial_(dependencias, filas) {
     const persona = personasPorEmpresa[propuesta.empresa].filter((p) => p.idPersonal === propuesta.idPersonal)[0];
     try {
       dependencias.marcarCuentaEnMaestro(config, empresas, persona);
-      resultados[propuesta.indice] = { indice: propuesta.indice, estado: 'guardada', detalle: '' };
+      resultados[propuesta.indice] = {
+        indice: propuesta.indice,
+        estado: 'guardada',
+        detalle: '',
+        avisos: guardada.avisos || [],
+      };
     } catch (error) {
       resultados[propuesta.indice] = {
         indice: propuesta.indice,

@@ -376,6 +376,14 @@ manuales o filas de otra procedencia; no está comprobado.**
 
 Son viables con el salto actual. Para COBEE contra SAGE, **no con esta muestra**.
 
+### 10.bis El export del 25 de noviembre de 2026
+
+519 filas y 514 parejas empresa + número, de 9 empresas. **Sigue sin traer DNI.** Los nombres vienen **recortados por
+apellido y por nombre**, con abreviaturas («Mª») y alguna errata, así que cruzar por nombre exige tolerarlo. `CTM MOTOR`
+es el `MOTOR INTEGRAL` del maestro; no trae a `JOSE` ni a `INTERCASTILLA`, ni números de 1000 en adelante.
+
+---
+
 ## 11. El proceso mensual y la concordancia de identidad (16 noviembre 2026)
 
 Recoge, **tal como lo planteó el desarrollo**, el diseño que condiciona las partes afectadas. *Solo
@@ -443,7 +451,7 @@ un ADR ([OB-36](../proximos_pasos.md), [OB-45](../proximos_pasos.md)).
 |---|---|---|
 | Nombre, DNI, `id_personal` (`EMPRESA_nº`) | `VAP_BBDD_Personas` (ya existe, con varias pestañas) | Como hoy |
 | **La cuenta (IBAN)** | **En ningún sitio.** Entra por la pantalla o por el fichero del banco, se usa en memoria y se descarta | — |
-| **Huella + `id_personal`** | **`VAP_Pagos`**, libro nuevo. Sin DNI, sin nombre, sin IBAN | Solo el sistema y el desarrollo |
+| **Huella + DNI + `id_trabajador`** | **`VAP_Pagos`**, libro nuevo. Sin nombre y sin IBAN. **Con DNI desde el 25 nov 2026** ([ADR-0020](../../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md); este apartado recogía el diseño anterior, sin DNI) | Solo el sistema y el desarrollo |
 | **Clave secreta** | Configuración del script de la webapp | Quien edita ese proyecto |
 | Registro de altas, bajas y modificaciones | Hoja nueva de `VAP_BBDD_Personas`. **Sin cuenta ni huella** | Según la decisión de acceso |
 | Fichero del banco | Se sube, se procesa y se borra | Quien lo sube |

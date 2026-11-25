@@ -2,7 +2,7 @@
 // (vapPeriodoPropuesto, vapAnalizarPeriodo, vapEjecutarExportacion) con origen, destino, Anteriores y LOG.
 // Datos 100 % ficticios. ADR-0013 · ADR-0016 · RF-16..RF-19 · RNF-04/05/06.
 import { describe, expect, it } from 'vitest';
-import { entornoVolcado, fecha, filaOrigen, filaDestino, filtrarLog, sinHora } from './ayudas.js';
+import { CAB_ORIGEN, entornoVolcado, fecha, filaOrigen, filaDestino, filtrarLog, sinHora } from './ayudas.js';
 import { plano } from '../soporte/cargar-gs.js';
 
 const marzo = (dia, extra = {}) => filaOrigen({ ts: fecha(2026, 3, dia), mes: 'MARZO', ...extra });
@@ -612,5 +612,116 @@ describe('vapEjecutarExportacion · confirmación y escritura (RF-16 · RF-17)',
       exportar(e);
       expect(e.estado.escrituras.filter((w) => w.hoja === 'Hoja 1')).toHaveLength(80);
     });
+  });
+});
+
+describe('copia a Anteriores · las columnas DNI_… van detrás del Run ID y no desplazan las anteriores', () => {
+  it('la fila archivada conserva sus columnas y termina en sello, fecha, Run ID y DNI_Secre', () => {
+    const fila = [...filaOrigen({ ts: fecha(2026, 3, 5), mes: 'MARZO', nombre: 'Prueba, Ana', horas: 3 }), '12345678Z'];
+    const e = entornoVolcado({
+      origen: [fila],
+      cabeceraOrigen: [...CAB_ORIGEN, 'DNI_Secre'],
+      destino: [filaDestino({ nombre: 'Prueba, Ana' })],
+    });
+    e.llamar('vapEjecutarExportacion', 'MARZO', 2026);
+    const archivada = e.verArchivo().at(-1);
+    expect(archivada).toHaveLength(CAB_ORIGEN.length + 4);
+    expect(archivada[CAB_ORIGEN.length]).toBe('ARCHIVADO MARZO 2026');
+    expect(archivada.at(-1)).toBe('12345678Z');
+  });
+});
+
+describe('cruce por DNI y simulación del volcado', () => {
+  const DNI_A = '12345678Z';
+  const DNI_B = '87654321X';
+  const CAB = [...CAB_ORIGEN, 'DNI_Secre'];
+  const envio = (nombre, dni, horas = 3, dia = 5) => [...filaOrigen({ ts: fecha(2026, 3, dia), mes: 'MARZO', nombre, horas }), dni];
+  const destino = (nombre, dni = '') => {
+    const f = filaDestino({ nombre });
+    f[3] = dni; // columna D
+    return f;
+  };
+  const montar = (origen, filas) => entornoVolcado({ origen, destino: filas, cabeceraOrigen: CAB });
+  const volcar = (e) => plano(e.llamar('vapEjecutarExportacion', 'MARZO', 2026));
+  const tipos = (e, categoria) => filtrarLog(e.verLog(), categoria).map((f) => f[5]);
+
+  it('cruza por DNI aunque el nombre del destino difiera, y lo avisa', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('PRUEBA GARCIA, ANA', DNI_A)]);
+    expect(volcar(e)).toMatchObject({ ok: true, actualizadas: 1, creadas: 0, bloqueadas: 0 });
+    expect(e.celdaDestino(2, 31)).toBe(3);
+    expect(tipos(e, 'INCIDENCIA')).toContain('NOMBRE_DISTINTO');
+  });
+
+  it('tildes, comas, mayúsculas u orden no cuentan como nombre distinto', () => {
+    const e = montar([envio('Pérez, Ana', DNI_A)], [destino('ANA PEREZ', DNI_A)]);
+    volcar(e);
+    expect(tipos(e, 'INCIDENCIA')).not.toContain('NOMBRE_DISTINTO');
+  });
+
+  it('el nombre coincide pero el DNI es otro: NO se escribe y queda como error', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('Prueba, Ana', DNI_B)]);
+    expect(volcar(e)).toMatchObject({ bloqueadas: 1, actualizadas: 0, creadas: 0 });
+    expect(e.celdaDestino(2, 31)).toBe('');
+    expect(tipos(e, 'ERROR')).toContain('DNI_DISTINTO');
+  });
+
+  it('un DNI en dos filas del destino no se escribe', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('Prueba, Ana', DNI_A), destino('Otra, Persona', DNI_A)]);
+    expect(volcar(e)).toMatchObject({ bloqueadas: 1 });
+    expect(tipos(e, 'ERROR')).toContain('DNI_REPETIDO_DESTINO');
+  });
+
+  it('una respuesta antigua sin DNI se une a la del mismo nombre con DNI: una sola persona, vale la más reciente', () => {
+    const e = montar([envio('Prueba, Ana', '', 1, 4), envio('Prueba, Ana', DNI_A, 7, 9)], [destino('Prueba, Ana', DNI_A)]);
+    expect(volcar(e)).toMatchObject({ actualizadas: 1, bloqueadas: 0 });
+    expect(e.celdaDestino(2, 31)).toBe(7);
+  });
+
+  it('persona nueva con DNI: la fila creada lleva nombre y DNI', () => {
+    const e = montar([envio('Prueba, Ana', DNI_A)], [destino('Otra, Persona', DNI_B)]);
+    expect(volcar(e)).toMatchObject({ creadas: 1 });
+    expect([e.celdaDestino(3, 3), e.celdaDestino(3, 4)]).toEqual(['Prueba, Ana', DNI_A]);
+  });
+
+  it('la simulación dice cómo cruza cada persona y NO escribe en la Vinculación, ni archiva, ni toca el LOG', () => {
+    const e = montar(
+      [envio('Prueba, Ana', DNI_A), envio('Nueva, Persona', '11111111H', 2)],
+      [destino('PRUEBA GARCIA, ANA', DNI_A)],
+    );
+    const antes = JSON.stringify(e.hojaDestino.volcar());
+    const r = plano(e.llamar('simularVolcado_', 'MARZO', 2026));
+    expect(r).toMatchObject({ ok: true, personas: 2, bloqueadas: 0, conAvisos: 1 });
+    expect(JSON.stringify(e.hojaDestino.volcar())).toBe(antes);
+    expect(e.verArchivo()).toBeNull();
+    expect(e.verLog()).toBeNull();
+    const [cabecera, ...filas] = e.libroOrigen.getSheetByName('simulacion_volcado').volcar();
+    expect(cabecera[3]).toBe('Cómo cruza');
+    expect(filas.map((f) => [f[0], f[3], f[4], f[6]])).toEqual([
+      ['Prueba, Ana', 'DNI', 2, 3],
+      ['Nueva, Persona', 'FILA NUEVA', 3, 2],
+    ]);
+    expect(filas[0][9]).toContain('NOMBRE_DISTINTO');
+  });
+
+  it('simularVolcado (desde el editor) pide el mes en la hoja, simula y resume; no está en el menú', () => {
+    const e = entornoVolcado({
+      origen: [envio('Prueba, Ana', DNI_A), envio('Prueba, Ana', DNI_A, 5, 9)],
+      destino: [destino('Prueba, Ana', DNI_A)],
+      cabeceraOrigen: CAB,
+      respuestas: { prompt: { boton: 'OK', texto: 'marzo 2026' } },
+    });
+    e.llamar('simularVolcado');
+    const [, fila] = e.libroOrigen.getSheetByName('simulacion_volcado').volcar();
+    expect(fila[2]).toBe('2 y 3'); // las filas no se pueden confundir con un decimal
+    expect(JSON.stringify(e.estado.alertas.at(-1))).toContain('Personas: 1');
+    expect(e.celdaDestino(2, 31)).toBe('');
+  });
+
+  it('lo que anuncia la simulación es lo que hace el volcado', () => {
+    const montaje = () =>
+      montar([envio('Prueba, Ana', DNI_A), envio('Otra, Persona', DNI_A, 4)], [destino('Prueba, Ana', DNI_B)]);
+    const simulada = plano(montaje().llamar('simularVolcado_', 'MARZO', 2026));
+    const real = volcar(montaje());
+    expect(simulada.bloqueadas).toBe(real.bloqueadas);
   });
 });

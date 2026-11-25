@@ -2,7 +2,7 @@
 // Citan RF-01/02/03 (lista activa e ID), ADR-0007/0008 (gemelo independiente) y SSD §6.1.0 y §7.3.
 import { describe, expect, it } from 'vitest';
 import { plano } from '../soporte/cargar-gs.js';
-import { CABECERA_PROFESORES, ESPIA_CACHE, entornoSync, eventoEnvio, profesor } from './ayudas.js';
+import { CABECERA_PROFESORES, DNI_PRUEBA, ESPIA_CACHE, entornoSync, eventoEnvio, logs, profesor } from './ayudas.js';
 
 describe('constantes de configuración', () => {
   it('apuntan a la hoja, pregunta y cabecera que documenta el SSD §7.3', () => {
@@ -36,8 +36,8 @@ describe('normalizarTexto_ (RF-03 · cruce estable por nombre)', () => {
 describe('obtenerRespuestaPorTitulo_ (RF-03)', () => {
   const e = entornoSync();
   it('devuelve la respuesta de la pregunta buscada, recortada', () => {
-    const ev = eventoEnvio([['OTRA', 'x'], ['SELECCIONE EL PROFESOR', '  Ana Ficticia  ']]);
-    expect(e.llamar('obtenerRespuestaPorTitulo_', ev, 'SELECCIONE EL PROFESOR')).toBe('Ana Ficticia');
+    const ev = eventoEnvio([['OTRA', 'x'], ['SELECCIONE EL PROFESOR', '  Ficticia, Ana  ']]);
+    expect(e.llamar('obtenerRespuestaPorTitulo_', ev, 'SELECCIONE EL PROFESOR')).toBe('Ficticia, Ana');
   });
   it('devuelve cadena vacía si la pregunta no está entre las respuestas', () => {
     const ev = eventoEnvio([['OTRA', 'x']]);
@@ -63,49 +63,49 @@ describe('obtenerRespuestaPorTitulo_ (RF-03)', () => {
 describe('obtenerProfesoresActivosUnicos_ (RF-02 · lista dinámica; SSD §6.1.0)', () => {
   it('devuelve solo activos con ID y nombre, sin duplicados y ordenados en español', () => {
     const e = entornoSync({ profesores: [
-      profesor('Óscar Zeta Ficticio', 'A_1'),
-      profesor('Ana Beta Ficticia', 'A_2'),
-      profesor('Ana Beta Ficticia', 'A_2'),
-      profesor('Álvaro Alfa Ficticio', 'A_3'),
-      profesor('Baja Ficticia', 'A_4', false),
+      profesor('Zeta Ficticio, Óscar', 'A_1'),
+      profesor('Beta Ficticia, Ana', 'A_2'),
+      profesor('Beta Ficticia, Ana', 'A_2'),
+      profesor('Alfa Ficticio, Álvaro', 'A_3'),
+      profesor('Ficticia, Baja', 'A_4', false),
     ] });
     expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual([
-      'Álvaro Alfa Ficticio', 'Ana Beta Ficticia', 'Óscar Zeta Ficticio',
+      'Alfa Ficticio, Álvaro', 'Beta Ficticia, Ana', 'Zeta Ficticio, Óscar',
     ]);
   });
   it('SSD §6.1.0 · Alta como texto "TRUE" NO cuenta: el script exige true booleano', () => {
-    const e = entornoSync({ profesores: [profesor('Texto Ficticio', 'A_1', 'TRUE'), profesor('Casilla Ficticia', 'A_2', true)] });
-    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Casilla Ficticia']);
+    const e = entornoSync({ profesores: [profesor('Ficticio, Texto', 'A_1', 'TRUE'), profesor('Ficticia, Casilla', 'A_2', true)] });
+    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Ficticia, Casilla']);
   });
   it.each([['"true" en minúsculas', 'true'], ['número 1', 1], ['cadena vacía', ''], ['false', false], ['"SI"', 'SI']])('Alta = %s no cuenta como alta', (_n, alta) => {
-    const e = entornoSync({ profesores: [profesor('Nombre Ficticio', 'A_1', alta)] });
+    const e = entornoSync({ profesores: [profesor('Ficticio, Nombre', 'A_1', alta)] });
     expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual([]);
   });
   it('SSD §6.1.0 · con ID_Profesor vacío la persona no aparece (un Id_Sage olvidado se nota)', () => {
-    const e = entornoSync({ profesores: [profesor('Sin Id Ficticio', ''), profesor('Con Id Ficticio', 'A_1'), profesor('Solo Espacios', '   ')] });
-    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Con Id Ficticio']);
+    const e = entornoSync({ profesores: [profesor('Ficticio, Sin Id', ''), profesor('Ficticio, Con Id', 'A_1'), profesor('Solo Espacios', '   ')] });
+    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Ficticio, Con Id']);
   });
   it('una persona sin nombre no aparece', () => {
     const e = entornoSync({ profesores: [profesor('', 'A_1'), profesor('   ', 'A_2')] });
     expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual([]);
   });
   it('colapsa los espacios internos y recorta antes de deduplicar', () => {
-    const e = entornoSync({ profesores: [profesor('  Ana   Beta  Ficticia ', 'A_1'), profesor('Ana Beta Ficticia', 'A_2')] });
-    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Ana Beta Ficticia']);
+    const e = entornoSync({ profesores: [profesor('  Beta   Ficticia,  Ana ', 'A_1'), profesor('Beta Ficticia, Ana', 'A_2')] });
+    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Beta Ficticia, Ana']);
   });
   it('RNF-02 · localiza las columnas por cabecera, no por posición', () => {
     const e = entornoSync({
-      cabecera: ['Alta', 'Notas', 'Nombre', 'ID_Profesor'],
-      profesores: [[true, '', 'Reordenada Ficticia', 'A_9']],
+      cabecera: ['Alta', 'Notas', 'Nombre', 'id_trabajador', 'DNI'],
+      profesores: [[true, '', 'Ficticia, Reordenada', 'A_9', DNI_PRUEBA]],
     });
-    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Reordenada Ficticia']);
+    expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual(['Ficticia, Reordenada']);
   });
   it('solo cabecera o hoja vacía: lista vacía', () => {
     expect(plano(entornoSync().llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual([]);
     const e = entornoSync(); e.hojaProfesores.clear();
     expect(plano(e.llamar('obtenerProfesoresActivosUnicos_'))).toStrictEqual([]);
   });
-  it.each(['ID_Profesor', 'Nombre', 'Alta'])('lanza si falta la columna «%s»', (falta) => {
+  it.each(['id_trabajador', 'Nombre', 'DNI', 'Alta'])('lanza si falta la columna «%s»', (falta) => {
     const cabecera = CABECERA_PROFESORES.filter((c) => c !== falta);
     const e = entornoSync({ cabecera, profesores: [['x', 'y', 'z', 'w', 'v', 'u']] });
     expect(() => e.llamar('obtenerProfesoresActivosUnicos_')).toThrow(`No se encuentra la columna "${falta}"`);
@@ -120,44 +120,70 @@ describe('obtenerProfesoresActivosUnicos_ (RF-02 · lista dinámica; SSD §6.1.0
   });
 });
 
-describe('buscarIdProfesorPorNombre_ (RF-03 · ID asociado a la respuesta)', () => {
-  const base = [profesor('Ana Beta Ficticia', 'A_1'), profesor('Carlos Dos Ficticio', ' B_2 ')];
-  it('encuentra el ID ignorando mayúsculas y espacios y lo devuelve recortado', () => {
-    const e = entornoSync({ profesores: base });
-    expect(e.llamar('buscarIdProfesorPorNombre_', '  ANA   beta ficticia ')).toBe('A_1');
-    expect(e.llamar('buscarIdProfesorPorNombre_', 'Carlos Dos Ficticio')).toBe('B_2');
+describe('buscarProfesorPorNombre_ (RF-03 · la persona asociada a la respuesta: { id, dni })', () => {
+  const base = [profesor('Beta Ficticia, Ana', 'A_1'), profesor('Dos Ficticio, Carlos', ' B_2 ')];
+  const buscar = (nombre, opciones) => plano(entornoSync(opciones).llamar('buscarProfesorPorNombre_', nombre));
+
+  it('encuentra a la persona ignorando mayúsculas y espacios y devuelve el id recortado y el DNI', () => {
+    expect(buscar('  BETA   ficticia, ana ', { profesores: base })).toEqual({ id: 'A_1', dni: DNI_PRUEBA });
+    expect(buscar('Dos Ficticio, Carlos', { profesores: base })).toEqual({ id: 'B_2', dni: DNI_PRUEBA });
   });
-  it('si no hay coincidencia devuelve cadena vacía', () => {
-    expect(entornoSync({ profesores: base }).llamar('buscarIdProfesorPorNombre_', 'Nadie Ficticio')).toBe('');
+  it('devuelve el DNI normalizado', () => {
+    const profesores = [profesor('Ficticia, Ana', 'A_1', true, ' 1234-5678z ')];
+    expect(buscar('Ficticia, Ana', { profesores })).toEqual({ id: 'A_1', dni: DNI_PRUEBA });
   });
-  it('una persona de baja no se encuentra aunque exista', () => {
-    const e = entornoSync({ profesores: [profesor('Baja Ficticia', 'A_1', false)] });
-    expect(e.llamar('buscarIdProfesorPorNombre_', 'Baja Ficticia')).toBe('');
-  });
-  it('Alta como texto "TRUE" tampoco se encuentra (coherente con la lista)', () => {
-    const e = entornoSync({ profesores: [profesor('Texto Ficticio', 'A_1', 'TRUE')] });
-    expect(e.llamar('buscarIdProfesorPorNombre_', 'Texto Ficticio')).toBe('');
+  it('null si no hay coincidencia, si está de baja o si Alta es texto "TRUE"', () => {
+    expect(buscar('Ficticio, Nadie', { profesores: base })).toBeNull();
+    expect(buscar('Ficticia, Baja', { profesores: [profesor('Ficticia, Baja', 'A_1', false)] })).toBeNull();
+    expect(buscar('Ficticio, Texto', { profesores: [profesor('Ficticio, Texto', 'A_1', 'TRUE')] })).toBeNull();
   });
   it('lanza si hay varios activos con el mismo nombre (ambigüedad)', () => {
-    const e = entornoSync({ profesores: [profesor('Repetida Ficticia', 'A_1'), profesor('repetida  ficticia', 'A_2')] });
-    expect(() => e.llamar('buscarIdProfesorPorNombre_', 'Repetida Ficticia')).toThrow('Hay varios profesores activos con el mismo nombre: "Repetida Ficticia"');
+    const profesores = [profesor('Ficticia, Repetida', 'A_1'), profesor('ficticia,  repetida', 'A_2')];
+    expect(() => buscar('Ficticia, Repetida', { profesores })).toThrow('Hay varios profesores activos con el mismo nombre: "Ficticia, Repetida"');
   });
   it('un duplicado de baja NO provoca ambigüedad: solo cuentan los activos', () => {
-    const e = entornoSync({ profesores: [profesor('Repetida Ficticia', 'A_1'), profesor('Repetida Ficticia', 'A_2', false)] });
-    expect(e.llamar('buscarIdProfesorPorNombre_', 'Repetida Ficticia')).toBe('A_1');
+    const profesores = [profesor('Ficticia, Repetida', 'A_1'), profesor('Ficticia, Repetida', 'A_2', false)];
+    expect(buscar('Ficticia, Repetida', { profesores })).toEqual({ id: 'A_1', dni: DNI_PRUEBA });
   });
-  it('un activo con ID vacío devuelve cadena vacía (sin ID asignable)', () => {
-    const e = entornoSync({ profesores: [profesor('Sin Id Ficticio', '')] });
-    expect(e.llamar('buscarIdProfesorPorNombre_', 'Sin Id Ficticio')).toBe('');
+  it('sin id, sin DNI o con DNI inválido no se localiza', () => {
+    for (const profesores of [
+      [profesor('Ficticio, Sin Id', '')],
+      [profesor('Ficticio, Sin Id', 'A_1', true, '')],
+      [profesor('Ficticio, Sin Id', 'A_1', true, '050986557L')],
+    ])
+      expect(buscar('Ficticio, Sin Id', { profesores })).toBeNull();
   });
   it('lanza si falta una columna obligatoria o la hoja', () => {
-    const sinAlta = entornoSync({ cabecera: ['Nombre', 'ID_Profesor'], profesores: [['x', 'y']] });
-    expect(() => sinAlta.llamar('buscarIdProfesorPorNombre_', 'x')).toThrow('No se encuentra la columna "Alta"');
-    const sinNombre = entornoSync({ cabecera: ['ID_Profesor', 'Alta'], profesores: [['y', true]] });
-    expect(() => sinNombre.llamar('buscarIdProfesorPorNombre_', 'x')).toThrow('No se encuentra la columna "Nombre"');
-    const sinId = entornoSync({ cabecera: ['Nombre', 'Alta'], profesores: [['y', true]] });
-    expect(() => sinId.llamar('buscarIdProfesorPorNombre_', 'x')).toThrow('No se encuentra la columna "ID_Profesor"');
-    expect(() => entornoSync({ conHojaProfesores: false }).llamar('buscarIdProfesorPorNombre_', 'x')).toThrow('No existe la hoja "VAP_Profesores"');
+    const columnas = ['id_trabajador', 'Nombre', 'DNI', 'Alta'];
+    for (const falta of columnas) {
+      const cabecera = columnas.filter((c) => c !== falta);
+      expect(() => buscar('x', { cabecera, profesores: [['y', 'z', 'w']] })).toThrow(`No se encuentra la columna "${falta}"`);
+    }
+    expect(() => buscar('x', { conHojaProfesores: false })).toThrow('No existe la hoja "VAP_Profesores"');
+  });
+});
+
+describe('quién entra en la lista: DNI válido y nombre «APELLIDOS, NOMBRE» (RF-102)', () => {
+  const lista = (profesores) => plano(entornoSync({ profesores }).llamar('obtenerProfesoresActivosUnicos_'));
+
+  it('sin DNI, con DNI mal formado o con el nombre sin una sola coma no aparece', () => {
+    expect(
+      lista([
+        profesor('Bien Ficticio, Ana', 'A_1'),
+        profesor('Sin Dni, Ana', 'A_2', true, ''),
+        profesor('Dni Largo, Ana', 'A_3', true, '050986557L'),
+        profesor('Sin Coma Ana', 'A_4'),
+        profesor('Dos, Comas, Ana', 'A_5'),
+      ]),
+    ).toStrictEqual(['Bien Ficticio, Ana']);
+  });
+  it('el registro anota a quien se queda fuera con su fila, su id y el motivo, sin nombre ni DNI', () => {
+    const e = entornoSync({ profesores: [profesor('Ficticia, Ana', 'A_1'), profesor('Sin, Dni', 'A_2', true, '')] });
+    e.llamar('actualizarPreguntaProfesores');
+    const registro = JSON.stringify(logs(e));
+    expect(registro).toContain('fila 3 (A_2): sin DNI');
+    expect(registro).not.toContain(DNI_PRUEBA);
+    expect(registro).not.toContain('Sin, Dni');
   });
 });
 

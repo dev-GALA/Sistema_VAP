@@ -74,14 +74,17 @@ function anadirFila_(hoja, columnas, fila) {
 function leerHuellas_() {
   const hoja = hojaExistente_(libroPagos_(), HOJA_HUELLAS);
   return leerTabla_(hoja, COLUMNAS_HUELLAS).map((f) => ({
+    idPagos: f.idPagos,
+    dni: f.dni,
     idPersonal: f.idPersonal,
     huella: f.huella,
     ultimos4: f.ultimos4.padStart(4, '0'),
     actualizadoEn: f.actualizadoEn,
+    actualizadoPor: f.actualizadoPor,
   }));
 }
 
-/** Inserta o sustituye la huella de una persona (cambio de cuenta: la antigua deja de valer). */
+/** Inserta la fila de una persona o sustituye la que ya tiene su id de trabajador (cambio de cuenta: la antigua deja de valer). */
 function guardarHuella_(fila) {
   const hoja = hojaExistente_(libroPagos_(), HOJA_HUELLAS);
   const { indices } = indicesDeCabecera_(hoja, COLUMNAS_HUELLAS);
@@ -167,5 +170,5 @@ function anadirSubsanacion_(registro) {
 }
 
 function anadirFusion_(registro) {
-  anadirFila_(hojaExistente_(libroPagos_(), HOJA_FUSIONES), COLUMNAS_FUSIONES, registro);
+  anadirFila_(hojaExistente_(libroPagos_(), HOJA_CIERRES), COLUMNAS_CIERRES, registro);
 }

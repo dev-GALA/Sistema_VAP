@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Código | `VALOR-DEV` |
-| Versión | 0.4 |
-| Fecha | 2026-11-19 |
+| Versión | 0.5 |
+| Fecha | 2026-11-25 |
 | Estado | 🟡 Vivo — se revisa con cada cambio que añada valor registrable |
 | Propietario | Dpto. Data y Tecnología |
 
@@ -17,7 +17,7 @@ registro de revisiones) y de `carfa` (conclusión por delante, límites dichos a
 impacto interno acumulado), **con las mismas tarifas que BUCA**, para que las cifras sean comparables.
 Lo particular de VAP, que ninguno de los dos tiene, está en las dos secciones siguientes.
 
-**Última revisión:** 2026-11-19 · **Fase:** la Fase 1 (secretarias) y la Fase 2.A (sincronización de
+**Última revisión:** 2026-11-25 · **Fase:** la Fase 1 (secretarias) y la Fase 2.A (sincronización de
 formularios de profesores) están **en producción**; el resto de lo documentado está **pendiente de
 construir** (ver «Lo que existe y lo que no»).
 
@@ -186,6 +186,26 @@ de `.claude/skills/` (viven fuera del repo en origen) ni `backup_old_js/` (copia
 | Pruebas y arnés (`tests/`) | 15.044 |
 | Python (verificador y sus pruebas) | 356 |
 | Documentación (discovery, SSD, plan, flujo: 5.207; ADR: 933; dudas, actas y fuentes de contraste: 2.474) | ≈ 8.600 |
+
+**Re-medido el 25 nov 2026:** Apps Script 9.867 líneas en 42 archivos; interfaz 3.194 en 14; pruebas 17.061; Python 356;
+discovery 2.414; ADR 1.169. La tabla anterior y el contraste siguiente son de fechas previas.
+
+### Sesión del 25 nov 2026, aparte del total
+
+**No sumada a la cifra de cabecera** (que sigue siendo la del 16 nov y no recoge lo posterior). Estimación de quien
+redacta, sin contraste ni registro de horas; incluye trabajo aún sin commit.
+
+| Artefacto | Qué incluye | Perfil | Horas |
+|---|---|---|---|
+| Identificador y maestro | Revisión, centinela y dos scripts de un solo uso (≈ 810 líneas `.gs`, ≈ 570 de pruebas), ejecutados en real | Desarrollador senior | 12 – 18 |
+| `VAP_Pagos` por DNI y carga inicial | Cambio de modelo, carga con informes de incidencias y pruebas | Desarrollador senior | 8 – 13 |
+| DNI en formularios, volcados y Complementos | Listas, cruce, simulación, relleno de históricos y pruebas | Desarrollador senior | 8 – 13 |
+| Decisiones | ADR-0020 a 0022 | Arquitecto / Tech Lead | 3 – 5 |
+| Análisis y documentación | RF-102 a RF-106, HU-51, contraste del export, incidencias bancarias | Analista / Product | 3 – 5 |
+| **Total** | | | **34 – 54 h (central ≈ 44)** |
+
+Con las tarifas de «Parámetros» (sin IVA): central **≈ 3.060 €** (36 h senior × 70 € + 4 h de arquitecto × 90 € + 4 h de
+analista × 46 €) · intervalo ≈ 1.900 – 5.200 €.
 
 ### Contraste con otros desarrollos de GALA
 
@@ -401,3 +421,4 @@ urgente mientras el proceso manual siga siendo recuperable en la memoria de quie
 | 2026-11-16 | Revisión de cierre. **Re-medido** el tamaño (código 4.845 + 1.773 líneas; pruebas 12.045) y **añadidos** A15 (webapp v0.1.0) y las ampliaciones de A1 a A5, A12 y A13: de 255 – 356 h (≈ 21.000 €) a 364 – 521 h (≈ 30.300 €). **El salto es sobre todo corrección:** la suite de pruebas del 14 nov no estaba en la cifra (A12 pasa de 14 – 20 h a 74 – 110 h); el trabajo del 16 nov son ≈ 49 – 75 h (A1, A2, A3, A4, A5, A13 y A15). Horas estimadas por quien redacta, sin contraste. Parte B sin cambios de fórmula; se añade la primera medida de descuadres (una muestra). | Redactado con Claude; pendiente de revisión del responsable |
 | 2026-11-17 | Revisión de cierre. **Re-medido solo el tamaño** (código 7.128 + 3.191 líneas; pruebas 15.044) tras la webapp v0.4.0 y el servicio `VAP_Pagos` (sin desplegar). **Las horas y los euros NO se han re-estimado**: siguen siendo los del 16 nov y **infravaloran** el código nuevo (marca de pasos, Altas/bajas, cruce de pagos, 1.937 pruebas). Además, **Altas/bajas está por rehacer** contra el maestro real (ver `proximos_pasos.md`), así que su valor no debe contarse como terminado. Pendiente: re-estimar con los criterios de A15. | Redactado con Claude; pendiente de revisión del responsable |
 | 2026-11-19 | Revisión de cierre. **Sin código nuevo:** el tamaño medido el 17 nov sigue vigente y **las horas y los euros no cambian**. La jornada fue de diseño y de configuración del maestro de personas en Google (lista única de empresas, casillas de `Alta`, desplegables) más su documentación; **no añade artefacto valorable**, pero **evita descuadres** (la lista de empresas estaba en tres sitios que no coincidían) y deja inventariados los scripts que leen el maestro. Sin cifra: es valor de coherencia, no medible aún. | Redactado con Claude; pendiente de revisión del responsable |
+| 2026-11-25 | Revisión de cierre. Re-medido el tamaño y añadida **la sesión del 25 nov por separado** (34 – 54 h, ≈ 3.060 €), sin sumarla a la cabecera. **Sigue pendiente re-estimar el total** desde el 16 nov. Parte B sin cambios: ahora hay un dato de calidad del maestro (261 problemas en 764 filas antes de armonizar), útil como línea base de errores. | Redactado con Claude; pendiente de revisión del responsable |

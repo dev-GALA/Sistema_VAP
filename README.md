@@ -63,10 +63,15 @@ Sistema_VAP
 ├── docs_solutions/                 # LA SOLUCIÓN — cómo está construido, y con qué código
 │   ├── docs_design/                # EL DISEÑO
 │   │   ├── SSD.md                  # Especificación + diseño del sistema
-│   │   └── adr/                    # Decisiones de arquitectura (ADR-0001 … ADR-0019; 0017, 0018 y 0019 en Propuesta)
+│   │   └── adr/                    # Decisiones de arquitectura (ADR-0001 … ADR-0022; 0017 a 0022 en Propuesta)
 │   └── src/                        # CÓDIGO — una carpeta por proyecto de Apps Script
 │       ├── scripts_generales/      # Scripts transversales (no atados a un único colectivo)
 │       │   └── VAP_script_export_SAGE.gs   # Salario base + Export Neto/Bruto (menú "VAP_Acciones")
+│       ├── VAP_Personas/           # → proyecto GAS del libro VAP_BBDD_Personas
+│       │   ├── VAP_Script_Revision_Personas.gs      # Lista errores del maestro (solo lee)
+│       │   ├── VAP_Script_Centinela_Personas.gs     # Genera y protege id_trabajador; vigila repetidos
+│       │   └── VAP_Script_Unico_*.gs                # Dos de uso único (25 nov 2026), a retirar
+│       ├── vap_pagos/              # Servicio VAP_Pagos (proyecto GAS propio) y su carga inicial; ver su README.md
 │       ├── webapp/                 # Webapp del proceso mensual v0.1.0 (esqueleto, solo lectura, sin desplegar)
 │       │   ├── dominio-*.gs · app-*.gs · infra-*.gs   # Capas por prefijo (ADR-0017)
 │       │   ├── ui-*.html           # Cinco pantallas; estilo copiado de carfa (identidad SIFAF)
@@ -83,7 +88,7 @@ Sistema_VAP
 │       │       └── VAP_index_Portal_Complementos_Secretarias.html       # Portada / lanzador (GALA Hub)
 │       ├── VAP_scripts_profesores/ # FASE 2 — Profesores
 │       │   ├── VAP_Script_Actualizacion_Automatica_Profesores.gs        # Sincroniza el desplegable
-│       │   ├── VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs     # Volcado por periodo
+│       │   ├── VAP_Script_Volcado_Actividad_Profesores.gs     # Volcado por periodo
 │       │   └── VAP_index_Dialogo_Volcado_Actividad_Profesores.html      # Diálogo (GAS: DialogoVolcado)
 │       └── backup_old_js/          # Respaldos de versiones anteriores (NO se ejecutan)
 │           ├── backup_VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs
@@ -164,7 +169,7 @@ profesorado no reporta su propia actividad.
 
 | Archivo | Dónde vive en GAS | Qué hace |
 |---------|-------------------|----------|
-| [VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs](docs_solutions/src/VAP_scripts_profesores/VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26.gs) | Hoja de respuestas de `REGISTRO DE ACTIVIDAD DE PROFESORES 26` (`Código.gs`) | Volcado **bajo demanda** de las 64 columnas de actividad (`F..BQ` → `AC..CN`) a `VINCULACIÓN GASTOS PERSONAL`. Filtra por el `MES` de la columna C y el año de la marca temporal; muestra un informe y pide confirmación. **Acumula campo a campo** ([ADR-0009](docs_solutions/docs_design/adr/0009-acumular-respuestas-por-mes-y-anio.md)). Audita en `LOG Volcado`. Usa `LockService`. |
+| [VAP_Script_Volcado_Actividad_Profesores.gs](docs_solutions/src/VAP_scripts_profesores/VAP_Script_Volcado_Actividad_Profesores.gs) | Hoja de respuestas de `REGISTRO DE ACTIVIDAD DE PROFESORES 26` (`Código.gs`) | Volcado **bajo demanda** de las 64 columnas de actividad (`F..BQ` → `AC..CN`) a `VINCULACIÓN GASTOS PERSONAL`. Filtra por el `MES` de la columna C y el año de la marca temporal; muestra un informe y pide confirmación. **Acumula campo a campo** ([ADR-0009](docs_solutions/docs_design/adr/0009-acumular-respuestas-por-mes-y-anio.md)). Audita en `LOG Volcado`. Usa `LockService`. |
 | [VAP_index_Dialogo_Volcado_Actividad_Profesores.html](docs_solutions/src/VAP_scripts_profesores/VAP_index_Dialogo_Volcado_Actividad_Profesores.html) | Mismo proyecto GAS, template **`DialogoVolcado`** | Diálogo del volcado: desplegables de mes y año, informe de coincidencias e incidencias, y botón de exportación. |
 
 **Cómo se usa** (desde [ADR-0014](docs_solutions/docs_design/adr/0014-volcado-actividad-profesores-por-periodo.md)):

@@ -50,6 +50,9 @@ const BBDD_RESP_CONC    = "VAP_Responsables_Complementos";
 const COL_SEC_ID     = "id_trabajador";
 const COL_SEC_NOMBRE = "Nombre_Secretaria";
 const COL_SEC_ALTA   = "Alta";
+const COL_SEC_DNI    = "DNI";
+// Columna de Data con el DNI de la secretaria: el servidor la rellena al guardar (el DNI no llega al navegador).
+const COL_DATA_DNI   = "DNI_Secretaria";
 
 const COL_CONC_ID     = "ID_Concepto";
 const COL_CONC_NAME   = "Concepto";
@@ -169,12 +172,13 @@ function vap_generarExcelMensual() {
     if (!concepto) continue;
     if (valor === "" || valor === null || valor === undefined) continue;
 
+    const dni = idx[COL_DATA_DNI] === undefined ? "" : normalizarDni_(row[idx[COL_DATA_DNI]]);
     const secKey = secId || secName;
     const key = `${year}||${monthNorm}||${secKey}||${concepto}`;
 
     const existing = latest.get(key);
     if (!existing || ts.getTime() > existing.ts.getTime()) {
-      latest.set(key, { ts, secId, secName, concepto, valor });
+      latest.set(key, { ts, secId, secName, dni, concepto, valor });
     }
   }
 
@@ -189,8 +193,9 @@ function vap_generarExcelMensual() {
   for (const rec of latest.values()) {
     const secKey = rec.secId || rec.secName;
     if (!secretariasMap.has(secKey)) {
-      secretariasMap.set(secKey, { secId: rec.secId, secName: rec.secName });
+      secretariasMap.set(secKey, { secId: rec.secId, secName: rec.secName, dni: "" });
     }
+    if (rec.dni) secretariasMap.get(secKey).dni = rec.dni;
     conceptosSet.add(rec.concepto);
   }
 
@@ -208,7 +213,9 @@ function vap_generarExcelMensual() {
   rest.sort((a,b) => a.localeCompare(b, "es"));
   const conceptosOrdered = preferred.concat(rest);
 
-  const outHeader = ["ID_Secretaria", "Secretaria"].concat(conceptosOrdered);
+  // El DNI va al FINAL para no mover ninguna columna. Las filas antiguas sin DNI lo toman del maestro por su id.
+  const dniPorId = dniDelMaestro_();
+  const outHeader = ["ID_Secretaria", "Secretaria"].concat(conceptosOrdered, ["DNI"]);
   const out = [outHeader];
 
   const secList = Array.from(secretariasMap.entries())
@@ -216,6 +223,7 @@ function vap_generarExcelMensual() {
       key: secKey,
       secId: s.secId || "",
       secName: s.secName || "",
+      dni: s.dni || dniPorId.get(s.secId || "") || "",
       sortName: (s.secName || s.secId || secKey || "")
     }))
     .sort((a,b) => a.sortName.localeCompare(b.sortName, "es"));
@@ -231,6 +239,7 @@ function vap_generarExcelMensual() {
       const rec = latest.get(key);
       row[i + 2] = rec ? rec.valor : "";
     }
+    row[outHeader.length - 1] = s.dni;
     out.push(row);
   }
 
@@ -381,13 +390,11 @@ function vap_bootstrapForEmail(email) {
     return { ok:false, error:"Manager válido, pero sin conceptos activos asignados." };
   }
 
-  const secretarias = readTable_(bbdd.getSheetByName(BBDD_SECRETARIAS))
-    .filter(s => truthy_(s[COL_SEC_ALTA]))
-    .map(s => ({
-      id: String(s[COL_SEC_ID] || "").trim(),
-      nombre: String(s[COL_SEC_NOMBRE] || "").trim()
-    }))
-    .filter(s => s.id && s.nombre)
+  const candidatas = leerSecretarias_(bbdd).filter(s => s.alta);
+  anotarExcluidas_(candidatas);
+  const secretarias = candidatas
+    .filter(s => !s.motivo)
+    .map(s => ({ id: s.id, nombre: s.nombre }))
     .sort((a,b) => a.nombre.localeCompare(b.nombre, "es"));
 
   return {
@@ -532,7 +539,15 @@ function vap_submitBatch(payload) {
 
     const isTotal = (modo === "CORRECCION" && tipoCorreccion === "TOTAL");
 
-    const dataHeaders = getHeaders_(shData);
+    let dniPorId = new Map();
+    try {
+      dniPorId = dniDelMaestro_();
+    } catch (dniErr) {
+      Logger.log("No se pudo leer el DNI del maestro: " + dniErr.message); // el envío no se pierde por esto
+    }
+    const cabecerasActuales = getHeaders_(shData);
+    const faltaColumnaDni = cabecerasActuales.indexOf(COL_DATA_DNI) === -1;
+    const dataHeaders = faltaColumnaDni ? cabecerasActuales.concat(COL_DATA_DNI) : cabecerasActuales;
     const logHeaders  = getHeaders_(shLogs);
     const errHeaders  = getHeaders_(shErr);
 
@@ -581,6 +596,7 @@ function vap_submitBatch(payload) {
         Concepto: conc.concepto,
         ID_Secretaria: idSec,
         "Nombre_Secretaria": nomSec,
+        [COL_DATA_DNI]: dniPorId.get(idSec) || "",
         Tipo_Valor: conc.tipoValor || "",
         Valor: num,
         Source: "WEBAPP",
@@ -594,6 +610,7 @@ function vap_submitBatch(payload) {
     }
 
     if (rows.length) {
+      if (faltaColumnaDni) asegurarColumna_(shData, COL_DATA_DNI);
       shData.getRange(shData.getLastRow()+1, 1, rows.length, dataHeaders.length).setValues(rows);
     }
 
@@ -1085,10 +1102,13 @@ function vap_rellenarNombresSecretariaFaltantes() {
   const bbdd = SpreadsheetApp.openById(BBDD_SPREADSHEET_ID);
   const secretarias = readTable_(bbdd.getSheetByName(BBDD_SECRETARIAS));
   const mapaSec = new Map();
+  const mapaPorDni = new Map();
   secretarias.forEach(s => {
     const id = String(s[COL_SEC_ID] || "").trim();
     const nom = String(s[COL_SEC_NOMBRE] || "").trim();
+    const dni = normalizarDni_(s[COL_SEC_DNI]);
     if (id && nom) mapaSec.set(id, nom);
+    if (esDniValido_(dni) && nom) mapaPorDni.set(dni, nom);
   });
 
   const values = sh.getDataRange().getValues();
@@ -1112,9 +1132,10 @@ function vap_rellenarNombresSecretariaFaltantes() {
     if (nombre) continue; // ya está relleno
 
     const id = String(row[idx["ID_Secretaria"]] || "").trim();
-    if (!id) continue;
+    const dni = idx[COL_DATA_DNI] === undefined ? "" : normalizarDni_(row[idx[COL_DATA_DNI]]);
+    if (!id && !dni) continue;
 
-    const nuevo = mapaSec.get(id);
+    const nuevo = mapaPorDni.get(dni) || mapaSec.get(id);
     if (nuevo) {
       sh.getRange(r + 1, colNombre).setValue(nuevo);
       arregladas++;
@@ -1129,4 +1150,123 @@ function vap_rellenarNombresSecretariaFaltantes() {
     msg += `\n\nIDs sin match:\n${Array.from(idsSinMatch).join(", ")}`;
   }
   ui.alert(msg);
+}
+
+/* =====================================================
+ * SECRETARIAS: REGLAS DE LA LISTA Y DNI
+ * ===================================================== */
+
+function normalizarDni_(valor) {
+  return String(valor === null || valor === undefined ? "" : valor).toUpperCase().replace(/[\s-]/g, "");
+}
+
+/** Solo la forma: DNI (8 cifras y letra) o NIE (X, Y o Z, 7 cifras y letra). */
+function esDniValido_(dni) {
+  return /^(\d{8}|[XYZ]\d{7})[A-Z]$/.test(dni);
+}
+
+/** Por qué una secretaria NO puede ofrecerse en el portal ("" si puede). */
+function motivoDeExclusion_(s) {
+  if (!s.id) return "sin id_trabajador";
+  if (!s.nombre) return "sin nombre";
+  if (!/^[^,]+,[^,]+$/.test(s.nombre)) return 'nombre sin el formato "APELLIDOS, NOMBRE"';
+  if (!s.dni) return "sin DNI";
+  if (!esDniValido_(s.dni)) return "DNI con forma no válida";
+  return "";
+}
+
+/** Todas las filas de VAP_Secretarias: { fila, id, nombre, dni, alta, motivo }. */
+function leerSecretarias_(bbdd) {
+  const hoja = bbdd.getSheetByName(BBDD_SECRETARIAS);
+  return readTable_(hoja).map((fila, i) => {
+    const s = {
+      fila: i + 2,
+      id: String(fila[COL_SEC_ID] || "").trim(),
+      nombre: String(fila[COL_SEC_NOMBRE] || "").trim().replace(/\s+/g, " "),
+      dni: normalizarDni_(fila[COL_SEC_DNI]),
+      alta: truthy_(fila[COL_SEC_ALTA])
+    };
+    s.motivo = motivoDeExclusion_(s);
+    return s;
+  });
+}
+
+/** Deja en el registro a quien está de alta y no se ofrece en el portal, sin nombres ni DNI. */
+function anotarExcluidas_(candidatas) {
+  const excluidas = candidatas.filter(s => s.motivo);
+  if (excluidas.length === 0) return;
+  Logger.log(`Secretarias de alta que NO aparecen en el portal: ${excluidas.length}`);
+  excluidas.forEach(s => Logger.log(`  (${s.id || "sin id"}): ${s.motivo}`));
+}
+
+/** id → DNI. Un id repetido con DNI distintos no da ninguno: no se adivina. */
+function mapaDniPorId_(secretarias) {
+  const mapa = new Map();
+  const ambiguos = new Set();
+  secretarias.forEach(s => {
+    if (!s.id || !esDniValido_(s.dni)) return;
+    if (mapa.has(s.id) && mapa.get(s.id) !== s.dni) ambiguos.add(s.id);
+    mapa.set(s.id, s.dni);
+  });
+  ambiguos.forEach(id => mapa.delete(id));
+  return mapa;
+}
+
+function dniDelMaestro_() {
+  return mapaDniPorId_(leerSecretarias_(SpreadsheetApp.openById(BBDD_SPREADSHEET_ID)));
+}
+
+/** Añade la columna al final de la hoja si no existe. */
+function asegurarColumna_(hoja, cabecera) {
+  if (getHeaders_(hoja).indexOf(cabecera) !== -1) return;
+  hoja.getRange(1, hoja.getLastColumn() + 1).setValue(cabecera);
+}
+
+/* =====================================================
+ * RELLENAR EL DNI EN LOS ENVÍOS ANTIGUOS (uso puntual, desde el editor)
+ * ===================================================== */
+
+/** Qué filas de Data sin DNI se pueden rellenar por su id. Si `escribir` es true, las rellena. */
+function rellenarDni_(escribir) {
+  const hoja = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
+  if (!hoja) throw new Error(`No existe la hoja "${SHEET_DATA}".`);
+  const valores = hoja.getDataRange().getValues();
+  const idx = indexMap_(valores[0]);
+  if (idx["ID_Secretaria"] === undefined) throw new Error('Falta la columna "ID_Secretaria" en Data.');
+
+  const dniPorId = dniDelMaestro_();
+  const columna = idx[COL_DATA_DNI];
+  const nuevos = [];
+  const sinDni = new Set();
+  let porRellenar = 0;
+
+  for (let r = 1; r < valores.length; r++) {
+    const actual = columna === undefined ? "" : String(valores[r][columna] || "").trim();
+    const id = String(valores[r][idx["ID_Secretaria"]] || "").trim();
+    let dni = actual;
+    if (!actual && id) {
+      dni = dniPorId.get(id) || "";
+      if (dni) porRellenar++; else sinDni.add(id);
+    }
+    nuevos.push([dni]);
+  }
+
+  if (escribir && porRellenar > 0) {
+    asegurarColumna_(hoja, COL_DATA_DNI);
+    const destino = getHeaders_(hoja).indexOf(COL_DATA_DNI) + 1;
+    hoja.getRange(2, destino, nuevos.length, 1).setValues(nuevos);
+  }
+  const resumen = { filas: valores.length - 1, porRellenar, idsSinDni: Array.from(sinDni), escrito: escribir && porRellenar > 0 };
+  Logger.log(JSON.stringify(resumen));
+  return resumen;
+}
+
+/** Desde el editor: dice cuántas filas de Data se rellenarían y qué ids no tienen DNI. NO escribe. */
+function simularRellenoDniData() {
+  return rellenarDni_(false);
+}
+
+/** Desde el editor: rellena la columna DNI_Secretaria de las filas antiguas de Data. */
+function rellenarDniData() {
+  return rellenarDni_(true);
 }

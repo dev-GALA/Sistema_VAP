@@ -5,8 +5,8 @@
     "includes": [
       "docs_solutions/src/webapp/**/*.gs",
       "docs_solutions/src/webapp/appsscript.json",
-      "docs_solutions/src/pagos/**/*.gs",
-      "docs_solutions/src/pagos/appsscript.json",
+      "docs_solutions/src/vap_pagos/**/*.gs",
+      "docs_solutions/src/vap_pagos/appsscript.json",
       "tests/webapp/**",
       "tests/pagos/**",
       "tests/e2e/webapp.e2e.mjs"
@@ -33,7 +33,7 @@
   },
   "overrides": [
     {
-      "includes": ["docs_solutions/src/webapp/**/*.gs", "docs_solutions/src/pagos/**/*.gs"],
+      "includes": ["docs_solutions/src/webapp/**/*.gs", "docs_solutions/src/vap_pagos/**/*.gs"],
       "linter": {
         "rules": {
           "complexity": { "useOptionalChain": "off" },

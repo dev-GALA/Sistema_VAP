@@ -1,7 +1,7 @@
 # SSD — Sistema VAP (Valoración de Actividad Productiva)
 **Software Specification & Design Document**
-**Versión:** 2.2
-**Fecha última actualización:** 19 noviembre 2026
+**Versión:** 2.3
+**Fecha última actualización:** 25 noviembre 2026
 
 > Documento único que cubre **especificación** (qué debe hacer el sistema) y **diseño**
 > (cómo está construido). Las **decisiones de arquitectura** se registran aparte, una por
@@ -150,8 +150,8 @@ VAP
 
 | Hoja | Propósito | Columnas (en orden) | Filas |
 |------|-----------|---------------------|-------|
-| `VAP_Secretarias` | Listado de secretarias con estado activo/inactivo | `Empresa`, `Id_Sage`, `ID_Secre`, `Nombre_Secretaria`, `Alta`, `Fecha Alta`, `Fecha Baja` | 110 · **106 de alta** |
-| `VAP_Profesores` | Listado de profesores | `Empresa`, `Id_Sage`, `ID_Profesor`, `Nombre`, `DNI`, `Tipologia_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` *(columnas verificadas el 25 sep 2026; ver 6.1.0)* | 293 · **280 de alta** |
+| `VAP_Secretarias` | Listado de secretarias con estado activo/inactivo | `Empresa`, `Id_Sage`, `id_trabajador`, `Nombre_Secretaria`, `Alta`, `Fecha Alta`, `Fecha Baja` | 110 · **106 de alta** |
+| `VAP_Profesores` | Listado de profesores | `Empresa`, `Id_Sage`, `id_trabajador`, `Nombre`, `DNI`, `Tipologia_Profesor`, `Alta`, `Fecha_Alta`, `Fecha_Baja` *(columnas verificadas el 25 sep 2026; ver 6.1.0)* | 293 · **280 de alta** |
 | `VAP_Complementos_Secretarias` | Catálogo de complementos salariales | `ID_Concepto`, `Concepto`, `Tipo_Valor`, `Activo` | 7 |
 | `VAP_Responsables` | Listado de responsables (managers) | `ID_Respon`, `Nombre `, `Email`, `Activa` | 5 |
 | `VAP_Responsables_Complementos` | Relación responsable ↔ complementos asignados | `ID_Respon`, `ID_Concepto`, `Activa` | 6 |
@@ -180,6 +180,11 @@ no se eliminan filas.
   ningún script. 🔍 *Pendiente de aclarar qué distingue una tipología de otra: si condiciona la
   retribución, es un dato relevante para el cálculo.*
 
+> **Desde el 25 de noviembre de 2026** ([ADR-0021](adr/0021-id-trabajador-generado-y-vigilado-en-el-maestro.md)) las tres
+> pestañas de personas (`VAP_Staff`, `VAP_Secretarias`, `VAP_Profesores`) tienen `Empresa`, `Id_Sage`, `id_trabajador`,
+> nombre y `DNI`; `id_trabajador` se genera con una fórmula **en la cabecera** y está protegido, y hay una columna nueva
+> `Observaciones`. La tabla de arriba es la foto de agosto.
+
 #### 6.1.0 Reglas de entrada de `VAP_Profesores`
 
 Desde el **25 de septiembre de 2026** la hoja tiene tres reglas que impiden los errores de escritura
@@ -188,13 +193,13 @@ más frecuentes. Viven **en la hoja**, no en el código: los scripts no han camb
 | Columna | Regla | Por qué |
 |---------|-------|---------|
 | `Empresa` (A) | **Desplegable** con las empresas válidas, aplicado a `A2:A` y con *Rechazar los datos introducidos* | La empresa forma parte del ID: una errata o un espacio de más genera un ID distinto |
-| `ID_Profesor` (C) | **Calculado**: `ARRAYFORMULA` en `C2` que compone `Empresa_Id_Sage`. Si falta la empresa o el `Id_Sage`, deja el ID **vacío** | El ID se escribía a mano. Con el ID vacío la persona no aparece en el formulario: un `Id_Sage` olvidado se nota en lugar de colarse un ID a medias |
+| `id_trabajador` (C) | **Calculado**: `ARRAYFORMULA` en la cabecera que compone `Empresa_Id_Sage`. Si falta la empresa o el `Id_Sage`, deja el ID **vacío** | El ID se escribía a mano. Con el ID vacío la persona no aparece en el formulario: un `Id_Sage` olvidado se nota en lugar de colarse un ID a medias |
 | `Alta` (G) | **Casilla de verificación** en `G2:G`, con *Rechazar los datos introducidos* y sin valores personalizados | El script exige el valor verdadero (`=== true`). Un texto "TRUE" pegado se ve igual y **excluía a la persona del formulario sin avisar** |
 
-La fórmula de `C2` es:
+La fórmula vive ahora en la **cabecera** (`C1`), con los separadores de la hoja:
 
 ```
-=ARRAYFORMULA(SI((A2:A="")+(B2:B="");"";ESPACIOS(A2:A)&"_"&ESPACIOS(B2:B)))
+={"id_trabajador";ARRAYFORMULA(IF((A2:A="")+(B2:B="");"";TRIM(A2:A)&"_"&TRIM(B2:B)))}
 ```
 
 > ⚠️ **Tres cosas que hay que saber al mantener la hoja:**
@@ -212,7 +217,7 @@ La fórmula de `C2` es:
 
 **Columnas clave usadas por el backend de complementos** (constantes `COL_*` del `Code.gs`):
 
-- `VAP_Secretarias`: `ID_Secre`, `Nombre_Secretaria`, `Alta`.
+- `VAP_Secretarias`: `id_trabajador`, `Nombre_Secretaria`, `Alta`.
 - `VAP_Complementos_Secretarias`: `ID_Concepto`, `Concepto`, `Tipo_Valor`, `Activo`.
 - `VAP_Responsables`: `ID_Respon`, `Nombre`, `Email`, `Activa`.
 - `VAP_Responsables_Complementos`: `ID_Respon`, `ID_Concepto`, `Activa`.
@@ -443,7 +448,7 @@ Se crea automáticamente en el Spreadsheet de respuestas. Columnas: `Timestamp`,
 
 ### 7.4 Profesores — Registro de Actividad (acumulación)
 
-**`VAP_script_REGISTRO_DE_ACTIVIDAD_DE_PROFESORES_26`** + plantilla `DialogoVolcado` (hoja de
+**`VAP_Script_Volcado_Actividad_Profesores`** + plantilla `DialogoVolcado` (hoja de
 respuestas de `REGISTRO DE ACTIVIDAD DE PROFESORES 26`). Volcado **bajo demanda por periodo**, con
 **acumulación campo a campo** ([ADR-0009](adr/0009-acumular-respuestas-por-mes-y-anio.md),
 [ADR-0014](adr/0014-volcado-actividad-profesores-por-periodo.md)).
@@ -611,6 +616,22 @@ ficheros, comprobaciones ni altas.
   desplegar ([R-23](#9-riesgos-y-limitaciones)).
 - **Aún sin desplegar:** falta crear el libro, el proyecto de Apps Script y la propiedad `ID_LIBRO_WEBAPP`.
 
+### 7.8 Maestro de personas — revisión y centinela (25 nov 2026)
+
+Proyecto de Apps Script ligado a `VAP_BBDD_Personas`; código en [`src/VAP_Personas/`](../src/VAP_Personas/).
+
+| Archivo | Qué hace | Disparo | Escribe |
+|---|---|---|---|
+| `VAP_Script_Revision_Personas.gs` | Lista errores de id, empresa, DNI y nombre (RF-106) | `revisarPersonas`, a mano | Solo la hoja `revision_ids` |
+| `VAP_Script_Centinela_Personas.gs` | Genera y protege `id_trabajador` y vigila números repetidos (RF-103, RF-104) | `instalarCentinela` a mano; `onEdit` simple, sin activadores | Fórmula y protección; color y nota en `Id_Sage`; `copia_id_trabajador` |
+| `VAP_Script_Unico_Empresa_IdSage.gs` | **Uso único:** corrige `Empresa` e `Id_Sage` contra el export de SAGE | A mano, con simulación | Columnas A, B, `Observaciones` y fondo amarillo |
+| `VAP_Script_Unico_Actualizar_Ids.gs` | **Uso único:** lleva los id nuevos a `huellas` y a Complementos | A mano, con simulación | La celda del id; borra huellas repetidas |
+
+Los dos de uso único se ejecutaron en real el 25 nov 2026. Propiedades del proyecto: `ID_LIBRO_VAP_PAGOS`,
+`ID_LIBRO_COMPLEMENTOS` e `ID_LIBRO_EXPORT_SAGE`.
+
+---
+
 ## 8. Flujos clave
 
 ### 8.1 Reporte de complementos (manager)
@@ -661,7 +682,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 |----|---------------------|---------|---------------------------|
 | R-01 | Dependencia total de Google Workspace | Alto | Asumida como decisión corporativa. Documentar exportaciones periódicas |
 | R-02 | Permisos de webapp no gestionados por rol nativo de Google | Medio | La webapp valida internamente que el responsable corresponde al complemento |
-| R-03 | Cambio de nombre de una persona desvincula históricos y rompe el cruce por nombre | Medio | Usar siempre `ID_Secre` / `ID_Profesor`; mantener nombres únicos por colectivo |
+| R-03 | Cambio de nombre de una persona desvincula históricos y rompe el cruce por nombre | Medio | Cruzar por DNI ([ADR-0022](adr/0022-el-dni-como-clave-de-persona-en-formularios-y-volcados.md)); mantener nombres únicos por colectivo |
 | R-04 | Volcado de horas extras: **bajo demanda por decisión de diseño** (antes automático vía `onFormSubmit`) | Bajo | Acción de menú con informe y confirmación previa ([ADR-0013](adr/0013-volcado-horas-extras-por-periodo-bajo-demanda.md)). Ver R-09 |
 | R-05 | Scripts de sincronización comparten nombres globales | Bajo | Desplegar cada uno en proyecto Apps Script independiente ([ADR-0007](adr/0007-proyectos-apps-script-independientes.md)) |
 | R-06 | El cruce por nombre exige que `Nombre` coincida con el texto del desplegable | Bajo | Mantener `Nombre` con el formato deseado (`APELLIDOS, NOMBRE`); no editar la lista a mano |
@@ -678,16 +699,19 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | R-18 | **Los procesos que se ejecutan solos no dejan rastro consultable.** Los dos scripts de sincronización de formularios escriben únicamente en el registro interno de la plataforma, que se borra | Alto | Pendiente: [RF-47](../../docs_discovery/requisitos_funcionales.md). Son justo los que deciden **quién aparece en los formularios**, y nadie está delante cuando fallan |
 | R-19 | **Los movimientos de datos entre libros se hacen copiando y pegando**, y ninguno deja constancia de qué se movió ni cuándo | Alto | Pendiente: [RF-25](../../docs_discovery/requisitos_funcionales.md), [DUDA-0003](../../docs_work/dudas/0003-momentos-de-copia-y-pega-del-proceso.md). Rompe la cadena de trazabilidad justo en el punto donde el dato sale del sistema |
 | R-20 | **El archivo donde se calcula la nómina está fuera del sistema**: no consta su estructura y no se controla lo que entra en él | Alto | Pendiente: [DUDA-0001](../../docs_work/dudas/0001-RESUELTA-tres-libros-destino-de-los-volcados.md). Es el supuesto S-06 de [`problem.md`](../../docs_discovery/problem.md) |
-| R-21 | **El `ID_Profesor` se deriva de la empresa y del `Id_Sage`.** Si se edita la empresa de un profesor, su ID cambia y sus respuestas anteriores quedan con el antiguo | Medio | Procedimiento: al cambiar de empresa, baja y fila nueva, nunca editar la existente ([§6.1.0](#610-reglas-de-entrada-de-vap_profesores)) |
+| R-21 | **El `id_trabajador` se deriva de la empresa y del `Id_Sage`.** Si se edita la empresa de un profesor, su ID cambia y sus respuestas anteriores quedan con el antiguo | Medio | Procedimiento: al cambiar de empresa, baja y fila nueva, nunca editar la existente ([§6.1.0](#610-reglas-de-entrada-de-vap_profesores)) |
 | R-22 | **La webapp depende de la cuenta de una persona**: el libro y el proyecto son de la cuenta del desarrollador | Medio | [ADR-0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md): segundo editor, transferencia de la propiedad y copia de seguridad. **Aún por concretar** |
 | R-23 | **`Session.getActiveUser()` puede no identificar al usuario** según cómo se despliegue, y entonces la webapp **deniega a todos** | Medio | No verificado en el dominio. Se prueba a mano entrando con la cuenta de la Responsable de Administración antes de dar la webapp por buena |
 | R-24 | **Los ficheros reales de ADESLAS, COBEE, banco y SAGE, y el libro de la Vinculación, están en `docs_work/docs_cruce/`**, protegidos solo por la extensión en `.gitignore` | Alto | Pendiente de decidir: moverlos a `migration_data/` (ignorada entera) o declarar la carpeta ignorada dejando pasar solo los `.md`. Ver [proximos_pasos.md](../../docs_work/proximos_pasos.md) |
-| R-25 | **La clave de la huella de `VAP_Pagos`**: perderla obliga a repetir la carga inicial, y su custodia es una decisión de seguridad | Alto | Decidido el 17 nov 2026 ([ADR-0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), Propuesta): solo en el proyecto de `VAP_Pagos`, copia en el gestor de contraseñas de GALA y acceso limitado al propietario ([RNF-20](../../docs_discovery/requisitos_no_funcionales.md)). Sin construir en real |
+| R-25 | **La clave de la huella de `VAP_Pagos`**: perderla obliga a repetir la carga inicial, y su custodia es una decisión de seguridad | Alto | Decidido el 17 nov 2026 ([ADR-0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), Propuesta). **Ampliado el 25 nov 2026 ([ADR-0020](adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md)): el libro `VAP_Pagos` lleva también el DNI, junto a huella y últimos 4 dígitos**: solo en el proyecto de `VAP_Pagos`, copia en el gestor de contraseñas de GALA y acceso limitado al propietario ([RNF-20](../../docs_discovery/requisitos_no_funcionales.md)). Sin construir en real |
 | R-26 | **Retoques manuales en la Vinculación tras el volcado**: el libro puede no reflejar lo que trae SAGE (en la muestra, 1 valor distinto y 7 filas que no están en el export) | Medio | Lo detectan las comprobaciones ([HU-23](../../docs_discovery/historias_usuarios.md)); hoy nada lo avisa |
 | R-27 | **Las ayudas de COBEE no llegan a SAGE ni a la Vinculación** (columnas vacías en las 493 personas de la muestra) | Alto | Pregunta abierta: ¿es el primer o el segundo export? ([fuentes_de_contraste.md](../../docs_work/docs_cruce/fuentes_de_contraste.md) §7) |
 | R-28 | **La conexión entre la webapp y el proyecto de `VAP_Pagos`** (identificación entre proyectos) no se ha probado en Google real, y la cuenta viaja en memoria entre los dos | Medio | Comprobación manual escrita antes de desplegar; prueba automática de que la cuenta no llega a ningún registro ([RNF-19](../../docs_discovery/requisitos_no_funcionales.md), [RNF-21](../../docs_discovery/requisitos_no_funcionales.md)) |
-| R-29 | **Los ficheros del banco y el Excel de altas contienen cuentas y nombres en claro** y quedan en Drive hasta que el usuario los borre | Alto | Los borra el usuario a mano ([RNF-23](../../docs_discovery/requisitos_no_funcionales.md)); el sistema no los guarda. Sin borrado automático por decisión del 17 nov 2026 |
+| R-29 | **Los ficheros del banco y el Excel de la carga inicial contienen cuentas y nombres en claro** y quedan en Drive hasta que el usuario los borre | Alto | Los borra el usuario a mano ([RNF-23](../../docs_discovery/requisitos_no_funcionales.md)); el sistema no los guarda. Sin borrado automático por decisión del 17 nov 2026 |
 | R-30 | **Una misma empresa se escribe de tres formas** según el origen (maestro «MOTOR INTEGRAL», export de SAGE «CTM MOTOR», otra hoja «CTM MOTOR INTEGRAL SLU»). `export_SAGE` une por el texto de empresa (en minúsculas y sin tildes) y el cruce de personas necesita una tabla de equivalencias: **si no casan, la persona queda sin vincular sin que salte ningún error**. Visto el 19 nov 2026 | Medio | Tabla única de equivalencias en `Config` leída por quien la necesite ([RF-100](../../docs_discovery/requisitos_funcionales.md), RF-80); mientras, comprobar en `LOG NETOS` y `LOG BRUTOS` las filas sin pareja. Decisión pendiente en `proximos_pasos.md` |
+| R-31 | **Cualquier script que escriba en `id_trabajador` rompe la fórmula** que lo genera (la webapp al dar de alta y el cruce con SAGE) | Alto | No usar esas dos funciones sobre el maestro hasta adaptarlas ([ADR-0021](adr/0021-id-trabajador-generado-y-vigilado-en-el-maestro.md)) |
+| R-32 | **Cambiar `Empresa` o `Id_Sage` cambia el id**, pero las huellas y los envíos guardados conservan el anterior | Medio | La actualización del 25 nov fue de un solo uso; falta decidir cómo se hace en adelante |
+| R-33 | **`VAP_BBDD_Personas` estaba compartido como «cualquier persona con el enlace»** (lectura), con DNI de la plantilla | Alto | Restringir el acceso; antes, comprobar qué procesos leen el libro con la cuenta de quien los usa |
 | R-15 | Export Neto/Bruto escribe **celda a celda** (filas × 8 campos): riesgo de agotar el tiempo máximo de ejecución al crecer el volumen | Medio | Pendiente de optimizar con escritura por rangos. Ver [RNF-08](../../docs_discovery/requisitos_no_funcionales.md) |
 
 ## 10. Glosario
@@ -698,8 +722,8 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 | BBDD | Base de Datos |
 | Complemento salarial | Concepto variable que se suma al salario base mensual |
 | Responsable / Manager | Persona autorizada a reportar un complemento concreto |
-| `ID_Secre` | Identificador único de cada secretaria en la BBDD |
-| `ID_Profesor` | Identificador único de cada profesor en la BBDD. Se calcula en la hoja como `Empresa_Id_Sage` (ver 6.1.0) |
+| `id_trabajador` | Identificador de cada persona en el maestro: `Empresa_Id_Sage`, generado por fórmula (ver 6.1.0) |
+| `ID_Secre` · `ID_Profesor` · `ID_Mecanico` | Columnas de las **hojas de respuestas** que guardan el `id_trabajador`, junto a su columna `DNI_…` |
 | `Batch_ID` | Identificador único de un envío de complementos |
 | `Run ID` | Identificador que correlaciona una ejecución del script SAGE entre `logs`/`errores`/LOG |
 | Webapp | Aplicación web generada con Google Apps Script |
@@ -708,7 +732,7 @@ audita en `logs`/`errores` y deja LOG fila-a-fila (antes→después) en el desti
 
 ## 11. Referencias
 
-- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0019)
+- **Decisiones de arquitectura:** [`docs_solutions/docs_design/adr/`](adr/README_ADR.md) (ADR-0001 … ADR-0022)
 - **Requisitos y su estado:** [`requisitos_funcionales.md`](../../docs_discovery/requisitos_funcionales.md) · [`requisitos_no_funcionales.md`](../../docs_discovery/requisitos_no_funcionales.md)
 - **Trabajo en curso:** [`proximos_pasos.md`](../../docs_work/proximos_pasos.md)
 - **Cambios cronológicos:** [`../../CHANGELOG.md`](../../CHANGELOG.md)
@@ -746,8 +770,11 @@ tiene, o la decisión no llegó a aplicarse, o falta escribir el requisito:
 | [0017](adr/0017-webapp-del-proceso-mensual-stack-y-estructura.md) | Webapp del proceso mensual: stack y estructura *(propuesta)* | RF-72, RF-73, RF-79, RF-82, RNF-09, RNF-11, RNF-16, RNF-17 |
 | [0018](adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) | Libro propio de la webapp, propietario y accesos *(propuesta)* | RF-42, RF-43, RF-79, RNF-09, RNF-12 |
 | [0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md) | `VAP_Pagos` como servicio propio con la huella HMAC de la cuenta *(propuesta)* | RF-86 a RF-99, RNF-09, RNF-12, RNF-13, RNF-19 a RNF-23 |
+| [0020](adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md) | `VAP_Pagos` identifica a la persona por su DNI, con varios identificadores de trabajador *(propuesta; sustituye la decisión 4 del 0019)* | RF-86, RF-87, RF-97, RF-98, RF-102, RNF-19, RNF-20, RNF-21 |
+| [0021](adr/0021-id-trabajador-generado-y-vigilado-en-el-maestro.md) | `id_trabajador` generado y centinela de números repetidos *(propuesta)* | RF-101, RF-103, RF-104, RF-106 |
+| [0022](adr/0022-el-dni-como-clave-de-persona-en-formularios-y-volcados.md) | El DNI como clave de la persona en formularios y volcados *(propuesta)* | RF-04, RF-105 |
 
-**Los 16 ADR aceptados declaran requisito, y las tres propuestas (0017, 0018 y 0019) también.** **Requisitos nuevos sin ADR todavía:** RF-80, RF-81 (concordancia de identidad, [OB-44](../../docs_work/proximos_pasos.md)), RF-83 a RF-85 (altas, bajas y su registro, [OB-46](../../docs_work/proximos_pasos.md)) y los de `VAP_Pagos` y el cruce de pagos (RF-86 a RF-99, RNF-19 a RNF-23) **ya tienen su ADR, el [0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), en Propuesta** (trabajo en [OB-45](../../docs_work/proximos_pasos.md), [OB-47](../../docs_work/proximos_pasos.md) y [OB-36](../../docs_work/proximos_pasos.md)); falta la validación de Gerencia y de protección de datos. Dos matices: el 0016 está decidido pero **sin aplicar**, y
+**Los 16 ADR aceptados declaran requisito, y las seis propuestas (0017 a 0022) también.** **Requisitos nuevos sin ADR todavía:** RF-80, RF-81 (concordancia de identidad, [OB-44](../../docs_work/proximos_pasos.md)), RF-83 a RF-85 (altas, bajas y su registro, [OB-46](../../docs_work/proximos_pasos.md)) y los de `VAP_Pagos` y el cruce de pagos (RF-86 a RF-99, RNF-19 a RNF-23) **ya tienen su ADR, el [0019](adr/0019-vap-pagos-como-servicio-propio-con-huella-hmac.md), en Propuesta** (trabajo en [OB-45](../../docs_work/proximos_pasos.md), [OB-47](../../docs_work/proximos_pasos.md) y [OB-36](../../docs_work/proximos_pasos.md)); falta la validación de Gerencia y de protección de datos. Dos matices: el 0016 está decidido pero **sin aplicar**, y
 **RF-21 describe lo que el ADR-0015 retira** (está marcado ✅ pero el cálculo ya no existe): es una
 contradicción abierta, anotada en [OB-39](../../docs_work/proximos_pasos.md).
 
@@ -788,6 +815,10 @@ Los riesgos de [`SSD.md` §9](SSD.md#9-riesgos-y-limitaciones) y el requisito qu
 | R-28 | Conexión webapp ↔ `VAP_Pagos` sin verificar | RNF-21, RNF-19 | 🔴 No construido |
 | R-29 | Cuentas en claro en ficheros del banco hasta que se borren | RNF-23 | 🔴 No construido |
 | R-30 | Una misma empresa con tres grafías entre maestro, SAGE y Vinculación | RF-80, RF-100 | 🟡 Lista de empresas cerrada; equivalencias sin decidir |
+
+| R-31 | Scripts que escriben en `id_trabajador` rompen la fórmula | RF-103 | 🔴 Webapp y cruce con SAGE sin adaptar |
+| R-32 | Un cambio de empresa o número no actualiza huellas ni envíos antiguos | RF-83, RF-102, RF-103 | 🔴 Sin automatizar |
+| R-33 | El maestro de personas se puede leer con solo el enlace | RNF-09 | 🔴 Visto el 25 nov 2026; pendiente de decisión |
 
 > **Tres riesgos no tenían requisito y ahora lo tienen** (RF-70, RF-71, RNF-15). Y **tres riesgos
 > nuevos** salieron de esta confrontación y se han añadido al SSD: R-18, R-19 y R-20 — los tres de

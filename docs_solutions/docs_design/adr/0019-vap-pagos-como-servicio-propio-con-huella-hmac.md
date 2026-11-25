@@ -6,6 +6,8 @@
 - **Equivalencia:** —
 - **Requisitos:** RF-86, RF-87, RF-88, RF-89, RF-90, RF-91, RF-92, RF-93, RF-94, RF-95, RF-96, RF-97, RF-98, RF-99, RNF-09, RNF-12, RNF-13, RNF-19, RNF-20, RNF-21, RNF-22, RNF-23
 
+> **Decisión 4 sustituida por [ADR-0020](0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md)** (25 nov 2026): `VAP_Pagos` guarda ahora el **DNI** y una fila por pareja DNI + `id_trabajador`. El resto de este ADR sigue vigente.
+
 ## Contexto
 
 El fichero del banco solo trae **nombre e IBAN**, y se necesita reconocer a quién se pagó **sin guardar la

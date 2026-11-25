@@ -132,7 +132,7 @@ test.describe('paso 2 y 3 · parámetros e importes (RF-05)', () => {
     await abrir(page);
     await validarEnReportar(page);
     await continuar(page);
-    await expect(page.locator('#tbl tbody tr td:first-child')).toHaveText(['Álvaro Falso', 'Ñoño Inventado', 'Zoe Ficticia']);
+    await expect(page.locator('#tbl tbody tr td:first-child')).toHaveText(['Falso, Álvaro', 'Inventado, Ñoño', 'Ficticia, Zoe']);
     await expect(page.locator('#contextLine')).toHaveText('Mes: Marzo | Concepto: Aptos | Envío mensual');
     await expect(entradas(page).first()).toBeFocused();
     expect(await entradas(page).first().getAttribute('placeholder')).toBe('0,00');
@@ -220,9 +220,9 @@ test.describe('envío mensual · RF-05 · RF-07 · RF-61', () => {
       responsable: { id: 'R1', email: 'ana@gala.test' }, concepto: { id: 'C1', concepto: 'Aptos' },
     });
     expect(llamada.args[0].valores).toEqual([
-      { idSecretaria: 'S2', nombreSecretaria: 'Álvaro Falso', valorStr: '' },
-      { idSecretaria: 'S4', nombreSecretaria: 'Ñoño Inventado', valorStr: '50.5' },
-      { idSecretaria: 'S1', nombreSecretaria: 'Zoe Ficticia', valorStr: '' },
+      { idSecretaria: 'S2', nombreSecretaria: 'Falso, Álvaro', valorStr: '' },
+      { idSecretaria: 'S4', nombreSecretaria: 'Inventado, Ñoño', valorStr: '50.5' },
+      { idSecretaria: 'S1', nombreSecretaria: 'Ficticia, Zoe', valorStr: '' },
     ]);
   });
   test('RF-61 · las secretarias en blanco no se guardan', async ({ page }) => {
@@ -371,8 +371,8 @@ test.describe('defectos de importes · RF-60 · RNF-08', () => {
 
 test.describe('correcciones · RF-08 · RNF-06', () => {
   const previos = [
-    { batch: 'BATCH_VIEJO', idS: 'S1', nomS: 'Zoe Ficticia', valor: 100, ts: '2026-03-05T09:00:00Z' },
-    { batch: 'BATCH_NUEVO', idS: 'S1', nomS: 'Zoe Ficticia', valor: 110, ts: '2026-03-10T09:30:00Z' },
+    { batch: 'BATCH_VIEJO', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 100, ts: '2026-03-05T09:00:00Z' },
+    { batch: 'BATCH_NUEVO', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 110, ts: '2026-03-10T09:30:00Z' },
     { batch: 'BATCH_AJENO', resp: 'R2', idC: 'C3', conc: 'Reseñas', idS: 'S1', valor: 5 },
     { batch: 'BATCH_OTRO_MES', mes: 4, idS: 'S1', valor: 5 },
   ];
@@ -532,7 +532,7 @@ test.describe('accesibilidad y adaptación · RNF-10', () => {
     await abrir(page);
     await validarEnReportar(page);
     await continuar(page);
-    await expect(page.getByRole('textbox', { name: /Zoe Ficticia/ })).toBeVisible({ timeout: 1000 });
+    await expect(page.getByRole('textbox', { name: /Ficticia, Zoe/ })).toBeVisible({ timeout: 1000 });
   });
   test('los mensajes de error se anuncian a lectores de pantalla (role=alert / aria-live)', async ({ page }) => {
     test.fail(true, 'DEFECTO: #msg1/#msg2/#msg3 no son regiones aria-live');

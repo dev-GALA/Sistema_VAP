@@ -1,7 +1,7 @@
 // Recorridos de extremo a extremo del BACKEND: desde el punto de entrada real (menú, disparador, envío de formulario)
 // hasta el estado final de hojas, formulario y LOG. Datos ficticios. ADR-0004 · ADR-0013 · RF-16..RF-19.
 import { describe, expect, it } from 'vitest';
-import { CODIGO, CAB_ORIGEN, entornoSync, entornoVolcado, eventoEnvio, fecha, filaDestino, filaOrigen, filtrarLog } from './ayudas.js';
+import { CODIGO, CAB_ORIGEN, entornoSync, entornoVolcado, eventoEnvio, fecha, filaDestino, filaOrigen, filtrarLog, DNI_PRUEBA } from './ayudas.js';
 import { cargarGs, plano } from '../soporte/cargar-gs.js';
 
 const marzo = (dia, extra = {}) => filaOrigen({ ts: fecha(2026, 3, dia), mes: 'MARZO', ...extra });
@@ -25,12 +25,12 @@ describe('Recorrido 1 · cierre mensual feliz: menú → diálogo → informe �
     const e = entornoVolcado({
       ahora: '2026-03-31T16:00:00Z',
       origen: [
-        marzo(24, { nombre: 'Ana Prueba', horas: 2, otros: 10 }),
-        marzo(26, { nombre: 'Bea Inventada', horas: 4 }),
-        marzo(27, { nombre: 'Ana Prueba', horas: 3, otros: 12 }), // reenvío de Ana: corrige
-        filaOrigen({ ts: fecha(2026, 2, 27), mes: 'FEBRERO', nombre: 'Ana Prueba', horas: 9 }), // mes pasado: no se toca
+        marzo(24, { nombre: 'Prueba, Ana', horas: 2, otros: 10 }),
+        marzo(26, { nombre: 'Inventada, Bea', horas: 4 }),
+        marzo(27, { nombre: 'Prueba, Ana', horas: 3, otros: 12 }), // reenvío de Ana: corrige
+        filaOrigen({ ts: fecha(2026, 2, 27), mes: 'FEBRERO', nombre: 'Prueba, Ana', horas: 9 }), // mes pasado: no se toca
       ],
-      destino: [filaDestino({ nombre: 'Ana Prueba' }), filaDestino({ nombre: 'Bea Inventada' })],
+      destino: [filaDestino({ nombre: 'Prueba, Ana' }), filaDestino({ nombre: 'Inventada, Bea' })],
     });
 
     pulsarMenu(e);
@@ -50,7 +50,7 @@ describe('Recorrido 1 · cierre mensual feliz: menú → diálogo → informe �
     expect(r).toEqual({ ok: true, actualizadas: 2, sinCambios: 0, creadas: 0, bloqueadas: 0, copiadas: 3, incidencias: 0 });
 
     expect([2, 3].map((f) => [e.celdaDestino(f, 31), e.celdaDestino(f, 34)])).toEqual([[3, 12], [4, '']]);
-    expect(e.verArchivo().map((f) => [f[4], f[10]])).toEqual([['Ana Prueba', 'ARCHIVADO MARZO 2026'], ['Bea Inventada', 'ARCHIVADO MARZO 2026'], ['Ana Prueba', 'ARCHIVADO MARZO 2026']]);
+    expect(e.verArchivo().map((f) => [f[4], f[10]])).toEqual([['Prueba, Ana', 'ARCHIVADO MARZO 2026'], ['Inventada, Bea', 'ARCHIVADO MARZO 2026'], ['Prueba, Ana', 'ARCHIVADO MARZO 2026']]);
     expect(filtrarLog(e.verLog(), 'RESUMEN', 'OK')).toHaveLength(1);
     expect(filtrarLog(e.verLog(), 'INCIDENCIA', 'VARIOS_ENVIOS')).toHaveLength(1);
     expect(e.hojaOrigen.getLastRow()).toBe(5); // la hoja de respuestas conserva sus 4 filas + cabecera
@@ -60,8 +60,8 @@ describe('Recorrido 1 · cierre mensual feliz: menú → diálogo → informe �
 describe('Recorrido 2 · cancelar: nada se modifica (RF-18)', () => {
   it('se abre el menú, se revisa el periodo y se cierra sin exportar', () => {
     const e = entornoVolcado({
-      origen: [marzo(24, { nombre: 'Ana Prueba', horas: 2 })],
-      destino: [filaDestino({ nombre: 'Ana Prueba' })],
+      origen: [marzo(24, { nombre: 'Prueba, Ana', horas: 2 })],
+      destino: [filaDestino({ nombre: 'Prueba, Ana' })],
     });
     const fotoOrigen = e.hojaOrigen.volcar();
     const fotoDestino = e.hojaDestino.volcar();
@@ -82,8 +82,8 @@ describe('Recorrido 3 · cierre a primeros del mes siguiente (ADR-0013 §2)', ()
   it('el diálogo propone ABRIL pero se elige MARZO: se vuelca marzo y el destino de abril no se toca', () => {
     const e = entornoVolcado({
       ahora: '2026-04-02T08:00:00Z',
-      origen: [marzo(30, { nombre: 'Ana Prueba', horas: 5 }), filaOrigen({ ts: fecha(2026, 4, 1), mes: 'ABRIL', nombre: 'Ana Prueba', horas: 99 })],
-      destino: [filaDestino({ nombre: 'Ana Prueba' })],
+      origen: [marzo(30, { nombre: 'Prueba, Ana', horas: 5 }), filaOrigen({ ts: fecha(2026, 4, 1), mes: 'ABRIL', nombre: 'Prueba, Ana', horas: 99 })],
+      destino: [filaDestino({ nombre: 'Prueba, Ana' })],
     });
     expect(plano(e.llamar('vapPeriodoPropuesto')).mes).toBe('ABRIL');
     e.llamar('vapEjecutarExportacion', 'MARZO', '2026');
@@ -95,8 +95,8 @@ describe('Recorrido 3 · cierre a primeros del mes siguiente (ADR-0013 §2)', ()
 describe('Recorrido 4 · volcar sobre la hoja del mes anterior: se avisa ANTES de escribir (SSD §6.3)', () => {
   it('el informe señala celdas ocupadas; la exportación, si se confirma, las sobrescribe y lo deja en el LOG', () => {
     const e = entornoVolcado({
-      origen: [marzo(24, { nombre: 'Ana Prueba', horas: 2, otros: 10 })],
-      destino: [filaDestino({ nombre: 'Ana Prueba', horas: 7, otros: 70 })],
+      origen: [marzo(24, { nombre: 'Prueba, Ana', horas: 2, otros: 10 })],
+      destino: [filaDestino({ nombre: 'Prueba, Ana', horas: 7, otros: 70 })],
     });
     expect(plano(e.llamar('vapAnalizarPeriodo', 'MARZO', 2026)).destinoOcupado).toBe(2);
     expect(e.celdaDestino(2, 31)).toBe(7); // el informe no escribió
@@ -108,7 +108,7 @@ describe('Recorrido 4 · volcar sobre la hoja del mes anterior: se avisa ANTES d
 
 describe('Recorrido 5 · errores visibles, no silenciosos (ADR-0012)', () => {
   it('destino desaparecido: la exportación falla con mensaje, el bloqueo se libera y el LOG lo cuenta', () => {
-    const e = entornoVolcado({ origen: [marzo(24, { nombre: 'Ana Prueba', horas: 2 })], destino: false, espiar: true });
+    const e = entornoVolcado({ origen: [marzo(24, { nombre: 'Prueba, Ana', horas: 2 })], destino: false, espiar: true });
     pulsarMenu(e);
     const r = plano(e.llamar('vapEjecutarExportacion', 'MARZO', 2026));
     expect(r.ok).toBe(false);
@@ -117,7 +117,7 @@ describe('Recorrido 5 · errores visibles, no silenciosos (ADR-0012)', () => {
     expect(e.verArchivo()).toBeNull();
   });
   it('dos personas lanzan el volcado a la vez: la segunda recibe «bloqueo» y no escribe (RNF-04)', () => {
-    const e = entornoVolcado({ origen: [marzo(24, { nombre: 'Ana Prueba', horas: 2 })], destino: [filaDestino({ nombre: 'Ana Prueba' })] });
+    const e = entornoVolcado({ origen: [marzo(24, { nombre: 'Prueba, Ana', horas: 2 })], destino: [filaDestino({ nombre: 'Prueba, Ana' })] });
     e.estado.bloqueoOcupado = true; // la primera ejecución sigue en curso
     const r = plano(e.llamar('vapEjecutarExportacion', 'MARZO', 2026));
     expect(r.ok).toBe(false);
@@ -130,7 +130,7 @@ describe('Recorrido 5 · errores visibles, no silenciosos (ADR-0012)', () => {
 
 describe('Recorrido 6 · desplegable de secretarias: alta/baja en la BBDD → formulario (ADR-0004)', () => {
   it('instalar disparadores, editar VAP_Secretarias y ver el desplegable actualizado', () => {
-    const e = entornoSync({ secretarias: [['S001', 'Ana Prueba', true], ['S002', 'Bea Inventada', false]] });
+    const e = entornoSync({ secretarias: [['S001', 'Prueba, Ana', true], ['S002', 'Inventada, Bea', false]] });
     e.llamar('crearTriggersProduccion');
     e.llamar('crearTriggerHorarioRespaldo');
     expect(e.estado.disparadores).toHaveLength(4);
@@ -139,23 +139,23 @@ describe('Recorrido 6 · desplegable de secretarias: alta/baja en la BBDD → fo
     e.hojaSecretarias.getRange(3, 3).setValue(true);
     const llamadas = dispararTriggers(e, 'onSpreadsheetEditTrigger', { range: { getSheet: () => e.hojaSecretarias } });
     expect(llamadas).toBe(1);
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba', 'Bea Inventada']);
+    expect(e.opcionesFormulario()).toEqual(['Inventada, Bea', 'Prueba, Ana']);
 
     // Se inserta una fila (cambio estructural) dentro de la ventana: se omite; el respaldo horario la recogerá.
-    e.hojaSecretarias.appendRow(['S003', 'Cleo Falsa', true]);
+    e.hojaSecretarias.appendRow(['S003', 'Falsa, Cleo', true, DNI_PRUEBA]);
     dispararTriggers(e, 'onSpreadsheetChangeTrigger', { changeType: 'INSERT_ROW' });
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba', 'Bea Inventada']);
+    expect(e.opcionesFormulario()).toEqual(['Inventada, Bea', 'Prueba, Ana']);
     dispararTriggers(e, 'actualizarPreguntaSecretarias');
-    expect(e.opcionesFormulario()).toEqual(['Ana Prueba', 'Bea Inventada', 'Cleo Falsa']);
+    expect(e.opcionesFormulario()).toEqual(['Falsa, Cleo', 'Inventada, Bea', 'Prueba, Ana']);
   });
 });
 
 describe('Recorrido 7 · envío del formulario → ID_Secre → volcado (ADR-0004 + ADR-0013)', () => {
   it('el envío de una secretaria queda identificado y entra en el volcado del periodo', () => {
     // Ambos .gs en el mismo entorno de prueba (en Google son proyectos distintos, ADR-0007: aquí solo se comprueba que no chocan).
-    const e = entornoVolcado({ rutas: [CODIGO.horasExtrasVolcado, CODIGO.horasExtrasSync], destino: [filaDestino({ nombre: 'Ana Prueba' })] });
+    const e = entornoVolcado({ rutas: [CODIGO.horasExtrasVolcado, CODIGO.horasExtrasSync], destino: [filaDestino({ nombre: 'Prueba, Ana' })] });
     const bbdd = e.google.libro(e.valor('SPREADSHEET_ID'), 'BBDD ficticia');
-    bbdd.conHoja('VAP_Secretarias', [['id_trabajador', 'Nombre_Secretaria', 'Alta'], ['S001', 'Ana Prueba', true]]);
+    bbdd.conHoja('VAP_Secretarias', [['id_trabajador', 'Nombre_Secretaria', 'Alta', 'DNI'], ['S001', 'Prueba, Ana', true, DNI_PRUEBA]]);
     const formulario = {
       getItems: () => [], getDestinationId: () => e.idOrigen,
     };
@@ -163,9 +163,10 @@ describe('Recorrido 7 · envío del formulario → ID_Secre → volcado (ADR-000
 
     // 1) La secretaria envía el formulario: la plataforma añade la fila y dispara onFormSubmit.
     const marca = fecha(2026, 3, 27, 10, 15, 0);
-    e.hojaOrigen.appendRow(filaOrigen({ ts: marca, mes: 'MARZO', nombre: 'Ana Prueba', horas: 3, otros: 15 }));
-    e.llamar('onFormSubmit', eventoEnvio({ MES: 'MARZO', SECRETARIA: 'Ana Prueba' }, marca));
+    e.hojaOrigen.appendRow(filaOrigen({ ts: marca, mes: 'MARZO', nombre: 'Prueba, Ana', horas: 3, otros: 15 }));
+    e.llamar('onFormSubmit', eventoEnvio({ MES: 'MARZO', SECRETARIA: 'Prueba, Ana' }, marca));
     expect(e.hojaOrigen.getRange(2, 6).getValue()).toBe('S001'); // columna F = ID_Secre (SSD §7.2)
+    expect(e.hojaOrigen.getRange(2, CAB_ORIGEN.length + 1).getValue()).toBe(DNI_PRUEBA); // DNI_Secre, al final: no desplaza columnas
 
     // 2) La responsable lanza el volcado de marzo.
     const informe = plano(e.llamar('vapAnalizarPeriodo', 'MARZO', 2026));
@@ -187,9 +188,9 @@ describe('Recorrido 7 · envío del formulario → ID_Secre → volcado (ADR-000
 
 describe('Recorrido 8 · un envío corregido entre dos volcados (RF-19)', () => {
   it('el segundo volcado detecta la corrección y deja el rastro antes→después', () => {
-    const e = entornoVolcado({ origen: [marzo(24, { nombre: 'Ana Prueba', horas: 2, otros: 10 })], destino: [filaDestino({ nombre: 'Ana Prueba' })] });
+    const e = entornoVolcado({ origen: [marzo(24, { nombre: 'Prueba, Ana', horas: 2, otros: 10 })], destino: [filaDestino({ nombre: 'Prueba, Ana' })] });
     e.llamar('vapEjecutarExportacion', 'MARZO', 2026);
-    e.hojaOrigen.appendRow(marzo(29, { nombre: 'Ana Prueba', horas: 2, otros: 25 }));
+    e.hojaOrigen.appendRow(marzo(29, { nombre: 'Prueba, Ana', horas: 2, otros: 25 }));
     expect(plano(e.llamar('vapAnalizarPeriodo', 'MARZO', 2026))).toMatchObject({ yaArchivado: true, destinoOcupado: 2, corregidas: 1 });
     const r = plano(e.llamar('vapEjecutarExportacion', 'MARZO', 2026));
     expect(r).toMatchObject({ actualizadas: 1, sinCambios: 0, copiadas: 2 });

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Versión** | 0.4 — BORRADOR · con la comprobación mensual de concordancia y la lista única de empresas (19 nov 2026) |
-| **Fecha** | 19 noviembre 2026 (versión 0.3: 17 noviembre 2026) |
+| **Versión** | 0.5 — BORRADOR · con el identificador armonizado y el DNI como clave de la persona (25 nov 2026) |
+| **Fecha** | 25 noviembre 2026 (versión 0.4: 19 noviembre 2026) |
 | **Autor** | Fran Cañete (fcsainz) |
 | **Estado** | Propuesta inicial para revisión |
 
@@ -639,6 +639,8 @@ tiempo lo que se sale de lo corriente en vez de enterarme cuando alguien lo preg
 | ¿Cuántas empresas hay y cómo se llama cada una? | **11**: ARCOVIAL, CASTA, CERVANTES, DRIVERS, GALA, INTERCASTILLA, JOSE, LOGYFOR, MOTOR INTEGRAL, NESSUN y VALDEARROYOS; JOSE se entiende como empresa a nivel interno (19 nov 2026). MOTOR INTEGRAL se escribe **CTM MOTOR** en el export de SAGE y **CTM MOTOR INTEGRAL SLU** en otra hoja | HU-47 · RF-100 |
 | ¿La comprobación de concordancia es obligatoria? | **Mensual; opcional por ahora y obligatoria en el futuro** (19 nov 2026). Orden: maestro, export de SAGE y cruce | HU-46 · RF-80 |
 | ¿Una persona puede tener dos identificadores? | Sí, si está en **dos empresas** (sobre todo Staff): **dos filas**, cada una con su `id_trabajador`; el DNI las une (19 nov 2026) | HU-46 · RF-80 · RF-83 |
+| ¿Cómo se compone el identificador y quién lo escribe? | `Empresa_Id_Sage`, **generado solo** y protegido (25 nov 2026). Quien no está en SAGE y comparte número recibe uno **provisional desde 9000**; `JOSE` e `INTERCASTILLA` no tienen nómina en SAGE | HU-51 · [ADR-0021](../docs_solutions/docs_design/adr/0021-id-trabajador-generado-y-vigilado-en-el-maestro.md) |
+| ¿Con qué se reconoce a la persona entre libros? | Con su **DNI**, que no cambia con la empresa; el nombre solo como respaldo (25 nov 2026) | HU-03 · [ADR-0022](../docs_solutions/docs_design/adr/0022-el-dni-como-clave-de-persona-en-formularios-y-volcados.md) |
 | ¿De quién es la webapp nueva y dónde guarda su estado? | En **un libro propio**, de la cuenta del desarrollador (16 nov 2026, propuesta) | [ADR-0018](../docs_solutions/docs_design/adr/0018-gsh-propio-de-la-webapp-propietario-y-accesos.md) |
 
 ---

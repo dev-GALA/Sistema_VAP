@@ -20,13 +20,13 @@ const consultar = async (page, year, month) => {
 };
 
 const DATOS = [
-  { batch: 'B_ENERO', mes: 1, ts: '2026-01-10T09:00:00Z', idS: 'S1', nomS: 'Zoe Ficticia', valor: 10 },
-  { batch: 'B_MARZO_1', mes: 3, ts: '2026-03-05T09:00:00Z', idS: 'S1', nomS: 'Zoe Ficticia', valor: 1234.5 },
-  { batch: 'B_MARZO_1', mes: 3, ts: '2026-03-05T09:00:00Z', idS: 'S2', nomS: 'Álvaro Falso', valor: 0 },
-  { batch: 'B_MARZO_2', mes: 3, ts: '2026-03-12T09:00:00Z', idS: 'S1', nomS: 'Zoe Ficticia', valor: 1300, modo: 'CORRECCION', corrige: 'B_MARZO_1' },
-  { batch: 'B_MARZO_S50', mes: 3, ts: '2026-03-08T09:00:00Z', idC: 'C2', conc: 'Sábados 50', idS: 'S4', nomS: 'Ñoño Inventado', valor: 7 },
-  { batch: 'B_2025', year: 2025, mes: 12, ts: '2025-12-10T09:00:00Z', idS: 'S1', nomS: 'Zoe Ficticia', valor: 3 },
-  { batch: 'B_AJENO', resp: 'R2', mes: 3, idC: 'C3', conc: 'Reseñas', idS: 'S1', nomS: 'Zoe Ficticia', valor: 99 },
+  { batch: 'B_ENERO', mes: 1, ts: '2026-01-10T09:00:00Z', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 10 },
+  { batch: 'B_MARZO_1', mes: 3, ts: '2026-03-05T09:00:00Z', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 1234.5 },
+  { batch: 'B_MARZO_1', mes: 3, ts: '2026-03-05T09:00:00Z', idS: 'S2', nomS: 'Falso, Álvaro', valor: 0 },
+  { batch: 'B_MARZO_2', mes: 3, ts: '2026-03-12T09:00:00Z', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 1300, modo: 'CORRECCION', corrige: 'B_MARZO_1' },
+  { batch: 'B_MARZO_S50', mes: 3, ts: '2026-03-08T09:00:00Z', idC: 'C2', conc: 'Sábados 50', idS: 'S4', nomS: 'Inventado, Ñoño', valor: 7 },
+  { batch: 'B_2025', year: 2025, mes: 12, ts: '2025-12-10T09:00:00Z', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 3 },
+  { batch: 'B_AJENO', resp: 'R2', mes: 3, idC: 'C3', conc: 'Reseñas', idS: 'S1', nomS: 'Ficticia, Zoe', valor: 99 },
 ];
 const logCorreccion = (env) => env.logs().appendRow([env.fecha('2026-03-12T09:00:00Z'), 'B_MARZO_2', 'R1', 'CORRECCION', 1, 'OK', 'OK', 'PARCIAL']);
 
@@ -214,7 +214,7 @@ test.describe('resultados · RF-09', () => {
     const tarjeta = page.locator('.batch-card').nth(2);
     await tarjeta.locator('.batch-head').click();
     await expect(tarjeta.locator('th')).toHaveText(['ID Secretaria', 'Nombre', 'Valor']);
-    await expect(tarjeta.locator('tbody tr')).toHaveText([/S1\s+Zoe Ficticia\s+1234,50/, /S2\s+Álvaro Falso\s+0,00/]);
+    await expect(tarjeta.locator('tbody tr')).toHaveText([/S1\s+Ficticia, Zoe\s+1234,50/, /S2\s+Falso, Álvaro\s+0,00/]);
   });
   test('RF-08 · el detalle de una corrección indica el tipo (desde Logs) y el envío corregido', async ({ page }) => {
     await abrir(page, { datos: DATOS, preparar: logCorreccion });
@@ -407,7 +407,7 @@ test.describe('recorrido completo Reportar → Consultar → corregir → Consul
     await consultar(page, 2026, 3);
     await expect(page.locator('.batch-card')).toHaveCount(1);
     await page.locator('.batch-head').click();
-    await expect(page.locator('.batch-card tbody tr')).toHaveText([/S1\s+Zoe Ficticia\s+1000,50/]);
+    await expect(page.locator('.batch-card tbody tr')).toHaveText([/S1\s+Ficticia, Zoe\s+1000,50/]);
     // 3) Corregir (otro Batch_ID para que se distingan)
     app.env.e.ejecutar('Math.random = () => 0.5');
     fijarHora(app.env, '2026-03-16T10:00:00Z');

@@ -10,17 +10,31 @@ export const ID_LIBRO_PAGOS = 'libro-pagos-prueba';
 export const CLAVE_PRUEBA = 'clave-de-prueba-no-real';
 export const TOKEN_PRUEBA = 'token-de-prueba-no-real';
 
-export const CABECERA_HUELLAS = ['id_personal', 'huella', 'ultimos4', 'actualizado_en'];
+export const CABECERA_HUELLAS = [
+  'id_pagos',
+  'dni',
+  'id_trabajador',
+  'huella',
+  'ultimos4',
+  'actualizado_en',
+  'actualizado_por',
+];
+
+// DNI y usuario INVENTADOS para las pruebas.
+export const DNI_1 = '12345678Z';
+export const DNI_2 = '87654321X';
+export const USUARIO_PRUEBA = 'responsable@prueba.invalid';
 export const CABECERA_SUBSANACIONES = [
   'periodo',
   'fila_id',
+  'id_pagos',
   'momento',
   'usuario',
   'resolucion',
   'asignada_a',
   'motivo',
 ];
-export const CABECERA_FUSIONES = ['periodo', 'momento', 'usuario', 'empresas', 'sin_resolver'];
+export const CABECERA_CIERRES = ['periodo', 'momento', 'usuario', 'empresas', 'sin_resolver'];
 
 /** IBAN español INVENTADO pero con dígito de control válido, a partir de un número de cuenta de 20 cifras. */
 export function ibanDePrueba(semilla) {
@@ -40,7 +54,7 @@ export function prepararPagos(entorno, { huellas = [], clave = true, token = tru
   const libro = entorno.google.libro(ID_LIBRO_PAGOS, 'VAP_Pagos');
   libro.conHoja('huellas', [CABECERA_HUELLAS, ...huellas]);
   libro.conHoja('subsanaciones', [CABECERA_SUBSANACIONES]);
-  libro.conHoja('fusiones', [CABECERA_FUSIONES]);
+  libro.conHoja('cierres', [CABECERA_CIERRES]);
   const propiedades = entorno.google.estado.propiedadesScript;
   propiedades.ID_LIBRO_PAGOS = ID_LIBRO_PAGOS;
   if (clave) propiedades.CLAVE_HUELLA = CLAVE_PRUEBA;

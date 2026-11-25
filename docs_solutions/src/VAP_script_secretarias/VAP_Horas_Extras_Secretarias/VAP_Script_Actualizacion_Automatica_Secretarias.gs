@@ -1,5 +1,10 @@
 /****************************************************
  * VAP - SINCRONIZAR SECRETARIAS EN FORMULARIO REAL
+ *
+ * Lee la pestaña VAP_Secretarias y precarga en el formulario a las personas de alta que
+ * tengan los datos necesarios: id_trabajador, DNI válido y nombre en formato
+ * "APELLIDOS, NOMBRE". Al responder el formulario guarda en la respuesta el id (ID_Secre)
+ * y el DNI (DNI_Secre): el DNI es lo único unívoco por persona, cambie o no de empresa.
  ****************************************************/
 
 const FORM_ID = "1qIDdGFsy9oGD-cfuE_X_bS4Pj555hHJaQWszBTtFbyI";
@@ -7,14 +12,20 @@ const SPREADSHEET_ID = "1HQMxubwPv-vrslsXj5DvsB0gJ9OyewVNDmbPg1hjmHk";
 const SHEET_SECRETARIAS = "VAP_Secretarias";
 const QUESTION_TITLE = "SECRETARIA";
 const RESPONSE_ID_HEADER = "ID_Secre";
+const RESPONSE_DNI_HEADER = "DNI_Secre";
 const COL_ID_BBDD = "id_trabajador";
+const COL_NOMBRE = "Nombre_Secretaria";
+const COL_DNI = "DNI";
+const COL_ALTA = "Alta";
 
 /****************************************************
  * 1) SINCRONIZACIÓN PRINCIPAL DEL FORMULARIO
  ****************************************************/
 function actualizarPreguntaSecretarias() {
   try {
-    const opciones = obtenerSecretariasActivasUnicas_();
+    const candidatas = leerSecretariasDeBBDD_();
+    anotarExcluidas_(candidatas);
+    const opciones = nombresUnicosOrdenados_(candidatas.filter(p => !p.motivo));
 
     if (opciones.length === 0) {
       throw new Error("No se han encontrado secretarias activas válidas");
@@ -81,7 +92,7 @@ function onSpreadsheetChangeTrigger(e) {
 
 /****************************************************
  * 4) AL ENVIAR EL FORMULARIO
- * Crea / rellena ID_SECRETARIA
+ * Crea / rellena ID_Secre y DNI_Secre
  ****************************************************/
 function onFormSubmit(e) {
   try {
@@ -93,11 +104,11 @@ function onFormSubmit(e) {
     }
     Logger.log(`2. Secretaria recibida: ${secretariaNombre}`);
 
-    const idSecre = buscarIdSecrePorNombre_(secretariaNombre);
-    if (!idSecre) {
-      throw new Error(`No se encontró ID_Secre para "${secretariaNombre}"`);
+    const secretaria = buscarSecretariaPorNombre_(secretariaNombre);
+    if (!secretaria) {
+      throw new Error(`No se encontró la secretaria "${secretariaNombre}"`);
     }
-    Logger.log(`3. ID encontrado: ${idSecre}`);
+    Logger.log(`3. Secretaria localizada: ${secretaria.id}`);
 
     const responseSheet = obtenerHojaRespuestasDelFormulario_();
     Logger.log(`4. Hoja de respuestas encontrada: ${responseSheet.getName()}`);
@@ -105,21 +116,9 @@ function onFormSubmit(e) {
     const targetRow = localizarFilaRespuesta_(responseSheet, e.response);
     Logger.log(`5. Fila objetivo: ${targetRow}`);
 
-    const lastCol = responseSheet.getLastColumn();
-    const headers = responseSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-
-    let colId = headers.indexOf(RESPONSE_ID_HEADER) + 1;
-
-    if (colId === 0) {
-      colId = lastCol + 1;
-      responseSheet.getRange(1, colId).setValue(RESPONSE_ID_HEADER);
-      Logger.log(`6. Columna ${RESPONSE_ID_HEADER} creada en posición ${colId}`);
-    } else {
-      Logger.log(`6. Columna ${RESPONSE_ID_HEADER} ya existe en posición ${colId}`);
-    }
-
-    responseSheet.getRange(targetRow, colId).setValue(idSecre);
-    Logger.log(`7. ${RESPONSE_ID_HEADER} escrito correctamente en fila ${targetRow}`);
+    escribirEnColumna_(responseSheet, targetRow, RESPONSE_ID_HEADER, secretaria.id);
+    escribirEnColumna_(responseSheet, targetRow, RESPONSE_DNI_HEADER, secretaria.dni);
+    Logger.log(`6. ${RESPONSE_ID_HEADER} y ${RESPONSE_DNI_HEADER} escritos en la fila ${targetRow}`);
 
   } catch (error) {
     Logger.log("ERROR onFormSubmit: " + error.message);
@@ -128,9 +127,34 @@ function onFormSubmit(e) {
 }
 
 /****************************************************
- * 5) OBTENER LISTA DE SECRETARIAS ACTIVAS
+ * 5) LEER SECRETARIAS DE VAP_SECRETARIAS
  ****************************************************/
-function obtenerSecretariasActivasUnicas_() {
+function normalizarDni_(texto) {
+  return String(texto || "").toUpperCase().replace(/[\s-]/g, "");
+}
+
+/** Solo la forma: DNI (8 cifras y letra) o NIE (X, Y o Z, 7 cifras y letra). */
+function esDniValido_(dni) {
+  return /^(\d{8}|[XYZ]\d{7})[A-Z]$/.test(dni);
+}
+
+/** «APELLIDOS, NOMBRE»: una sola coma, con texto a los dos lados. */
+function tieneFormatoApellidosNombre_(nombre) {
+  return /^[^,]+,[^,]+$/.test(nombre);
+}
+
+/** Por qué una persona de alta NO puede aparecer en la lista ("" si puede). */
+function motivoDeExclusion_(p) {
+  if (!p.id) return "sin id_trabajador";
+  if (!p.nombre) return "sin nombre";
+  if (!tieneFormatoApellidosNombre_(p.nombre)) return 'nombre sin el formato "APELLIDOS, NOMBRE"';
+  if (!p.dni) return "sin DNI";
+  if (!esDniValido_(p.dni)) return "DNI con forma no válida";
+  return "";
+}
+
+/** Las personas de alta de VAP_Secretarias, cada una con su `motivo` de exclusión (vacío si es válida). */
+function leerSecretariasDeBBDD_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_SECRETARIAS);
 
@@ -147,66 +171,69 @@ function obtenerSecretariasActivasUnicas_() {
   const headers = data[0];
 
   const colId = headers.indexOf(COL_ID_BBDD);
-  const colNombre = headers.indexOf("Nombre_Secretaria");
-  const colAlta = headers.indexOf("Alta");
+  const colNombre = headers.indexOf(COL_NOMBRE);
+  const colDni = headers.indexOf(COL_DNI);
+  const colAlta = headers.indexOf(COL_ALTA);
 
   if (colId === -1) throw new Error(`No se encuentra la columna "${COL_ID_BBDD}"`);
-  if (colNombre === -1) throw new Error('No se encuentra la columna "Nombre_Secretaria"');
-  if (colAlta === -1) throw new Error('No se encuentra la columna "Alta"');
+  if (colNombre === -1) throw new Error(`No se encuentra la columna "${COL_NOMBRE}"`);
+  if (colDni === -1) throw new Error(`No se encuentra la columna "${COL_DNI}"`);
+  if (colAlta === -1) throw new Error(`No se encuentra la columna "${COL_ALTA}"`);
 
-  const nombresBase = data
+  return data
     .slice(1)
-    .filter(row => {
-      const id = String(row[colId] || "").trim();
-      const nombre = String(row[colNombre] || "").trim();
-      const alta = row[colAlta] === true;
-      return id && nombre && alta;
-    })
-    .map(row => String(row[colNombre] || "").trim().replace(/\s+/g, " "));
+    .map((row, i) => ({
+      fila: i + 2,
+      id: String(row[colId] || "").trim(),
+      nombre: String(row[colNombre] || "").trim().replace(/\s+/g, " "),
+      dni: normalizarDni_(row[colDni]),
+      alta: row[colAlta] === true
+    }))
+    .filter(p => p.alta)
+    .map(p => Object.assign(p, { motivo: motivoDeExclusion_(p) }));
+}
 
-  return [...new Set(nombresBase)].sort((a, b) =>
+function leerSecretariasActivas_() {
+  return leerSecretariasDeBBDD_().filter(p => !p.motivo);
+}
+
+/** Deja en el registro a quien está de alta pero se queda fuera de la lista, con su fila, su id y el motivo. */
+function anotarExcluidas_(candidatas) {
+  const excluidas = candidatas.filter(p => p.motivo);
+  if (excluidas.length === 0) return;
+
+  Logger.log(`Secretarias de alta que NO aparecen en el formulario: ${excluidas.length}`);
+  excluidas.forEach(p => {
+    Logger.log(`  fila ${p.fila} (${p.id || "sin id"}): ${p.motivo}`);
+  });
+}
+
+function nombresUnicosOrdenados_(personas) {
+  return [...new Set(personas.map(p => p.nombre))].sort((a, b) =>
     a.localeCompare(b, "es", { sensitivity: "base" })
   );
 }
 
+function obtenerSecretariasActivasUnicas_() {
+  return nombresUnicosOrdenados_(leerSecretariasActivas_());
+}
+
 /****************************************************
- * 6) BUSCAR ID POR NOMBRE
+ * 6) BUSCAR POR NOMBRE
  ****************************************************/
-function buscarIdSecrePorNombre_(nombreBuscado) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEET_SECRETARIAS);
-
-  if (!sheet) {
-    throw new Error(`No existe la hoja "${SHEET_SECRETARIAS}"`);
-  }
-
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-  const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
-  const headers = data[0];
-
-  const colId = headers.indexOf(COL_ID_BBDD);
-  const colNombre = headers.indexOf("Nombre_Secretaria");
-  const colAlta = headers.indexOf("Alta");
-
-  if (colId === -1) throw new Error(`No se encuentra la columna "${COL_ID_BBDD}"`);
-  if (colNombre === -1) throw new Error('No se encuentra la columna "Nombre_Secretaria"');
-  if (colAlta === -1) throw new Error('No se encuentra la columna "Alta"');
-
+/** La persona { id, dni } con ese nombre entre las secretarias válidas, o null si no existe. */
+function buscarSecretariaPorNombre_(nombreBuscado) {
   const nombreNormalizado = normalizarTexto_(nombreBuscado);
 
-  const coincidencias = data.slice(1).filter(row => {
-    const nombre = normalizarTexto_(row[colNombre]);
-    const estaActiva = row[colAlta] === true;
-    return nombre === nombreNormalizado && estaActiva;
-  });
+  const coincidencias = leerSecretariasActivas_()
+    .filter(p => normalizarTexto_(p.nombre) === nombreNormalizado);
 
-  if (coincidencias.length === 0) return "";
+  if (coincidencias.length === 0) return null;
   if (coincidencias.length > 1) {
     throw new Error(`Hay varias secretarias activas con el mismo nombre: "${nombreBuscado}"`);
   }
 
-  return String(coincidencias[0][colId] || "").trim();
+  return { id: coincidencias[0].id, dni: coincidencias[0].dni };
 }
 
 /****************************************************
@@ -226,6 +253,21 @@ function obtenerRespuestaPorTitulo_(e, questionTitle) {
   }
 
   return "";
+}
+
+/** Escribe el valor en la columna con esa cabecera (la crea al final si no existe). */
+function escribirEnColumna_(hoja, fila, cabecera, valor) {
+  const lastCol = hoja.getLastColumn();
+  const headers = hoja.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  let col = headers.indexOf(cabecera) + 1;
+  if (col === 0) {
+    col = lastCol + 1;
+    hoja.getRange(1, col).setValue(cabecera);
+    Logger.log(`Columna ${cabecera} creada en posición ${col}`);
+  }
+
+  hoja.getRange(fila, col).setValue(valor);
 }
 
 function obtenerHojaRespuestasDelFormulario_() {

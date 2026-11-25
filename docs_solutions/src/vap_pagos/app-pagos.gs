@@ -35,19 +35,32 @@ function huellaDeCuentaCon_(dependencias, iban) {
   return huellaDeCuenta_(iban, dependencias.clave(), dependencias.calcularHmacHex);
 }
 
-/** Guarda (o sustituye) la huella de la cuenta de una persona. Devuelve solo los últimos 4 dígitos. */
+function exigirDni_(valor) {
+  const dni = normalizarDni_(valor);
+  if (!esDniValido_(dni)) throw new Error('El DNI o NIE no es válido.');
+  return dni;
+}
+
+/**
+ * Guarda (o sustituye) la huella de la cuenta de una persona, que se identifica por su DNI y su id de trabajador
+ * (ADR-0020). Devuelve solo los últimos 4 dígitos y los avisos para revisar.
+ */
 function guardarCuenta_(dependencias, datos) {
   const idPersonal = exigirTexto_(datos.idPersonal, 'el identificador de la persona');
+  const dni = exigirDni_(datos.dni);
   const iban = normalizarIban_(datos.iban);
   const huella = huellaDeCuentaCon_(dependencias, iban);
+  const actualizadoPor = exigirTexto_(datos.usuario, 'quién guarda la cuenta');
   return dependencias.conBloqueo(() => {
-    dependencias.guardarHuella({
-      idPersonal,
-      huella,
-      ultimos4: ultimosDigitos_(iban),
-      actualizadoEn: dependencias.ahora(),
+    const plan = planificarGuardado_(
+      dependencias.leerHuellas(),
+      { idPersonal, dni },
+      { huella, ultimos4: ultimosDigitos_(iban), actualizadoEn: dependencias.ahora(), actualizadoPor },
+    );
+    plan.filas.forEach((fila) => {
+      dependencias.guardarHuella(fila);
     });
-    return { idPersonal, ultimos4: ultimosDigitos_(iban) };
+    return { idPersonal, ultimos4: ultimosDigitos_(iban), avisos: plan.avisos };
   });
 }
 
@@ -56,8 +69,14 @@ function guardarCuentas_(dependencias, datos) {
   const cuentas = exigirLista_(datos.cuentas, 'las cuentas', MAXIMO_CUENTAS_POR_LLAMADA);
   return cuentas.map((cuenta, indice) => {
     try {
-      const guardada = guardarCuenta_(dependencias, cuenta || {});
-      return { indice, estado: 'guardada', idPersonal: guardada.idPersonal, ultimos4: guardada.ultimos4 };
+      const guardada = guardarCuenta_(dependencias, Object.assign({ usuario: datos.usuario }, cuenta || {}));
+      return {
+        indice,
+        estado: 'guardada',
+        idPersonal: guardada.idPersonal,
+        ultimos4: guardada.ultimos4,
+        avisos: guardada.avisos,
+      };
     } catch (error) {
       return { indice, estado: 'error', detalle: error.message };
     }
@@ -129,10 +148,13 @@ function subsanar_(dependencias, datos) {
     const errores = validarSubsanacion_(fila, subsanacion);
     if (errores.length > 0) throw new Error(errores.join(' '));
     const momento = dependencias.ahora();
+    // La fila de `huellas` de la persona afectada, si el pago tiene persona (la Parte 2 no la tiene).
+    const huella = dependencias.leerHuellas().filter((h) => h.idPersonal === fila.idPersonal)[0];
     // El historial se anota ANTES: si falla la actualización, queda constancia de lo intentado.
     dependencias.anadirSubsanacion({
       periodo,
       filaId,
+      idPagos: huella ? huella.idPagos : '',
       momento,
       usuario,
       resolucion: subsanacion.resolucion,
@@ -193,11 +215,15 @@ function historialDePersona_(dependencias, datos) {
     .map(sinHuella_);
 }
 
-/** El Maestro de Pagos del servicio: identificador, últimos 4 dígitos y fecha. La huella no sale. */
+/** El Maestro de Pagos del servicio: número, DNI, identificador, últimos 4 dígitos y fecha. La huella no sale. */
 function maestroDePagos_(dependencias) {
-  return dependencias
-    .leerHuellas()
-    .map((h) => ({ idPersonal: h.idPersonal, ultimos4: h.ultimos4, actualizadoEn: h.actualizadoEn }));
+  return dependencias.leerHuellas().map((h) => ({
+    idPagos: h.idPagos,
+    dni: h.dni,
+    idPersonal: h.idPersonal,
+    ultimos4: h.ultimos4,
+    actualizadoEn: h.actualizadoEn,
+  }));
 }
 
 // Acciones que el servicio atiende desde fuera. Ampliar es añadir una entrada aquí (SOLID-O).

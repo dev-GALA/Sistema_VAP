@@ -219,3 +219,48 @@ describe('dominio-acceso · el token del servicio · RNF-21', () => {
     expect(llamar('tokenValido_', undefined, 'abc')).toBe(false);
   });
 });
+
+describe('dominio-huella · DNI y plan de guardado · RF-102', () => {
+  const datos = { huella: 'h', ultimos4: '1234', actualizadoEn: 'x', actualizadoPor: 'u' };
+
+  it('normaliza el DNI y comprueba solo su forma', () => {
+    expect(llamar('normalizarDni_', ' 1234-5678 z ')).toBe('12345678Z');
+    for (const bueno of ['12345678Z', 'X1234567L', 'Z0000000A']) expect(llamar('esDniValido_', bueno)).toBe(true);
+    for (const malo of ['', '050986557L', '1234567Z', '12345678', 'A12345678']) {
+      expect(llamar('esDniValido_', malo)).toBe(false);
+    }
+  });
+
+  it('siguienteIdPagos_ es el mayor más uno, y 1 si no hay filas', () => {
+    expect(llamar('siguienteIdPagos_', [])).toBe('1');
+    expect(llamar('siguienteIdPagos_', [{ idPagos: '3' }, { idPagos: '10' }, { idPagos: '' }])).toBe('11');
+  });
+
+  it('persona nueva: una fila nueva y sin avisos', () => {
+    const r = plano(llamar('planificarGuardado_', [], { idPersonal: 'A_1', dni: '12345678Z' }, datos));
+    expect(r.avisos).toEqual([]);
+    expect(r.filas).toEqual([{ idPagos: '1', dni: '12345678Z', idPersonal: 'A_1', ...datos }]);
+  });
+
+  it('el mismo id y DNI actualiza su fila y la de sus otros ids, sin crear ninguna', () => {
+    const existentes = [
+      { idPagos: '1', dni: '12345678Z', idPersonal: 'A_1', huella: 'vieja' },
+      { idPagos: '2', dni: '12345678Z', idPersonal: 'B_1', huella: 'vieja' },
+      { idPagos: '3', dni: '87654321X', idPersonal: 'C_1', huella: 'otra' },
+    ];
+    const r = plano(llamar('planificarGuardado_', existentes, { idPersonal: 'A_1', dni: '12345678Z' }, datos));
+    expect(r.filas.map((f) => [f.idPagos, f.huella])).toEqual([
+      ['1', 'h'],
+      ['2', 'h'],
+    ]);
+    expect(r.avisos).toEqual([]);
+  });
+
+  it('un id que consta con otro DNI se rechaza', () => {
+    const existentes = [{ idPagos: '1', dni: '87654321X', idPersonal: 'A_1', huella: 'x' }];
+    const intento = () => llamar('planificarGuardado_', existentes, { idPersonal: 'A_1', dni: '12345678Z' }, datos);
+    expect(intento).toThrow('no puede tener dos DNI');
+    expect(intento).toThrow('87654321X'); // el que consta
+    expect(intento).toThrow('12345678Z'); // el que llega
+  });
+});

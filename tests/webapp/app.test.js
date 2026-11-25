@@ -336,12 +336,16 @@ describe('app-personal · alta y baja de personas', () => {
     expect(estados(deps)).toStrictEqual(['registrado', 'aplicado', 'error']);
   });
 
-  it('un error que repitiera la cuenta o el DNI se anota tapado', () => {
-    const deps = depsPersonal({ falla: { huella: `fallo con ${IBAN} y 12345678Z` } });
+  it('un error que repitiera la cuenta o el DNI: la pantalla muestra el DNI pero nunca la cuenta, y el registro no lleva ninguno', () => {
+    const deps = depsPersonal({ falla: { huella: `fallo con ${IBAN}, DNI 12345678Z y el otro 87654321X` } });
     const [r] = registrar(deps, [{ ...ALTA, idTrabajador: 'T1', iban: IBAN }]);
     expect(r.detalle).not.toContain(IBAN);
-    expect(r.detalle).not.toContain('12345678Z');
-    expect(JSON.stringify(deps.eventos)).not.toContain(IBAN);
+    expect(r.detalle).toContain('12345678Z');
+    expect(r.detalle).toContain('87654321X');
+    const registro = JSON.stringify(deps.eventos);
+    expect(registro).not.toContain(IBAN);
+    expect(registro).not.toContain('12345678Z');
+    expect(registro).not.toContain('87654321X'); // el DNI de otra persona (un conflicto) tampoco entra
   });
 
   it('cada registro va aparte: uno que falla no impide los demás', () => {

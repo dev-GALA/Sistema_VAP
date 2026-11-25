@@ -23,7 +23,13 @@ const funcionesDe = (archivos) =>
 describe('estructura', () => {
   it('todo archivo es un .gs con prefijo de capa o el manifiesto', () => {
     for (const f of ARCHIVOS)
-      expect(f === 'appsscript.json' || f === 'README.md' || /^(dominio|app|infra)-[a-z-]+\.gs$/.test(f), f).toBe(true);
+      expect(
+        f === 'appsscript.json' ||
+          f === '.clasp.json' ||
+          f === 'README.md' ||
+          /^(dominio|app|infra)-[a-z-]+\.gs$/.test(f),
+        f,
+      ).toBe(true);
   });
 });
 
@@ -46,9 +52,21 @@ describe('regla de dependencias', () => {
 });
 
 describe('seguridad · RNF-19 · RNF-21', () => {
-  it('la única función pública es doPost; todas las demás terminan en _', () => {
+  // EXCEPCIÓN DE USO ÚNICO (autorizada por el usuario el 25 nov 2026, ADR-0020): estas dos funciones las lanza a mano
+  // quien edita el proyecto, desde el editor de Apps Script, para la primera carga de cuentas. Viven SOLO en
+  // infra-carga.gs. Al borrar el cargador (dominio-carga, app-carga, infra-carga) se borra esta excepción.
+  const PUBLICAS_DE_USO_UNICO = ['cargaInicialSimular', 'cargaInicialEjecutar'];
+
+  it('la única función pública es doPost (más las dos de la carga inicial); todas las demás terminan en _', () => {
     for (const nombre of funcionesDe(ARCHIVOS_GS))
-      expect(nombre === 'doPost' || nombre.endsWith('_'), nombre).toBe(true);
+      expect(nombre === 'doPost' || PUBLICAS_DE_USO_UNICO.includes(nombre) || nombre.endsWith('_'), nombre).toBe(true);
+  });
+
+  it('las dos funciones de uso único viven solo en infra-carga.gs', () => {
+    for (const nombre of PUBLICAS_DE_USO_UNICO) expect(funcionesDe(['infra-carga.gs']), nombre).toContain(nombre);
+    for (const f of ARCHIVOS_GS.filter((x) => x !== 'infra-carga.gs'))
+      for (const nombre of PUBLICAS_DE_USO_UNICO)
+        expect(funcionesDe([f]), `${f} define ${nombre}`).not.toContain(nombre);
   });
 
   it('doPost vive en infra-principal y comprueba el token antes de atender nada', () => {
@@ -79,6 +97,6 @@ describe('configuración', () => {
           .replace(/\/\*[\s\S]*?\*\//g, '')
           .replace(/\/\/.*$/gm, ''),
         f,
-      ).not.toMatch(/['"`](huellas|subsanaciones|fusiones)['"`]/);
+      ).not.toMatch(/['"`](huellas|subsanaciones|cierres|carga_inicial)['"`]/);
   });
 });

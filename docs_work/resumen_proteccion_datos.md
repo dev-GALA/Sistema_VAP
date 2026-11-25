@@ -13,7 +13,7 @@ una **huella**: un código que identifica la cuenta pero **de la que no se puede
 | Dato | Dónde | Comentario |
 |---|---|---|
 | Nombre, DNI | Maestro de personas (como hoy) | No cambia |
-| **Huella** de la cuenta, **últimos 4 dígitos** y fecha, junto al identificador de la persona | Libro `VAP_Pagos` | **Sin DNI ni nombre** de las personas registradas |
+| **Huella** de la cuenta, **últimos 4 dígitos** y fecha, junto al **DNI** y al identificador de trabajador de la persona | Libro `VAP_Pagos` | **Con DNI, sin nombre** ni IBAN. *Cambio del 25 nov 2026 ([ADR-0020](../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md)): antes no llevaba DNI* |
 | Marca «tiene cuenta registrada» (sí/no y fecha) | Maestro de personas | **Sin la huella ni la cuenta** |
 | Informe mensual de pagos | `VAP_Pagos` | Pagos que no se reconocen llevan **nombre del beneficiario según el banco**, huella, últimos 4 dígitos, importe y entidad |
 | **Clave secreta** con la que se calcula la huella | Proyecto de programación de `VAP_Pagos` | Copia en el **gestor de contraseñas de GALA** |
@@ -41,6 +41,13 @@ una **huella**: un código que identifica la cuenta pero **de la que no se puede
 | **Ficheros con cuentas en claro** (los del banco y el Excel de altas) | Los **borra el usuario a mano** cuando proceda; el Excel de altas, al verificar la carga. **No hay borrado automático: quedan en Drive hasta entonces** |
 | Una confirmación equivocada asocia una cuenta a otra persona | Se comprueba el importe y una persona confirma; se puede anular |
 
+## Situación a 25 de noviembre de 2026
+
+- **Las huellas ya están cargadas con datos reales** (por decisión del usuario, que da por conseguida la validación; no consta por escrito en el repositorio).
+- **`VAP_BBDD_Personas` estaba compartido como «cualquier persona con el enlace»** (lectura) y contiene DNI. Pendiente de restringir.
+- Existen, fuera del repositorio, un libro temporal y su descarga **con cuentas en claro**, y un Excel de incidencias con nombres y DNI (sin cuentas completas). Hay que borrarlos al terminar.
+- La hoja `copia_id_trabajador` del maestro duplica DNI hasta que se borre.
+
 ## Qué no se ha probado todavía
 
 La conexión entre la webapp y el proyecto de `VAP_Pagos`, los permisos y los tiempos **en Google real**. Todo lo demás se ha
@@ -54,4 +61,4 @@ probado con datos inventados.
 4. ¿Cuánto tiempo se **conservan los informes mensuales**?
 5. ¿Consta este tratamiento en el **registro de actividades de tratamiento**, o hay que añadirlo?
 
-**Hasta que se responda, no se cargan datos reales.**
+**La condición era no cargar datos reales hasta tener respuesta. Las huellas se cargaron el 25 nov 2026; falta dejar la validación por escrito.**

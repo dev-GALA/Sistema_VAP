@@ -4,16 +4,23 @@ import { plano } from '../soporte/cargar-gs.js';
 import {
   CLAVE_PRUEBA,
   cargarPagos,
+  DNI_1,
+  DNI_2,
   ID_LIBRO_PAGOS,
   ibanDePrueba,
   llamarServicio,
   prepararPagos,
   TOKEN_PRUEBA,
+  USUARIO_PRUEBA,
 } from './cargar.js';
 
 const IBAN_A = ibanDePrueba(1);
 const IBAN_B = ibanDePrueba(2);
 const IBAN_NUEVO = ibanDePrueba(99);
+
+// Una persona de prueba por id de trabajador; VIEJA_1 y NUEVA_1 son la MISMA persona (mismo DNI).
+const DNI_DE = { UNO_1: DNI_1, UNO_2: DNI_2, A_1: DNI_1, VIEJA_1: DNI_1, NUEVA_1: DNI_1 };
+const cuenta = (idPersonal, iban) => ({ idPersonal, dni: DNI_DE[idPersonal], usuario: USUARIO_PRUEBA, iban });
 
 const arrancar = (opciones) => {
   const entorno = cargarPagos();
@@ -34,7 +41,7 @@ describe('doPost · la puerta del servicio · RNF-21', () => {
   it('sin token, o con uno distinto, responde «No autorizado» y no ejecuta nada', () => {
     const entorno = arrancar();
     for (const token of [null, '', 'otro']) {
-      expect(llamarServicio(entorno, 'guardarCuenta', { idPersonal: 'A_1', iban: IBAN_A }, token)).toEqual({
+      expect(llamarServicio(entorno, 'guardarCuenta', cuenta('A_1', IBAN_A), token)).toEqual({
         ok: false,
         error: 'No autorizado.',
       });
@@ -64,7 +71,7 @@ describe('doPost · la puerta del servicio · RNF-21', () => {
 
   it('sin la clave de la huella se niega y lo dice, sin escribir nada', () => {
     const entorno = arrancar({ clave: false });
-    const r = llamarServicio(entorno, 'guardarCuenta', { idPersonal: 'A_1', iban: IBAN_A });
+    const r = llamarServicio(entorno, 'guardarCuenta', cuenta('A_1', IBAN_A));
     expect(r.ok).toBe(false);
     expect(r.error).toContain('CLAVE_HUELLA');
     expect(hoja(entorno, 'huellas')).toHaveLength(1);
@@ -74,39 +81,42 @@ describe('doPost · la puerta del servicio · RNF-21', () => {
 describe('guardar cuentas · RF-86 · RF-98 · RNF-19', () => {
   it('escribe la huella (HMAC-SHA256 en hexadecimal) y los últimos 4, y la cuenta no está en NINGUNA hoja', () => {
     const entorno = arrancar();
-    llamarServicio(entorno, 'guardarCuenta', { idPersonal: 'UNO_1', iban: IBAN_A });
+    llamarServicio(entorno, 'guardarCuenta', cuenta('UNO_1', IBAN_A));
     const [, fila] = hoja(entorno, 'huellas');
-    expect(fila[0]).toBe('UNO_1');
-    expect(fila[1]).toMatch(/^[0-9a-f]{64}$/);
-    expect(fila[2]).toBe(IBAN_A.slice(-4));
+    expect(fila[0]).toBe('1');
+    expect(fila[1]).toBe(DNI_1);
+    expect(fila[2]).toBe('UNO_1');
+    expect(fila[3]).toMatch(/^[0-9a-f]{64}$/);
+    expect(fila[4]).toBe(IBAN_A.slice(-4));
+    expect(fila[6]).toBe(USUARIO_PRUEBA);
     expect(todoElLibro(entorno)).not.toContain(IBAN_A);
     expect(JSON.stringify(entorno.google.estado.logs)).not.toContain(IBAN_A);
   });
 
   it('un cambio de cuenta actualiza la fila de la persona en vez de añadir otra', () => {
     const entorno = arrancar();
-    llamarServicio(entorno, 'guardarCuenta', { idPersonal: 'UNO_1', iban: IBAN_A });
-    llamarServicio(entorno, 'guardarCuenta', { idPersonal: 'UNO_1', iban: IBAN_B });
+    llamarServicio(entorno, 'guardarCuenta', cuenta('UNO_1', IBAN_A));
+    llamarServicio(entorno, 'guardarCuenta', cuenta('UNO_1', IBAN_B));
     const filas = hoja(entorno, 'huellas');
     expect(filas).toHaveLength(2);
-    expect(filas[1][2]).toBe(IBAN_B.slice(-4));
+    expect(filas[1][4]).toBe(IBAN_B.slice(-4));
   });
 
-  it('la misma cuenta da la misma huella en dos personas (cambio de empresa: baja y alta)', () => {
+  it('una persona con dos ids (cambio de empresa o dos contratos) deja dos filas con la misma huella y un aviso', () => {
     const entorno = arrancar();
-    llamarServicio(entorno, 'guardarCuentas', {
-      cuentas: [
-        { idPersonal: 'VIEJA_1', iban: IBAN_A },
-        { idPersonal: 'NUEVA_1', iban: IBAN_A },
-      ],
+    const r = llamarServicio(entorno, 'guardarCuentas', {
+      usuario: USUARIO_PRUEBA,
+      cuentas: [cuenta('VIEJA_1', IBAN_A), cuenta('NUEVA_1', IBAN_A)],
     });
     const filas = hoja(entorno, 'huellas');
-    expect(filas[1][1]).toBe(filas[2][1]);
+    expect(filas[1][3]).toBe(filas[2][3]);
+    expect(filas.map((f) => f[0]).slice(1)).toEqual(['1', '2']);
+    expect(r.datos[1].avisos).toHaveLength(1);
   });
 
   it('los códigos se guardan como TEXTO para que Sheets no pierda el cero inicial (columna formateada)', () => {
     const entorno = arrancar();
-    llamarServicio(entorno, 'guardarCuenta', { idPersonal: 'UNO_1', iban: ibanDePrueba(7) });
+    llamarServicio(entorno, 'guardarCuenta', cuenta('UNO_1', ibanDePrueba(7)));
     const formatos = entorno.google.estado.formato.filter((f) => f.m === 'setNumberFormat').map((f) => f.a[0]);
     expect(formatos).toContain('@');
   });
@@ -126,10 +136,7 @@ describe('cruce, subsanación y fusión · recorrido completo · RF-91 … RF-94
   function conPersonas() {
     const entorno = arrancar();
     llamarServicio(entorno, 'guardarCuentas', {
-      cuentas: [
-        { idPersonal: 'UNO_1', iban: IBAN_A },
-        { idPersonal: 'UNO_2', iban: IBAN_B },
-      ],
+      cuentas: [cuenta('UNO_1', IBAN_A), cuenta('UNO_2', IBAN_B)],
     });
     return entorno;
   }
@@ -197,7 +204,7 @@ describe('cruce, subsanación y fusión · recorrido completo · RF-91 … RF-94
       false,
     );
     expect(llamarServicio(entorno, 'fusionar', { periodo: '2026-11', empresas: ['Uno'], usuario: 'u' }).ok).toBe(true);
-    expect(hoja(entorno, 'fusiones')).toHaveLength(2);
+    expect(hoja(entorno, 'cierres')).toHaveLength(2);
   });
 
   it('el Maestro de Pagos devuelve identificador, últimos 4 y fecha (sin huella)', () => {
@@ -214,7 +221,7 @@ describe('configuración · fallos claros', () => {
     const libro = prepararPagos(entorno);
     libro
       .getSheets()
-      .filter((h) => h.getName() === 'fusiones')
+      .filter((h) => h.getName() === 'cierres')
       .forEach((h) => {
         libro.deleteSheet(h);
       });
@@ -226,10 +233,10 @@ describe('configuración · fallos claros', () => {
       esperados: [],
     });
     expect(CLAVE_PRUEBA).toBeTruthy();
-    expect(r.ok).toBe(true); // el cruce no necesita `fusiones`
+    expect(r.ok).toBe(true); // el cruce no necesita `cierres`
     expect(
       llamarServicio(entorno, 'fusionar', { periodo: '2026-11', empresas: ['Uno'], usuario: 'u' }).error,
-    ).toContain('fusiones');
+    ).toContain('cierres');
   });
 });
 
@@ -237,10 +244,7 @@ describe('historial de una persona · RF-95', () => {
   it('reúne sus filas de todos los meses, ordenadas, sin huella y sin las de otras personas', () => {
     const entorno = arrancar();
     llamarServicio(entorno, 'guardarCuentas', {
-      cuentas: [
-        { idPersonal: 'UNO_1', iban: IBAN_A },
-        { idPersonal: 'UNO_2', iban: IBAN_B },
-      ],
+      cuentas: [cuenta('UNO_1', IBAN_A), cuenta('UNO_2', IBAN_B)],
     });
     const pago = (iban) => ({ nombre: 'N', iban, importe: '100,00', referencia: 'R', banco: 'B', fichero: 'f.xml' });
     for (const periodo of ['2026-11', '2026-10']) {

@@ -139,6 +139,10 @@ El nombre sirve para **construir la tabla una vez**, no para cruzar cada mes:
 > *(pendiente — decida lo que decida, **esto tiene que acabar en un ADR**: es exactamente el tipo de
 > decisión que dentro de un año nadie recordará por qué se tomó)*
 
+## Actualización · 25 noviembre 2026
+
+**Cambia un punto de la propuesta de abajo: `VAP_Pagos` SÍ guardará el DNI** (una fila por pareja DNI + identificador de trabajador, con la misma huella). Lo decidió el usuario; el motivo y las alternativas están en [ADR-0020](../../docs_solutions/docs_design/adr/0020-vap-pagos-identifica-por-dni-con-varios-id-trabajador.md). El resto de lo que sigue (clave, huella, últimos 4 dígitos) no cambia.
+
 ## Actualización · 16 noviembre 2026
 
 La propuesta del desarrollo, **pendiente de validar con Gerencia y protección de datos**, es una cuarta vía

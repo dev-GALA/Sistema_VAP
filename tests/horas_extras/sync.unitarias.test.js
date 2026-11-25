@@ -1,16 +1,16 @@
 // Unitarias de VAP_Script_Actualizacion_Automatica_Secretarias: lectura de la BBDD, búsqueda de ID,
 // ayudas de formulario/respuestas y control de frecuencia. Datos ficticios. ADR-0004 · ADR-0008 · SSD §7.2.
 import { describe, expect, it } from 'vitest';
-import { CAB_SECRETARIAS, crearFormulario, entornoSync, eventoEnvio, fecha } from './ayudas.js';
+import { CAB_SECRETARIAS, crearFormulario, DNI_PRUEBA, entornoSync, eventoEnvio, fecha } from './ayudas.js';
 import { plano } from '../soporte/cargar-gs.js';
 
-const ana = ['S001', 'Ana Prueba', true];
-const bea = ['S002', 'Bea Inventada', true];
+const ana = ['S001', 'Prueba, Ana', true];
+const bea = ['S002', 'Inventada, Bea', true];
 
 describe('normalizarTexto_', () => {
   it.each([
-    ['  Ana   Prueba ', 'ANA PRUEBA'], ['ana', 'ANA'], ['', ''], [null, ''], [undefined, ''], [12, '12'],
-    ['Ana\tPrueba\n', 'ANA PRUEBA'],
+    ['  Prueba,   Ana ', 'PRUEBA, ANA'], ['ana', 'ANA'], ['', ''], [null, ''], [undefined, ''], [12, '12'],
+    ['Prueba,\tAna\n', 'PRUEBA, ANA'],
   ])('«%s» → «%s»', (entrada, esperado) => {
     expect(entornoSync().llamar('normalizarTexto_', entrada)).toBe(esperado);
   });
@@ -24,44 +24,45 @@ describe('obtenerSecretariasActivasUnicas_ · lista del desplegable (ADR-0004)',
   const lista = (secretarias, extra = {}) => plano(entornoSync({ secretarias, ...extra }).llamar('obtenerSecretariasActivasUnicas_'));
 
   it('devuelve solo las activas, ordenadas alfabéticamente en español', () => {
-    expect(lista([['S3', 'Zoe Irreal', true], ['S1', 'Álex Falso', true], ['S2', 'Bea Inventada', true], ['S4', 'Cleo Falsa', false]]))
-      .toEqual(['Álex Falso', 'Bea Inventada', 'Zoe Irreal']);
+    expect(lista([['S3', 'Irreal, Zoe', true], ['S1', 'Falso, Álex', true], ['S2', 'Inventada, Bea', true], ['S4', 'Falsa, Cleo', false]]))
+      .toEqual(['Falso, Álex', 'Inventada, Bea', 'Irreal, Zoe']);
   });
   it('excluye filas sin ID, sin nombre o con ID de solo espacios', () => {
-    expect(lista([['', 'Sin Id', true], ['S2', '', true], ['  ', 'Espacios Id', true], ana])).toEqual(['Ana Prueba']);
+    expect(lista([['', 'Id, Sin', true], ['S2', '', true], ['  ', 'Id, Espacios', true], ana])).toEqual(['Prueba, Ana']);
   });
   it('limpia espacios sobrantes del nombre y colapsa los internos', () => {
-    expect(lista([['S1', '  Ana    Prueba  ', true]])).toEqual(['Ana Prueba']);
+    expect(lista([['S1', '  Prueba,    Ana  ', true]])).toEqual(['Prueba, Ana']);
   });
   it('elimina duplicados exactos (misma secretaria dos veces)', () => {
-    expect(lista([ana, ['S9', 'Ana   Prueba', true]])).toEqual(['Ana Prueba']);
+    expect(lista([ana, ['S9', 'Prueba,   Ana', true]])).toEqual(['Prueba, Ana']);
   });
   it('caracterización: duplicados que solo difieren en mayúsculas NO se unifican', () => {
-    expect(lista([ana, ['S9', 'ANA PRUEBA', true]])).toEqual(['Ana Prueba', 'ANA PRUEBA']);
+    expect(lista([ana, ['S9', 'PRUEBA, ANA', true]])).toEqual(['Prueba, Ana', 'PRUEBA, ANA']);
   });
   it('«Alta» solo vale como booleano true: «TRUE» en texto, 1, "Sí" y vacío cuentan como NO alta (caracterización)', () => {
-    expect(lista([['S1', 'Texto True', 'TRUE'], ['S2', 'Uno', 1], ['S3', 'Si', 'Sí'], ['S4', 'Vacia', ''], ['S5', 'Verdadero', true]]))
-      .toEqual(['Verdadero']);
+    expect(lista([['S1', 'True, Texto', 'TRUE'], ['S2', 'Uno, N', 1], ['S3', 'Si, N', 'Sí'], ['S4', 'Vacia, N', ''], ['S5', 'Verdadero, N', true]]))
+      .toEqual(['Verdadero, N']);
   });
   it('lista vacía: solo cabecera → []', () => {
     expect(lista([])).toEqual([]);
   });
   it('lista vacía: todas de baja → []', () => {
-    expect(lista([['S1', 'Baja Uno', false], ['S2', 'Baja Dos', false]])).toEqual([]);
+    expect(lista([['S1', 'Baja, Uno', false], ['S2', 'Baja, Dos', false]])).toEqual([]);
   });
   it('RNF-02 · localiza las columnas por NOMBRE de cabecera aunque estén en otro orden y haya extras', () => {
-    expect(lista([['Ana Prueba', 'extra', true, 'S1']], { cabeceraSecretarias: ['Nombre_Secretaria', 'Otra', 'Alta', 'id_trabajador'] })).toEqual(['Ana Prueba']);
+    expect(lista([['Prueba, Ana', 'extra', true, 'S1', DNI_PRUEBA]], { cabeceraSecretarias: ['Nombre_Secretaria', 'Otra', 'Alta', 'id_trabajador', 'DNI'] })).toEqual(['Prueba, Ana']);
   });
   it.each([
-    ['id_trabajador', ['Nombre_Secretaria', 'Alta'], 'No se encuentra la columna "id_trabajador"'],
-    ['Nombre_Secretaria', ['id_trabajador', 'Alta'], 'No se encuentra la columna "Nombre_Secretaria"'],
-    ['Alta', ['id_trabajador', 'Nombre_Secretaria'], 'No se encuentra la columna "Alta"'],
+    ['id_trabajador', ['Nombre_Secretaria', 'DNI', 'Alta'], 'No se encuentra la columna "id_trabajador"'],
+    ['Nombre_Secretaria', ['id_trabajador', 'DNI', 'Alta'], 'No se encuentra la columna "Nombre_Secretaria"'],
+    ['DNI', ['id_trabajador', 'Nombre_Secretaria', 'Alta'], 'No se encuentra la columna "DNI"'],
+    ['Alta', ['id_trabajador', 'Nombre_Secretaria', 'DNI'], 'No se encuentra la columna "Alta"'],
   ])('falta la cabecera %s → error claro', (_c, cabecera, mensaje) => {
     const e = entornoSync({ secretarias: [['a', 'b']], cabeceraSecretarias: cabecera });
     expect(() => e.llamar('obtenerSecretariasActivasUnicas_')).toThrow(mensaje);
   });
   it('una cabecera con espacio final no se reconoce (caracterización)', () => {
-    const e = entornoSync({ secretarias: [['S1', 'Ana Prueba', true]], cabeceraSecretarias: ['id_trabajador', 'Nombre_Secretaria', 'Alta '] });
+    const e = entornoSync({ secretarias: [['S1', 'Prueba, Ana', DNI_PRUEBA, true]], cabeceraSecretarias: ['id_trabajador', 'Nombre_Secretaria', 'DNI', 'Alta '] });
     expect(() => e.llamar('obtenerSecretariasActivasUnicas_')).toThrow('No se encuentra la columna "Alta"');
   });
   it('sin la hoja VAP_Secretarias → error claro', () => {
@@ -77,62 +78,93 @@ describe('obtenerSecretariasActivasUnicas_ · lista del desplegable (ADR-0004)',
   });
 });
 
-describe('buscarIdSecrePorNombre_ · ID de la secretaria que envía', () => {
-  const buscar = (nombre, secretarias = [ana, bea], extra = {}) => entornoSync({ secretarias, ...extra }).llamar('buscarIdSecrePorNombre_', nombre);
+describe('buscarSecretariaPorNombre_ · la secretaria que envía: { id, dni }', () => {
+  const buscar = (nombre, secretarias = [ana, bea], extra = {}) => plano(entornoSync({ secretarias, ...extra }).llamar('buscarSecretariaPorNombre_', nombre));
+  const ANA = { id: 'S001', dni: DNI_PRUEBA };
 
-  it('devuelve el ID de la secretaria activa', () => {
-    expect(buscar('Ana Prueba')).toBe('S001');
+  it('devuelve el id y el DNI de la secretaria activa', () => {
+    expect(buscar('Prueba, Ana')).toEqual(ANA);
   });
   it('ignora mayúsculas y espacios sobrantes', () => {
-    expect(buscar('  ana    PRUEBA ')).toBe('S001');
+    expect(buscar('  prueba,    ANA ')).toEqual(ANA);
+  });
+  it('devuelve el DNI normalizado (mayúsculas, sin espacios ni guiones)', () => {
+    expect(buscar('Prueba, Ana', [['S001', 'Prueba, Ana', true, ' 1234-5678z ']])).toEqual(ANA);
   });
   it('caracterización: es sensible a las tildes («Pérez» ≠ «Perez»)', () => {
-    expect(buscar('Ana Perez', [['S1', 'Ana Pérez', true]])).toBe('');
+    expect(buscar('Perez, Ana', [['S1', 'Pérez, Ana', true]])).toBeNull();
   });
-  it('nombre desconocido → cadena vacía', () => {
-    expect(buscar('Nadie Imaginario')).toBe('');
+  it('nombre desconocido → null', () => {
+    expect(buscar('Imaginario, Nadie')).toBeNull();
   });
   it('una secretaria de baja no se encuentra', () => {
-    expect(buscar('Cleo Falsa', [['S3', 'Cleo Falsa', false]])).toBe('');
+    expect(buscar('Falsa, Cleo', [['S3', 'Falsa, Cleo', false]])).toBeNull();
   });
-  it('si el nombre está activo y de baja a la vez, devuelve el ID de la activa', () => {
-    expect(buscar('Ana Prueba', [['S-vieja', 'Ana Prueba', false], ana])).toBe('S001');
+  it('si el nombre está activo y de baja a la vez, devuelve la activa', () => {
+    expect(buscar('Prueba, Ana', [['S-vieja', 'Prueba, Ana', false], ana])).toEqual(ANA);
   });
   it('varias activas con el mismo nombre → error (no se adivina)', () => {
-    expect(() => buscar('Ana Prueba', [ana, ['S009', 'ana  prueba', true]])).toThrow('Hay varias secretarias activas con el mismo nombre: "Ana Prueba"');
+    expect(() => buscar('Prueba, Ana', [ana, ['S009', 'prueba,  ana', true]])).toThrow('Hay varias secretarias activas con el mismo nombre: "Prueba, Ana"');
   });
   it('ID con espacios se recorta; ID numérico se devuelve como texto', () => {
-    expect(buscar('Ana Prueba', [['  S001  ', 'Ana Prueba', true]])).toBe('S001');
-    expect(buscar('Ana Prueba', [[42, 'Ana Prueba', true]])).toBe('42');
+    expect(buscar('Prueba, Ana', [['  S001  ', 'Prueba, Ana', true]])).toEqual(ANA);
+    expect(buscar('Prueba, Ana', [[42, 'Prueba, Ana', true]])).toEqual({ id: '42', dni: DNI_PRUEBA });
   });
-  it('activa pero sin ID → cadena vacía', () => {
-    expect(buscar('Ana Prueba', [['', 'Ana Prueba', true]])).toBe('');
+  it('activa pero sin ID, sin DNI o con un DNI inválido → null (no entra en la lista, no se localiza)', () => {
+    expect(buscar('Prueba, Ana', [['', 'Prueba, Ana', true]])).toBeNull();
+    expect(buscar('Prueba, Ana', [['S1', 'Prueba, Ana', true, '']])).toBeNull();
+    expect(buscar('Prueba, Ana', [['S1', 'Prueba, Ana', true, '050986557L']])).toBeNull();
   });
-  it('nombre buscado vacío o nulo → cadena vacía', () => {
-    expect(buscar('')).toBe('');
-    expect(buscar(null)).toBe('');
+  it('nombre buscado vacío o nulo → null', () => {
+    expect(buscar('')).toBeNull();
+    expect(buscar(null)).toBeNull();
   });
   it.each([
-    ['id_trabajador', ['Nombre_Secretaria', 'Alta']],
-    ['Nombre_Secretaria', ['id_trabajador', 'Alta']],
-    ['Alta', ['id_trabajador', 'Nombre_Secretaria']],
+    ['id_trabajador', ['Nombre_Secretaria', 'DNI', 'Alta']],
+    ['Nombre_Secretaria', ['id_trabajador', 'DNI', 'Alta']],
+    ['DNI', ['id_trabajador', 'Nombre_Secretaria', 'Alta']],
+    ['Alta', ['id_trabajador', 'Nombre_Secretaria', 'DNI']],
   ])('falta la cabecera %s → error claro', (c, cabecera) => {
-    expect(() => buscar('Ana Prueba', [['a', 'b']], { cabeceraSecretarias: cabecera })).toThrow(`No se encuentra la columna "${c}"`);
+    expect(() => buscar('Prueba, Ana', [['a', 'b']], { cabeceraSecretarias: cabecera })).toThrow(`No se encuentra la columna "${c}"`);
   });
   it('sin la hoja → error claro', () => {
-    expect(() => buscar('Ana Prueba', [], { hojaSecretarias: false })).toThrow('No existe la hoja "VAP_Secretarias"');
+    expect(() => buscar('Prueba, Ana', [], { hojaSecretarias: false })).toThrow('No existe la hoja "VAP_Secretarias"');
   });
-  it('hoja completamente vacía → error (no devuelve un ID inventado)', () => {
+  it('hoja completamente vacía → null (no devuelve un ID inventado)', () => {
     const e = entornoSync({ secretarias: [] });
     e.hojaSecretarias.cargar([]);
-    expect(() => e.llamar('buscarIdSecrePorNombre_', 'Ana Prueba')).toThrow();
+    expect(e.llamar('buscarSecretariaPorNombre_', 'Prueba, Ana')).toBeNull();
+  });
+});
+
+describe('quién entra en la lista: DNI válido y nombre «APELLIDOS, NOMBRE» (RF-102)', () => {
+  const lista = (secretarias) => plano(entornoSync({ secretarias }).llamar('obtenerSecretariasActivasUnicas_'));
+
+  it('sin DNI o con un DNI de forma incorrecta no aparece', () => {
+    expect(lista([ana, ['S2', 'Sin, Dni', true, ''], ['S3', 'Largo, Dni', true, '050986557L'], ['S4', 'Corto, Dni', true, '1234567Z']])).toEqual(['Prueba, Ana']);
+  });
+  it('acepta un DNI con espacios, guiones o minúsculas, y un NIE', () => {
+    expect(lista([['S1', 'Uno, Ana', true, ' 1234-5678z '], ['S2', 'Dos, Ana', true, 'X1234567L']])).toEqual(['Dos, Ana', 'Uno, Ana']);
+  });
+  it('un nombre sin formato «APELLIDOS, NOMBRE» no aparece', () => {
+    expect(lista([ana, ['S2', 'Sin Coma Ana', true], ['S3', 'Dos, Comas, Ana', true], ['S4', ', Ana', true], ['S5', 'Ficticia,', true]])).toEqual(['Prueba, Ana']);
+  });
+  it('el registro anota a quien se queda fuera con su fila, su id y el motivo, sin nombre ni DNI', () => {
+    const e = entornoSync({ secretarias: [ana, ['S2', 'Sin, Dni', true, ''], ['S3', 'Sin Coma Ana', true], ['S4', 'Baja, Dora', false, '']] });
+    e.llamar('actualizarPreguntaSecretarias');
+    const registro = JSON.stringify(e.estado.logs);
+    expect(registro).toContain('fila 3 (S2): sin DNI');
+    expect(registro).toContain('fila 4 (S3): nombre sin el formato');
+    expect(registro).not.toContain('S4'); // una baja no es una exclusión que avisar
+    expect(registro).not.toContain(DNI_PRUEBA);
+    expect(registro).not.toContain('Sin, Dni');
   });
 });
 
 describe('obtenerRespuestaPorTitulo_', () => {
   const buscar = (respuestas, titulo = 'SECRETARIA') => entornoSync().llamar('obtenerRespuestaPorTitulo_', eventoEnvio(respuestas, fecha(2026, 3, 1)), titulo);
   it('devuelve la respuesta de la pregunta por su título, recortada', () => {
-    expect(buscar({ MES: 'MARZO', SECRETARIA: '  Ana Prueba ' })).toBe('Ana Prueba');
+    expect(buscar({ MES: 'MARZO', SECRETARIA: '  Prueba, Ana ' })).toBe('Prueba, Ana');
   });
   it('pregunta ausente → cadena vacía', () => {
     expect(buscar({ MES: 'MARZO' })).toBe('');
@@ -145,7 +177,7 @@ describe('obtenerRespuestaPorTitulo_', () => {
     expect(buscar({ SECRETARIA: 7 })).toBe('7');
   });
   it('el título debe coincidir exactamente (mayúsculas)', () => {
-    expect(buscar({ secretaria: 'Ana Prueba' })).toBe('');
+    expect(buscar({ secretaria: 'Prueba, Ana' })).toBe('');
   });
 });
 
@@ -248,6 +280,6 @@ describe('constantes', () => {
     expect(f.getItems('LIST').map((i) => i.getTitle())).toEqual(['A']);
   });
   it('CAB_SECRETARIAS (ayuda de pruebas) coincide con las cabeceras que exige el script', () => {
-    expect(CAB_SECRETARIAS).toEqual(['id_trabajador', 'Nombre_Secretaria', 'Alta']);
+    expect(CAB_SECRETARIAS).toEqual(['id_trabajador', 'Nombre_Secretaria', 'Alta', 'DNI']);
   });
 });

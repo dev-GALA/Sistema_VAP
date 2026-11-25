@@ -117,6 +117,9 @@
         ayudas.vaciar(zona);
         zona.appendChild(comun.alerta(ayudas, errores.length > 0 ? 'aviso' : 'info', 'Guardadas ' + guardadas + ' cuentas' + (errores.length > 0 ? ' · con error ' + errores.length : '') + '.', 'resultado-carga'));
         errores.forEach(function (e) { zona.appendChild(comun.alerta(ayudas, 'error', 'Fila ' + (e.indice + 2) + ': ' + e.detalle)); });
+        resultados.forEach(function (r) {
+          (r.avisos || []).forEach(function (aviso) { zona.appendChild(comun.alerta(ayudas, 'aviso', 'Fila ' + (r.indice + 2) + ': ' + aviso)); });
+        });
       }, function (error) {
         dialogo.close();
         dialogo.remove();

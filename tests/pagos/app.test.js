@@ -2,7 +2,7 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { plano } from '../soporte/cargar-gs.js';
-import { cargarPagos, ibanDePrueba } from './cargar.js';
+import { cargarPagos, DNI_1, DNI_2, ibanDePrueba, USUARIO_PRUEBA } from './cargar.js';
 
 const { llamar } = cargarPagos();
 const IBAN_A = ibanDePrueba(1);
@@ -45,30 +45,108 @@ const pago = (iban, importe) => ({
   fichero: 'f.csv',
 });
 
-describe('guardarCuenta_ · RF-86 · RF-98', () => {
-  it('guarda la huella y los últimos 4, y devuelve solo los últimos 4 (nunca la cuenta)', () => {
+const persona = (idPersonal, dni, iban, extra = {}) => ({ idPersonal, dni, iban, usuario: USUARIO_PRUEBA, ...extra });
+
+describe('guardarCuenta_ · RF-86 · RF-98 · RF-102', () => {
+  it('guarda la huella, los últimos 4, el DNI y quién la guardó, y devuelve solo los últimos 4 (nunca la cuenta)', () => {
     const d = dependencias();
-    const r = plano(llamar('guardarCuenta_', d, { idPersonal: 'UNO_1', iban: IBAN_A }));
-    expect(r).toEqual({ idPersonal: 'UNO_1', ultimos4: IBAN_A.slice(-4) });
+    const r = plano(llamar('guardarCuenta_', d, persona('UNO_1', DNI_1, IBAN_A)));
+    expect(r).toEqual({ idPersonal: 'UNO_1', ultimos4: IBAN_A.slice(-4), avisos: [] });
     expect(d.estado.huellas[0]).toMatchObject({
+      idPagos: '1',
+      dni: DNI_1,
       idPersonal: 'UNO_1',
       huella: huellaReal(IBAN_A),
       ultimos4: IBAN_A.slice(-4),
+      actualizadoPor: USUARIO_PRUEBA,
     });
     expect(JSON.stringify(d.estado)).not.toContain(IBAN_A);
   });
 
+  it('normaliza el DNI al guardarlo (mayúsculas, sin espacios ni guiones)', () => {
+    const d = dependencias();
+    llamar('guardarCuenta_', d, persona('UNO_1', ' 1234-5678z ', IBAN_A));
+    expect(d.estado.huellas[0].dni).toBe(DNI_1);
+  });
+
+  it('el número id_pagos es correlativo y no se reutiliza', () => {
+    const d = dependencias();
+    llamar('guardarCuenta_', d, persona('UNO_1', DNI_1, IBAN_A));
+    llamar('guardarCuenta_', d, persona('UNO_2', DNI_2, IBAN_B));
+    expect(d.estado.huellas.map((h) => h.idPagos)).toEqual(['1', '2']);
+  });
+
   it('un cambio de cuenta sustituye la huella: la antigua deja de valer', () => {
     const d = dependencias();
-    llamar('guardarCuenta_', d, { idPersonal: 'UNO_1', iban: IBAN_A });
-    llamar('guardarCuenta_', d, { idPersonal: 'UNO_1', iban: IBAN_B });
+    llamar('guardarCuenta_', d, persona('UNO_1', DNI_1, IBAN_A));
+    llamar('guardarCuenta_', d, persona('UNO_1', DNI_1, IBAN_B));
     expect(d.estado.huellas.map((h) => h.huella)).toEqual([huellaReal(IBAN_B)]);
   });
 
-  it('sin identificador o con cuenta inválida se niega y no escribe', () => {
+  it('un mismo DNI con dos ids (dos empresas) deja dos filas con la MISMA huella y avisa', () => {
     const d = dependencias();
-    expect(() => llamar('guardarCuenta_', d, { idPersonal: '', iban: IBAN_A })).toThrow('identificador');
-    expect(() => llamar('guardarCuenta_', d, { idPersonal: 'UNO_1', iban: 'ES00' })).toThrow('no es válida');
+    llamar('guardarCuenta_', d, persona('GALA_1', DNI_1, IBAN_A));
+    const r = plano(llamar('guardarCuenta_', d, persona('CERVANTES_9', DNI_1, IBAN_A)));
+    expect(d.estado.huellas.map((h) => [h.idPagos, h.idPersonal, h.huella])).toEqual([
+      ['1', 'GALA_1', huellaReal(IBAN_A)],
+      ['2', 'CERVANTES_9', huellaReal(IBAN_A)],
+    ]);
+    expect(r.avisos).toHaveLength(1);
+    expect(r.avisos[0]).toContain('GALA_1');
+    expect(r.avisos[0]).toContain('CERVANTES_9');
+    expect(r.avisos[0]).toContain(DNI_1);
+  });
+
+  it('si ese DNI cambia de cuenta, se actualizan TODAS sus filas a la vez', () => {
+    const d = dependencias();
+    llamar('guardarCuenta_', d, persona('GALA_1', DNI_1, IBAN_A));
+    llamar('guardarCuenta_', d, persona('CERVANTES_9', DNI_1, IBAN_A));
+    llamar('guardarCuenta_', d, persona('GALA_1', DNI_1, IBAN_B));
+    expect(d.estado.huellas.map((h) => h.huella)).toEqual([huellaReal(IBAN_B), huellaReal(IBAN_B)]);
+  });
+
+  it('un id que ya consta con OTRO DNI se rechaza y no escribe nada', () => {
+    const d = dependencias();
+    llamar('guardarCuenta_', d, persona('GALA_1', DNI_1, IBAN_A));
+    expect(() => llamar('guardarCuenta_', d, persona('GALA_1', DNI_2, IBAN_B))).toThrow('no puede tener dos DNI');
+    expect(d.estado.huellas).toHaveLength(1);
+    expect(d.estado.huellas[0].dni).toBe(DNI_1);
+  });
+
+  it('el conflicto da toda la información para resolverlo: id, los dos DNI, la fila, la cuenta y quién la guardó', () => {
+    const d = dependencias();
+    llamar('guardarCuenta_', d, persona('GALA_1', DNI_1, IBAN_A));
+    let mensaje = '';
+    try {
+      llamar('guardarCuenta_', d, persona('GALA_1', DNI_2, IBAN_B));
+    } catch (error) {
+      mensaje = error.message;
+    }
+    for (const dato of ['GALA_1', DNI_1, DNI_2, 'fila 1', IBAN_A.slice(-4), USUARIO_PRUEBA, 'No se ha guardado nada']) {
+      expect(mensaje).toContain(dato);
+    }
+    expect(mensaje).not.toContain(IBAN_A);
+    expect(mensaje).not.toContain(IBAN_B);
+  });
+
+  it('el aviso dice si el id nuevo llega con la misma cuenta o con otra', () => {
+    const d = dependencias();
+    llamar('guardarCuenta_', d, persona('GALA_1', DNI_1, IBAN_A));
+    const igual = plano(llamar('guardarCuenta_', d, persona('CERVANTES_9', DNI_1, IBAN_A)));
+    expect(igual.avisos[0]).toContain('con la misma cuenta');
+    const otra = plano(llamar('guardarCuenta_', d, persona('LOGYFOR_3', DNI_1, IBAN_B)));
+    expect(otra.avisos[0]).toContain('cuenta distinta');
+    expect(otra.avisos[0]).toContain(IBAN_B.slice(-4));
+    expect(otra.avisos[0]).not.toContain(IBAN_B);
+  });
+
+  it('sin identificador, con DNI o cuenta inválidos o sin usuario se niega y no escribe', () => {
+    const d = dependencias();
+    expect(() => llamar('guardarCuenta_', d, persona('', DNI_1, IBAN_A))).toThrow('identificador');
+    expect(() => llamar('guardarCuenta_', d, persona('UNO_1', '', IBAN_A))).toThrow('DNI');
+    expect(() => llamar('guardarCuenta_', d, persona('UNO_1', '050986557L', IBAN_A))).toThrow('DNI');
+    expect(() => llamar('guardarCuenta_', d, persona('UNO_1', DNI_1, 'ES00'))).toThrow('no es válida');
+    expect(() => llamar('guardarCuenta_', d, persona('UNO_1', DNI_1, IBAN_A, { usuario: '' }))).toThrow('quién');
     expect(d.estado.huellas).toEqual([]);
   });
 });
@@ -78,16 +156,32 @@ describe('guardarCuentas_ · carga inicial · RF-89', () => {
     const d = dependencias();
     const r = plano(
       llamar('guardarCuentas_', d, {
+        usuario: USUARIO_PRUEBA,
         cuentas: [
-          { idPersonal: 'A_1', iban: IBAN_A },
-          { idPersonal: 'A_2', iban: 'ES00' },
-          { idPersonal: 'A_3', iban: IBAN_B },
+          { idPersonal: 'A_1', dni: DNI_1, iban: IBAN_A },
+          { idPersonal: 'A_2', dni: DNI_2, iban: 'ES00' },
+          { idPersonal: 'A_3', dni: '11111111H', iban: IBAN_B },
         ],
       }),
     );
     expect(r.map((x) => x.estado)).toEqual(['guardada', 'error', 'guardada']);
     expect(JSON.stringify(r)).not.toContain('ES00');
     expect(d.estado.huellas).toHaveLength(2);
+  });
+
+  it('los avisos de cada cuenta salen en su resultado', () => {
+    const d = dependencias();
+    const r = plano(
+      llamar('guardarCuentas_', d, {
+        usuario: USUARIO_PRUEBA,
+        cuentas: [
+          { idPersonal: 'GALA_1', dni: DNI_1, iban: IBAN_A },
+          { idPersonal: 'CERVANTES_9', dni: DNI_1, iban: IBAN_A },
+        ],
+      }),
+    );
+    expect(r[0].avisos).toEqual([]);
+    expect(r[1].avisos).toHaveLength(1);
   });
 
   it('rechaza una lista vacía o demasiado larga', () => {
@@ -174,6 +268,24 @@ describe('subsanar_ · RF-93', () => {
       resueltoPor: 'sara@gala.test',
       motivoResolucion: 'Redondeo conocido',
     });
+  });
+
+  it('anota el id_pagos de la persona afectada, y lo deja vacío si el pago no tiene persona (Parte 2)', () => {
+    const huellas = [{ idPagos: '7', dni: DNI_1, idPersonal: 'UNO_1', huella: 'h', ultimos4: '1234' }];
+    const informe = {
+      '2026-11': [
+        { ...incorrecta, filaId: 'con', idPersonal: 'UNO_1' },
+        { ...incorrecta, filaId: 'sin', idPersonal: '' },
+      ],
+    };
+    const d = dependencias({ huellas, informe });
+    for (const filaId of ['con', 'sin']) {
+      llamar('subsanar_', d, { periodo: '2026-11', filaId, resolucion: 'aceptado', motivo: 'x', usuario: 'u' });
+    }
+    expect(d.estado.subsanaciones.map((r) => [r.filaId, r.idPagos])).toEqual([
+      ['con', '7'],
+      ['sin', ''],
+    ]);
   });
 
   it('no subsana una fila Coincidente ni sin motivo', () => {

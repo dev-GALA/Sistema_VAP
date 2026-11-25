@@ -143,7 +143,7 @@ describe('dominio-banco · leer ficheros del banco · RF-90', () => {
 describe('dominio-importes · la misma copia en los dos proyectos (DRY entre proyectos de Apps Script)', () => {
   it('dominio-importes.gs es idéntico en webapp y en pagos', () => {
     const leer = (proyecto) => readFileSync(join(SRC, proyecto, 'dominio-importes.gs'), 'utf8');
-    expect(leer('webapp')).toBe(leer('pagos'));
+    expect(leer('webapp')).toBe(leer('vap_pagos'));
   });
 });
 

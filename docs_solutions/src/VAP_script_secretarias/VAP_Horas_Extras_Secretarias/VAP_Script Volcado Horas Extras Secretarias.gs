@@ -65,6 +65,7 @@ const SOURCE_SHEET_NAME  = 'Respuestas de formulario';
 const TARGET_SHEET_NAME  = 'Hoja 1';
 const ARCHIVE_SHEET_NAME = 'Anteriores';
 const LOG_SHEET_NAME     = 'LOG Volcado';
+const SIM_SHEET_NAME     = 'simulacion_volcado';
 
 // Columnas ORIGEN (1-based)
 const SRC_TIMESTAMP_COL    = 1;  // A: Marca temporal
@@ -72,9 +73,11 @@ const SRC_MONTH_COL        = 3;  // C: MES
 const SOURCE_NAME_COL      = 5;  // E: SECRETARIA
 const SRC_HORAS_EXTRA_COL  = 7;  // G: Nº HORAS EXTRA
 const SRC_OTROS_EXTRAS_COL = 9;  // I: € OTROS EXTRAS
+const SRC_DNI_HEADER       = 'DNI_Secre'; // la escribe la sincronización; las respuestas antiguas no la tienen
 
 // Columnas DESTINO (1-based)
 const TARGET_NAME_COL      = 3;  // C
+const TARGET_DNI_COL       = 4;  // D
 const DST_HORAS_EXTRA_COL  = 31; // AE
 const DST_OTROS_EXTRAS_COL = 34; // AH
 
@@ -175,8 +178,9 @@ function analizarVolcado_(mesObjetivo, anioObjetivo) {
 
   const lastCol = Math.max(srcSheet.getLastColumn(), SRC_OTROS_EXTRAS_COL);
   const values = srcSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const columnaDni = srcSheet.getRange(1, 1, 1, lastCol).getValues()[0].indexOf(SRC_DNI_HEADER);
 
-  const porSecretaria = new Map();
+  const envios = [];
   const filasMes = [];
   const avisosFecha = [];
   const incidencias = [];
@@ -237,27 +241,16 @@ function analizarVolcado_(mesObjetivo, anioObjetivo) {
         detalle: `€ OTROS EXTRAS = "${otros}" no es un número.` });
     }
 
-    const clave = normalizeKey(displayName);
-    const previo = porSecretaria.get(clave);
-    const esMasReciente = !previo || !previo.ts || !ts || ts.getTime() >= previo.ts.getTime();
-
-    if (!previo) {
-      porSecretaria.set(clave, { displayName, horas, otros, ts, filas: [filaReal] });
-    } else {
-      previo.filas.push(filaReal);
-      if (esMasReciente) {
-        previo.displayName = displayName;
-        previo.horas = horas;
-        previo.otros = otros;
-        previo.ts = ts;
-      }
-    }
+    const dni = columnaDni === -1 ? '' : normalizarDni_(row[columnaDni]);
+    envios.push({ displayName, horas, otros, ts, fila: filaReal, dni: esDniValido_(dni) ? dni : '' });
   }
+
+  const porSecretaria = agruparPorPersona_(envios, incidencias);
 
   const aVolcar = [];
   const corregidas = [];
-  porSecretaria.forEach((v, clave) => {
-    aVolcar.push({ clave, ...v });
+  porSecretaria.forEach(v => {
+    aVolcar.push({ clave: normalizeKey(v.displayName), ...v });
     if (v.filas.length > 1) corregidas.push({ nombre: v.displayName, filas: v.filas });
   });
 
@@ -363,20 +356,7 @@ function ejecutarVolcado_(plan, mesObjetivo, anioObjetivo) {
       tgtLastRow = tgtSheet.getLastRow();
     }
 
-    // Índice del destino. Un nombre repetido es ambiguo: se avisa.
-    const tgtNames = tgtSheet.getRange(2, TARGET_NAME_COL, tgtLastRow - 1, 1).getValues();
-    const tgtRowByName = new Map();
-    const duplicadosDestino = new Map();
-    for (let r = 0; r < tgtNames.length; r++) {
-      const name = (tgtNames[r][0] || '').toString().trim();
-      if (!name) continue;
-      const k = normalizeKey(name);
-      if (tgtRowByName.has(k)) {
-        duplicadosDestino.set(k, (duplicadosDestino.get(k) || [tgtRowByName.get(k)]).concat([r + 2]));
-      } else {
-        tgtRowByName.set(k, r + 2);
-      }
-    }
+    const indice = indiceDestino_(tgtSheet);
 
     // --- Incidencias detectadas en el análisis ---
     plan.incidencias.forEach(i => anota('INCIDENCIA', i.tipo, i.fila, i.secretaria, i.detalle));
@@ -387,22 +367,22 @@ function ejecutarVolcado_(plan, mesObjetivo, anioObjetivo) {
     let actualizadas = 0, sinCambios = 0, creadas = 0, bloqueadas = 0;
 
     plan.aVolcar.forEach(item => {
-      // Nombre ambiguo en destino: no se escribe.
-      if (duplicadosDestino.has(item.clave)) {
+      const destino = resolverDestino_(item, indice);
+      destino.avisos.forEach(a => anota(destino.accion === 'bloquear' ? 'ERROR' : 'INCIDENCIA', a.tipo, '',
+        item.displayName, a.detalle));
+      if (destino.accion === 'bloquear') {
         bloqueadas++;
-        anota('ERROR', 'NOMBRE_DUPLICADO_DESTINO', '', item.displayName,
-          `Aparece en las filas ${duplicadosDestino.get(item.clave).join(', ')} del destino. ` +
-          `NO se escribe hasta resolver la ambigüedad.`);
         return;
       }
 
-      let tgtRow = tgtRowByName.get(item.clave);
+      let tgtRow = destino.fila;
 
-      if (!tgtRow) {
+      if (destino.accion === 'crear') {
         tgtRow = tgtSheet.getLastRow() + 1;
         tgtSheet.insertRowAfter(tgtSheet.getLastRow());
         tgtSheet.getRange(tgtRow, TARGET_NAME_COL).setValue(item.displayName);
-        tgtRowByName.set(item.clave, tgtRow);
+        if (item.dni) tgtSheet.getRange(tgtRow, TARGET_DNI_COL).setValue(item.dni);
+        anadirAlIndice_(indice, tgtRow, item.displayName, item.dni);
         creadas++;
         anota('MOVIMIENTO', 'FILA_NUEVA', '', item.displayName, `Creada en la fila ${tgtRow} del destino.`);
       }
@@ -464,6 +444,197 @@ function ejecutarVolcado_(plan, mesObjetivo, anioObjetivo) {
   }
 }
 
+/****************************************************
+ * CRUCE CON LA VINCULACIÓN: POR DNI Y, SI NO LO HAY, POR NOMBRE
+ * Lo usan el volcado real y la simulación: lo que se ve al simular es lo que se escribe.
+ ****************************************************/
+function normalizarDni_(valor) {
+  return String(valor === null || valor === undefined ? '' : valor).toUpperCase().replace(/[\s-]/g, '');
+}
+
+/** Solo la forma: DNI (8 cifras y letra) o NIE (X, Y o Z, 7 cifras y letra). */
+function esDniValido_(dni) {
+  return /^(\d{8}|[XYZ]\d{7})[A-Z]$/.test(dni);
+}
+
+/** El nombre sin tildes, comas ni mayúsculas y con las palabras ordenadas: solo para decir si «difiere». */
+function nombreComparable_(nombre) {
+  return normalizeKey(nombre).replace(/[^a-z0-9]+/g, ' ').trim().split(' ').sort().join(' ');
+}
+
+/**
+ * Un grupo por persona: por DNI cuando lo hay. Los envíos sin DNI (antiguos) se unen al DNI de su nombre si ese
+ * nombre solo tiene uno en el periodo. Vale el envío con la marca temporal más reciente.
+ */
+function agruparPorPersona_(envios, incidencias) {
+  const dnisPorNombre = new Map();
+  envios.filter(e => e.dni).forEach(e => {
+    const k = normalizeKey(e.displayName);
+    if (!dnisPorNombre.has(k)) dnisPorNombre.set(k, new Set());
+    dnisPorNombre.get(k).add(e.dni);
+  });
+
+  const grupos = new Map();
+  envios.forEach(e => {
+    const dnis = dnisPorNombre.get(normalizeKey(e.displayName));
+    let dni = e.dni;
+    if (!dni && dnis && dnis.size === 1) dni = Array.from(dnis)[0];
+    if (!dni && dnis && dnis.size > 1) {
+      incidencias.push({ tipo: 'DNI_AMBIGUO', fila: e.fila, secretaria: e.displayName,
+        detalle: 'Envío sin DNI y ese nombre tiene varios DNI en el periodo: se cruza por nombre.' });
+    }
+    const clave = dni ? `d:${dni}` : `n:${normalizeKey(e.displayName)}`;
+    const previo = grupos.get(clave);
+    if (!previo) {
+      grupos.set(clave, { displayName: e.displayName, dni, horas: e.horas, otros: e.otros, ts: e.ts, filas: [e.fila] });
+      return;
+    }
+    previo.filas.push(e.fila);
+    if (!previo.ts || !e.ts || e.ts.getTime() >= previo.ts.getTime()) {
+      Object.assign(previo, { displayName: e.displayName, horas: e.horas, otros: e.otros, ts: e.ts });
+    }
+  });
+  return grupos;
+}
+
+function anadirAlIndice_(indice, fila, nombre, dni) {
+  indice.filas.set(fila, { nombre, dni });
+  const apuntar = (mapa, clave) => mapa.set(clave, (mapa.get(clave) || []).concat([fila]));
+  if (nombre) apuntar(indice.porNombre, normalizeKey(nombre));
+  if (esDniValido_(dni)) apuntar(indice.porDni, dni);
+}
+
+/** Las filas de la Vinculación por nombre (columna C) y por DNI (columna D). */
+function indiceDestino_(tgtSheet) {
+  const indice = { porNombre: new Map(), porDni: new Map(), filas: new Map() };
+  const total = tgtSheet.getLastRow() - 1;
+  if (total < 1) return indice;
+  const nombres = tgtSheet.getRange(2, TARGET_NAME_COL, total, 1).getValues();
+  const dnis = tgtSheet.getRange(2, TARGET_DNI_COL, total, 1).getValues();
+  nombres.forEach((fila, i) => {
+    anadirAlIndice_(indice, i + 2, (fila[0] || '').toString().trim(), normalizarDni_(dnis[i][0]));
+  });
+  return indice;
+}
+
+/**
+ * Dónde va una persona: { accion: 'actualizar' | 'crear' | 'bloquear', fila, metodo: 'DNI' | 'NOMBRE' | 'NUEVA', avisos }.
+ * Regla acordada: si el DNI coincide y el nombre no, SE VUELCA y se avisa. Si el nombre coincide y el DNI no, no.
+ */
+function resolverDestino_(item, indice) {
+  const porNombre = indice.porNombre.get(item.clave) || [];
+  const bloquear = (tipo, detalle) => ({ accion: 'bloquear', fila: 0, metodo: '', avisos: [{ tipo, detalle }] });
+  const nombreRepetido = () => bloquear('NOMBRE_DUPLICADO_DESTINO',
+    `Aparece en las filas ${porNombre.join(', ')} del destino. NO se escribe hasta resolver la ambigüedad.`);
+  const nueva = { accion: 'crear', fila: 0, metodo: 'NUEVA', avisos: [] };
+
+  if (!item.dni) {
+    if (porNombre.length > 1) return nombreRepetido();
+    return porNombre.length ? { accion: 'actualizar', fila: porNombre[0], metodo: 'NOMBRE', avisos: [] } : nueva;
+  }
+
+  const porDni = indice.porDni.get(item.dni) || [];
+  if (porDni.length > 1) {
+    return bloquear('DNI_REPETIDO_DESTINO',
+      `El DNI ${item.dni} aparece en las filas ${porDni.join(', ')} del destino. NO se escribe hasta resolverlo.`);
+  }
+  if (porDni.length === 1) {
+    const enDestino = indice.filas.get(porDni[0]).nombre;
+    const avisos = nombreComparable_(enDestino) === nombreComparable_(item.displayName) ? [] : [{
+      tipo: 'NOMBRE_DISTINTO',
+      detalle: `Fila ${porDni[0]}: coincide el DNI ${item.dni}, pero en el destino figura «${enDestino}» y en la ` +
+        `respuesta «${item.displayName}». Se vuelca.` }];
+    return { accion: 'actualizar', fila: porDni[0], metodo: 'DNI', avisos };
+  }
+  if (porNombre.length > 1) return nombreRepetido();
+  if (!porNombre.length) return nueva;
+  const dniDestino = indice.filas.get(porNombre[0]).dni;
+  if (esDniValido_(dniDestino)) {
+    return bloquear('DNI_DISTINTO',
+      `Fila ${porNombre[0]}: el nombre coincide, pero su DNI es ${dniDestino} y el de la respuesta ${item.dni}. NO se escribe.`);
+  }
+  return { accion: 'actualizar', fila: porNombre[0], metodo: 'NOMBRE', avisos: [{ tipo: 'SIN_DNI_EN_DESTINO',
+    detalle: `Fila ${porNombre[0]}: la fila del destino no tiene un DNI válido; se cruza por nombre.` }] };
+}
+
+/****************************************************
+ * SIMULACIÓN (no escribe en la Vinculación ni en el histórico)
+ ****************************************************/
+const SIM_HEADERS = ['Secretaria', 'DNI', 'Filas respuesta', 'Cómo cruza', 'Fila destino', 'Horas antes',
+                     'Horas nuevas', 'Otros antes', 'Otros nuevos', 'Incidencias'];
+
+/** Calcula lo que haría el volcado y lo deja en la hoja «simulacion_volcado» de este libro. */
+function simularVolcado_(mes, anio) {
+  try {
+    const plan = analizarVolcado_(mes, Number(anio));
+    const tgtSheet = SpreadsheetApp.openById(TARGET_SPREADSHEET_ID).getSheetByName(TARGET_SHEET_NAME);
+    if (!tgtSheet) throw new Error(`No existe la pestaña destino: "${TARGET_SHEET_NAME}".`);
+    const indice = indiceDestino_(tgtSheet);
+    let siguiente = tgtSheet.getLastRow() + 1;
+    let bloqueadas = 0, conAvisos = 0;
+
+    const filas = plan.aVolcar.map(item => {
+      const destino = resolverDestino_(item, indice);
+      const avisos = destino.avisos.map(a => `${a.tipo}: ${a.detalle}`).join(' | ');
+      if (destino.avisos.length) conAvisos++;
+      let fila = destino.fila, antesHoras = '', antesOtros = '', como = destino.metodo;
+      if (destino.accion === 'bloquear') {
+        bloqueadas++;
+        como = 'NO CRUZA';
+      } else if (destino.accion === 'crear') {
+        fila = siguiente++;
+        como = 'FILA NUEVA';
+        anadirAlIndice_(indice, fila, item.displayName, item.dni);
+      } else {
+        antesHoras = tgtSheet.getRange(fila, DST_HORAS_EXTRA_COL).getValue();
+        antesOtros = tgtSheet.getRange(fila, DST_OTROS_EXTRAS_COL).getValue();
+      }
+      return [item.displayName, item.dni, item.filas.join(' y '), como, fila || '', antesHoras, item.horas,
+              antesOtros, item.otros, avisos];
+    });
+
+    const libro = SpreadsheetApp.openById(SOURCE_SPREADSHEET_ID);
+    const hoja = libro.getSheetByName(SIM_SHEET_NAME) || libro.insertSheet(SIM_SHEET_NAME);
+    hoja.clearContents();
+    const incidencias = plan.incidencias.map(i =>
+      [i.secretaria || '', '', i.fila, 'INCIDENCIA', '', '', '', '', '', `${i.tipo}: ${i.detalle}`]);
+    const todas = [SIM_HEADERS].concat(filas, incidencias);
+    hoja.getRange(1, 1, todas.length, SIM_HEADERS.length).setValues(todas);
+
+    return { ok: true, personas: filas.length, bloqueadas, conAvisos, incidencias: incidencias.length };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
+ * SIMULAR: se ejecuta desde el editor de Apps Script (no está en el menú). Pide «MES AÑO» en la hoja de cálculo,
+ * calcula lo que haría el volcado sin escribirlo y deja el detalle en la hoja «simulacion_volcado».
+ */
+function simularVolcado() {
+  const ui = SpreadsheetApp.getUi();
+  const respuesta = ui.prompt('Simular volcado', 'Escribe el mes y el año, por ejemplo: MARZO 2026', ui.ButtonSet.OK_CANCEL);
+  if (respuesta.getSelectedButton() !== ui.Button.OK) return;
+  const partes = respuesta.getResponseText().trim().split(/\s+/);
+  const r = simularVolcado_(normalizarMes_(partes[0]) || partes[0], partes[1] || new Date().getFullYear());
+  ui.alert(r.ok
+    ? `Simulación hecha (no se ha escrito en la Vinculación).\nPersonas: ${r.personas}\nNo cruzan: ${r.bloqueadas}\n` +
+      `Con avisos: ${r.conAvisos}\nRevisa la hoja «${SIM_SHEET_NAME}».`
+    : `No se pudo simular: ${r.error}`);
+}
+
+/**
+ * Separa las columnas «DNI_…» del resto. Se archivan DETRÁS del Run ID para no desplazar las columnas que ya tiene
+ * el histórico.
+ */
+function separarColumnasDni_(cabeceraOrigen, fila) {
+  const esDni = (i) => String(cabeceraOrigen[i] || '').indexOf('DNI_') === 0;
+  return {
+    base: fila.filter((_, i) => !esDni(i)),
+    dni: fila.filter((_, i) => esDni(i))
+  };
+}
+
 /**
  * COPIA las filas indicadas a la hoja de archivo.
  * NO borra ni modifica la hoja de respuestas: solo lee de ella.
@@ -482,7 +653,11 @@ function copiarAAnteriores_(filas, mesObjetivo, anioObjetivo, runId) {
   const bruto = srcSheet.getRange(primera, 1, ultima - primera + 1, lastCol).getValues();
 
   const sello = `ARCHIVADO ${mesObjetivo} ${anioObjetivo}`;
-  const bloque = ordenadas.map(f => bruto[f - primera].concat([sello, new Date(), runId]));
+  const cabeceraOrigen = srcSheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const bloque = ordenadas.map(f => {
+    const fila = separarColumnasDni_(cabeceraOrigen, bruto[f - primera]);
+    return fila.base.concat([sello, new Date(), runId], fila.dni);
+  });
 
   arch.getRange(arch.getLastRow() + 1, 1, bloque.length, bloque[0].length).setValues(bloque);
   return bloque.length;

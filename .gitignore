@@ -23,3 +23,6 @@ playwright-report/
 
 # Vínculo local con el proyecto de Apps Script (clasp): no se versiona
 .clasp.json
+
+# Marcas que Windows añade a los ficheros descargados
+*:Zone.Identifier

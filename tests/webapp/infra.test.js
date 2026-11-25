@@ -387,9 +387,12 @@ describe('altas y bajas · contra el maestro, VAP_Pagos y el registro (libros fa
       const [r] = registrar(entorno, [conCuenta]);
       expect(r.estado).toBe('completo');
       const [, fila] = huellas(servicio);
-      expect(fila[0]).toBe('Empresa Uno_T1');
-      expect(fila[1]).toMatch(/^[0-9a-f]{64}$/);
-      expect(fila[2]).toBe(IBAN.slice(-4));
+      expect(fila[0]).toBe('1');
+      expect(fila[1]).toBe(conCuenta.dni.toUpperCase());
+      expect(fila[2]).toBe('Empresa Uno_T1');
+      expect(fila[3]).toMatch(/^[0-9a-f]{64}$/);
+      expect(fila[4]).toBe(IBAN.slice(-4));
+      expect(fila[6]).toBe('sara@gala.test');
       const maestro = hoja(entorno, ID_MAESTRO, 'Uno')[1];
       expect(maestro[6]).toBe('sí');
       expect(maestro[7]).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);

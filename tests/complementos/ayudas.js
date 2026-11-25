@@ -7,7 +7,12 @@ export { plano };
 export const CAB_DATA = [
   'Timestamp', 'Batch_ID', 'ID_Responsable', 'Nombre_Responsable', 'Email_Responsable', 'Año', 'Mes',
   'ID_Concepto', 'Concepto', 'ID_Secretaria', 'Nombre_Secretaria', 'Tipo_Valor', 'Valor', 'Source', 'Modo', 'Corrige_Batch_ID',
+  'DNI_Secretaria',
 ];
+/** DNI inventados con forma válida. */
+export const DNI_S1 = '11111111H';
+export const DNI_S2 = '22222222J';
+export const DNI_S4 = '44444444A';
 export const CAB_LOGS = ['Timestamp', 'Batch_ID', 'ID_Responsable', 'Acción', 'Nº_Registros', 'Resultado', 'Mensaje', 'Tipo_Correccion'];
 export const CAB_ERRORES = ['Timestamp', 'Batch_ID', 'ID_Responsable', 'Mes', 'ID_Concepto', 'ID_Secretaria', 'Valor_Intentado', 'Error'];
 
@@ -36,12 +41,12 @@ export const RESP_CONC = [
   ['R3', 'C1', true],
 ];
 export const SECRETARIAS = [
-  ['id_trabajador', 'Nombre_Secretaria', 'Alta'],
-  ['S1', 'Zoe Ficticia', true],
-  ['S2', 'Álvaro Falso', true],
-  ['S3', 'Berta Baja', false],
-  ['S4', 'Ñoño Inventado', 1],
-  ['S5', '', true], // sin nombre: se descarta
+  ['id_trabajador', 'Nombre_Secretaria', 'Alta', 'DNI'],
+  ['S1', 'Ficticia, Zoe', true, '11111111H'],
+  ['S2', 'Falso, Álvaro', true, '22222222J'],
+  ['S3', 'Baja, Berta', false, ''],
+  ['S4', 'Inventado, Ñoño', 1, '44444444A'],
+  ['S5', '', true, ''], // sin nombre: se descarta
 ];
 export const CONFIG = [
   ['Config_Notificaciones', '', ''],
@@ -121,10 +126,10 @@ export function fijarHora(env, iso) {
 export function filaData(env, c = {}) {
   const v = {
     ts: '2026-03-10T09:00:00Z', batch: 'BATCH_A', resp: 'R1', nombreResp: 'Ana Prueba', emailResp: 'ana@gala.test', year: 2026, mes: 3,
-    idC: 'C1', conc: 'Aptos', idS: 'S1', nomS: 'Zoe Ficticia', tipo: 'IMPORTE', valor: 100, source: 'WEBAPP', modo: 'NUEVO', corrige: '', ...c,
+    idC: 'C1', conc: 'Aptos', idS: 'S1', nomS: 'Ficticia, Zoe', tipo: 'IMPORTE', valor: 100, source: 'WEBAPP', modo: 'NUEVO', corrige: '', dni: '', ...c,
   };
   const ts = 'tsRaw' in c ? c.tsRaw : env.fecha(v.ts); // tsRaw: valor tal cual (texto, vacío…)
-  return [ts, v.batch, v.resp, v.nombreResp, v.emailResp, v.year, v.mes, v.idC, v.conc, v.idS, v.nomS, v.tipo, v.valor, v.source, v.modo, v.corrige];
+  return [ts, v.batch, v.resp, v.nombreResp, v.emailResp, v.year, v.mes, v.idC, v.conc, v.idS, v.nomS, v.tipo, v.valor, v.source, v.modo, v.corrige, v.dni];
 }
 
 export const cargarData = (env, filas) => env.data() && env.data().cargar([CAB_DATA, ...filas.map((f) => filaData(env, f))]);
@@ -134,8 +139,8 @@ export function envio(cambios = {}) {
   return {
     year: 2026, month: 3, responsable: RESP1, concepto: CONC1, modo: 'NUEVO', corrigeBatchId: '', tipoCorreccion: '',
     valores: [
-      { idSecretaria: 'S1', nombreSecretaria: 'Zoe Ficticia', valorStr: '100' },
-      { idSecretaria: 'S2', nombreSecretaria: 'Álvaro Falso', valorStr: '250,5' },
+      { idSecretaria: 'S1', nombreSecretaria: 'Ficticia, Zoe', valorStr: '100' },
+      { idSecretaria: 'S2', nombreSecretaria: 'Falso, Álvaro', valorStr: '250,5' },
     ],
     ...cambios,
   };
